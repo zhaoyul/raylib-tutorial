@@ -19,5 +19,4 @@ Classic Tetris game. Rotate and move blocks to complete rows.
 - **左右方向键 / A-D**: 移动方块
 - **上方向键 / W**: 旋转方块
 - **下方向键 / S**: 快速下落
-- **空格键**: 直接落下
 - **ESC**: 返回菜单
