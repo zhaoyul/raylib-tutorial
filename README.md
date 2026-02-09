@@ -33,6 +33,9 @@ This is a comprehensive tutorial project for learning C++, CMake, and Raylib fro
 - C++ 编译器 (GCC 7+, Clang 6+, MSVC 2017+)
 - CMake 3.15+
 - Git
+- 图形库依赖（Linux需要 X11 开发库）
+
+> **注意：** 在无图形界面的服务器环境中，需要安装图形库依赖才能编译。详见 [构建指南](docs/BUILD.md)。
 
 ### 构建步骤 / Build Instructions
 
@@ -40,6 +43,9 @@ This is a comprehensive tutorial project for learning C++, CMake, and Raylib fro
 # 克隆仓库 / Clone repository
 git clone https://github.com/zhaoyul/raylib-tutorial.git
 cd raylib-tutorial
+
+# Linux: 安装图形库依赖
+sudo apt install libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
 
 # 创建构建目录 / Create build directory
 mkdir build && cd build
@@ -49,8 +55,10 @@ cmake ..
 cmake --build .
 
 # 运行游戏 (示例) / Run game (example)
-./games/brick-breaker/brick-breaker
+./bin/games/brick-breaker
 ```
+
+> 详细构建说明请参考 [构建指南 / Build Guide](docs/BUILD.md)
 
 ## 📁 项目结构 / Project Structure
 
