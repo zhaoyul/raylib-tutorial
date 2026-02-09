@@ -35,13 +35,25 @@ struct Piece {
     int x, y;
 };
 
-bool grid[gridHeight][gridWidth] = {false};
+bool grid[gridHeight][gridWidth] = {};
 Color gridColors[gridHeight][gridWidth];
+
+static inline int shapeCell(int type, int rotation, int i, int j) {
+    // `shapes[type]` stores rotation 0. Rotate on-the-fly.
+    rotation &= 3;
+    switch (rotation) {
+        case 0: return shapes[type][i][j];
+        case 1: return shapes[type][3 - j][i];       // 90 deg clockwise
+        case 2: return shapes[type][3 - i][3 - j];   // 180 deg
+        case 3: return shapes[type][j][3 - i];       // 270 deg clockwise
+    }
+    return 0;
+}
 
 bool checkCollision(const Piece& piece) {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (shapes[piece.type][piece.rotation % 4][i][j]) {
+            if (shapeCell(piece.type, piece.rotation, i, j)) {
                 int newX = piece.x + j;
                 int newY = piece.y + i;
                 if (newX < 0 || newX >= gridWidth || newY >= gridHeight) return true;
@@ -55,7 +67,7 @@ bool checkCollision(const Piece& piece) {
 void placePiece(const Piece& piece) {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (shapes[piece.type][piece.rotation % 4][i][j]) {
+            if (shapeCell(piece.type, piece.rotation, i, j)) {
                 int newX = piece.x + j;
                 int newY = piece.y + i;
                 if (newY >= 0 && newY < gridHeight && newX >= 0 && newX < gridWidth) {
@@ -211,7 +223,7 @@ int main() {
             // 绘制当前方块
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    if (shapes[currentPiece.type][currentPiece.rotation % 4][i][j]) {
+                    if (shapeCell(currentPiece.type, currentPiece.rotation, i, j)) {
                         int drawX = offsetX + (currentPiece.x + j) * blockSize;
                         int drawY = offsetY + (currentPiece.y + i) * blockSize;
                         DrawRectangle(drawX + 1, drawY + 1, blockSize - 2, blockSize - 2,
