@@ -66,6 +66,111 @@ cmake --build .
 
 > 详细流程与示例请参考 [Janet 文档 / Janet Guide](docs/JANET.md)
 
+### Janet 编译 / 开发 / 调试 / 测试 / NetREPL
+
+下面的命令都假设你在仓库根目录 `raylib-tutorial/`。
+
+#### 1) 编译模块 (CMake)
+
+启用 Janet 子工程并只编译 `raylib_janet` 目标：
+
+```bash
+cmake -S . -B build -DBUILD_JANET=ON -DBUILD_GAMES=OFF -DBUILD_CHAPTERS=OFF
+cmake --build build --target raylib_janet -j
+```
+
+产物路径：`build/janet/raylib.so`（macOS/Linux）或 `build/janet/raylib.dll`（Windows）。
+
+#### 2) 开发 (推荐的环境变量)
+
+将“本仓库里的模块”和“本地构建的 native module”都加入 `JANET_PATH`：
+
+```bash
+export JANET_PATH="$(pwd)/build/janet:$(pwd)/janet"
+```
+
+如果你要用 NetREPL（下面第 5 节），还需要把 `spork` 也加入路径（见第 5 节）。
+
+#### 3) 调试 (Debug)
+
+最小化复现（只验证能 import）：
+
+```bash
+JANET_PATH="$(pwd)/build/janet" janet -e '(import raylib) (print "raylib loaded")'
+```
+
+使用 lldb 调试 Janet 进程（方便定位 `raylib_janet.cpp` 崩溃/断点）：
+
+```bash
+lldb -- janet -e '(import raylib) (print "loaded")'
+```
+
+改了 `janet/raylib_janet.cpp` 后的循环一般是：
+
+```bash
+cmake --build build --target raylib_janet -j
+JANET_PATH="$(pwd)/build/janet:$(pwd)/janet" janet janet/examples/smoke.janet
+```
+
+#### 4) 测试 (Smoke Tests)
+
+仓库内置了几个“不会卡死”的冒烟脚本：
+
+```bash
+# 只测 native module + raylib 能开窗/绘制/退出
+JANET_PATH="$(pwd)/build/janet" janet janet/examples/smoke.janet
+
+# 测 workflow 主循环 (不依赖 NetREPL)
+JANET_PATH="$(pwd)/build/janet:$(pwd)/janet" janet janet/examples/workflow-smoke.janet
+```
+
+建议在 CI 或脚本里配合 `timeout`（macOS Homebrew 自带）避免窗口挂住：
+
+```bash
+timeout 12s env JANET_PATH="$(pwd)/build/janet" janet janet/examples/smoke.janet
+```
+
+#### 5) NetREPL (网络 REPL, 用于远程/热更新控制)
+
+本项目使用的是 **spork/netrepl**（不是 Clojure 的 nREPL）。
+
+先把 `spork` 安装到本仓库的本地模块树（不污染全局，生成 `jpm_tree/`）：
+
+```bash
+jpm -l install spork
+```
+
+然后把 `spork` 加到 `JANET_PATH`：
+
+```bash
+export JANET_PATH="$(pwd)/build/janet:$(pwd)/janet:$(pwd)/jpm_tree/lib"
+```
+
+启动 host（会开 Raylib 窗口并监听 9365 端口）：
+
+```bash
+janet janet/examples/netrepl-host.janet
+```
+
+另开终端启动 client（交互式）：
+
+```bash
+janet janet/examples/netrepl-client.janet
+```
+
+连接后你可以在 client 输入 Janet 表达式，实时修改 host 进程中的状态，例如：
+
+```clojure
+(put demo-state :x 500)
+(put demo-state :y 100)
+```
+
+如果只想做自动化验证，也可以运行非交互 smoke client：
+
+```bash
+janet janet/examples/netrepl-smoke-client.janet
+```
+
 ## 📁 项目结构 / Project Structure
 
 ```

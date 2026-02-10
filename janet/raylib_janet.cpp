@@ -2,8 +2,8 @@
 
 #include "raylib.h"
 
-static unsigned char color_component(Janet value) {
-    int32_t channel = janet_getinteger(value);
+static unsigned char color_component(Janet *argv, int32_t n) {
+    int32_t channel = janet_getinteger(argv, n);
     if (channel < 0 || channel > 255) {
         janet_panicf("Color channel out of range: %d", channel);
     }
@@ -12,10 +12,10 @@ static unsigned char color_component(Janet value) {
 
 static Color color_from_args(Janet *argv, int32_t offset) {
     return Color{
-        color_component(argv[offset]),
-        color_component(argv[offset + 1]),
-        color_component(argv[offset + 2]),
-        color_component(argv[offset + 3])
+        color_component(argv, offset),
+        color_component(argv, offset + 1),
+        color_component(argv, offset + 2),
+        color_component(argv, offset + 3)
     };
 }
 
@@ -37,17 +37,20 @@ static Janet cfun_set_target_fps(int32_t argc, Janet *argv) {
 
 static Janet cfun_window_should_close(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 0);
+    (void) argv;
     return janet_wrap_boolean(WindowShouldClose());
 }
 
 static Janet cfun_begin_drawing(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 0);
+    (void) argv;
     BeginDrawing();
     return janet_wrap_nil();
 }
 
 static Janet cfun_end_drawing(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 0);
+    (void) argv;
     EndDrawing();
     return janet_wrap_nil();
 }
@@ -61,8 +64,8 @@ static Janet cfun_clear_background(int32_t argc, Janet *argv) {
 static Janet cfun_draw_text(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 8);
     const char *text = janet_getcstring(argv, 0);
-    int pos_x = janet_getinteger(argv, 1);
-    int pos_y = janet_getinteger(argv, 2);
+    int pos_x = static_cast<int>(janet_getnumber(argv, 1));
+    int pos_y = static_cast<int>(janet_getnumber(argv, 2));
     int font_size = janet_getinteger(argv, 3);
     DrawText(text, pos_x, pos_y, font_size, color_from_args(argv, 4));
     return janet_wrap_nil();
@@ -70,8 +73,8 @@ static Janet cfun_draw_text(int32_t argc, Janet *argv) {
 
 static Janet cfun_draw_circle(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 7);
-    int center_x = janet_getinteger(argv, 0);
-    int center_y = janet_getinteger(argv, 1);
+    int center_x = static_cast<int>(janet_getnumber(argv, 0));
+    int center_y = static_cast<int>(janet_getnumber(argv, 1));
     float radius = static_cast<float>(janet_getnumber(argv, 2));
     DrawCircle(center_x, center_y, radius, color_from_args(argv, 3));
     return janet_wrap_nil();
@@ -79,21 +82,23 @@ static Janet cfun_draw_circle(int32_t argc, Janet *argv) {
 
 static Janet cfun_draw_rectangle(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 8);
-    int pos_x = janet_getinteger(argv, 0);
-    int pos_y = janet_getinteger(argv, 1);
-    int width = janet_getinteger(argv, 2);
-    int height = janet_getinteger(argv, 3);
+    int pos_x = static_cast<int>(janet_getnumber(argv, 0));
+    int pos_y = static_cast<int>(janet_getnumber(argv, 1));
+    int width = static_cast<int>(janet_getnumber(argv, 2));
+    int height = static_cast<int>(janet_getnumber(argv, 3));
     DrawRectangle(pos_x, pos_y, width, height, color_from_args(argv, 4));
     return janet_wrap_nil();
 }
 
 static Janet cfun_get_frame_time(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 0);
+    (void) argv;
     return janet_wrap_number(static_cast<double>(GetFrameTime()));
 }
 
 static Janet cfun_close_window(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 0);
+    (void) argv;
     CloseWindow();
     return janet_wrap_nil();
 }
@@ -106,10 +111,11 @@ static Janet cfun_is_key_down(int32_t argc, Janet *argv) {
 
 static Janet cfun_get_mouse_position(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 0);
+    (void) argv;
     Vector2 pos = GetMousePosition();
-    JanetTuple *tuple = janet_tuple_begin(2);
-    janet_tuple_put(tuple, 0, janet_wrap_number(pos.x));
-    janet_tuple_put(tuple, 1, janet_wrap_number(pos.y));
+    Janet *tuple = janet_tuple_begin(2);
+    tuple[0] = janet_wrap_number(pos.x);
+    tuple[1] = janet_wrap_number(pos.y);
     return janet_wrap_tuple(janet_tuple_end(tuple));
 }
 

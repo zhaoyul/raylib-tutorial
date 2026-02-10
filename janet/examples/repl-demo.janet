@@ -9,11 +9,11 @@
   (let [x (+ (get demo-state :x) (* (get demo-state :vx) dt))
         y (+ (get demo-state :y) (* (get demo-state :vy) dt))]
     (when (or (< x 24) (> x 776))
-      (set demo-state :vx (- (get demo-state :vx))))
+      (put demo-state :vx (- (get demo-state :vx))))
     (when (or (< y 24) (> y 426))
-      (set demo-state :vy (- (get demo-state :vy))))
-    (set demo-state :x x)
-    (set demo-state :y y)))
+      (put demo-state :vy (- (get demo-state :vy))))
+    (put demo-state :x x)
+    (put demo-state :y y)))
 
 (defn draw [state]
   (raylib/draw-text "Edit update/draw in REPL!" 20 20 20 230 230 230 255)

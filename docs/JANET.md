@@ -9,7 +9,7 @@
 > 需要先安装 Janet 运行时（确保 `janet` 与 `pkg-config` 可用）。
 
 ```bash
-cmake -S . -B build -DBUILD_JANET=ON
+cmake -S . -B build -DBUILD_JANET=ON -DBUILD_GAMES=OFF -DBUILD_CHAPTERS=OFF
 cmake --build build --target raylib_janet
 ```
 
@@ -17,11 +17,10 @@ cmake --build build --target raylib_janet
 
 ## 2. REPL 启动 / Start the REPL
 
-> **重要：** Raylib 的 UI 必须运行在主线程。推荐在主线程启动 UI 和 NetREPL 服务器，然后使用 REPL 客户端连接。
+> **重要：** 在 macOS 上 Raylib 的 UI 需要在主线程运行。推荐在主线程启动 UI 和 NetREPL 服务器，然后使用 REPL 客户端连接。
 
 ```bash
-export JANET_PATH=/path/to/raylib-tutorial/janet
-export JANET_MODULE_PATH=/path/to/raylib-tutorial/build/janet
+export JANET_PATH="/path/to/raylib-tutorial/build/janet:/path/to/raylib-tutorial/janet"
 janet
 ```
 
@@ -45,8 +44,8 @@ janet
    (def game-state @{:x 200 :y 200 :vx 160 :vy 120})
 
    (defn update [dt state]
-     (set game-state :x (+ (get game-state :x) (* (get game-state :vx) dt)))
-     (set game-state :y (+ (get game-state :y) (* (get game-state :vy) dt))))
+     (put game-state :x (+ (get game-state :x) (* (get game-state :vx) dt)))
+     (put game-state :y (+ (get game-state :y) (* (get game-state :vy) dt))))
 
    (defn draw [state]
      (raylib/draw-text "Edit me in REPL" 20 20 20 240 240 240 255)
@@ -64,6 +63,13 @@ janet
 ## 3.1 主线程 NetREPL 工作流 / Main-thread NetREPL Workflow
 
 使用 NetREPL 服务器在主线程里运行 UI，并用 REPL 客户端连接：
+
+> 本项目使用的是 **spork/netrepl**（不是 Clojure 的 nREPL）。需要先安装 `spork` 到本仓库本地模块树：
+>
+> ```bash
+> jpm -l install spork
+> export JANET_PATH="/path/to/raylib-tutorial/build/janet:/path/to/raylib-tutorial/janet:/path/to/raylib-tutorial/jpm_tree/lib"
+> ```
 
 ```bash
 janet janet/examples/netrepl-host.janet
