@@ -17,6 +17,8 @@ cmake --build build --target raylib_janet
 
 ## 2. REPL 启动 / Start the REPL
 
+> **重要：** Raylib 的 UI 必须运行在主线程。推荐在主线程启动 UI 和 NetREPL 服务器，然后使用 REPL 客户端连接。
+
 ```bash
 export JANET_PATH=/path/to/raylib-tutorial/janet
 export JANET_MODULE_PATH=/path/to/raylib-tutorial/build/janet
@@ -59,6 +61,22 @@ janet
    (workflow/run-frames 120) # 渲染 120 帧
    ```
 
+## 3.1 主线程 NetREPL 工作流 / Main-thread NetREPL Workflow
+
+使用 NetREPL 服务器在主线程里运行 UI，并用 REPL 客户端连接：
+
+```bash
+janet janet/examples/netrepl-host.janet
+```
+
+另开终端连接：
+
+```bash
+janet janet/examples/netrepl-client.janet
+```
+
+连接后即可在客户端 REPL 中修改 `workflow/update` 与 `workflow/draw`。
+
 ### 热替换玩法 / Hot Reload Tricks
 
 在窗口运行中，你可以直接改写 `update` 或 `draw` 函数，下一帧立即生效。  
@@ -85,3 +103,9 @@ janet janet/examples/repl-demo.janet
 ```
 
 该示例会弹出窗口并显示提示文本，需要在 REPL 中手动重定义 `update` / `draw` 来观察变化。
+
+另有 NetREPL 示例（推荐主线程 UI）：
+
+```bash
+janet janet/examples/netrepl-host.janet
+```
