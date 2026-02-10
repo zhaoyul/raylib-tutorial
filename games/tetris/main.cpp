@@ -1,11 +1,13 @@
 #include "raylib.h"
 #include <vector>
 
-const int screenWidth = 400;
-const int screenHeight = 600;
 const int gridWidth = 10;
 const int gridHeight = 20;
 const int blockSize = 30;
+const int offsetX = 50;
+const int offsetY = 50;
+const int screenWidth = offsetX*2 + gridWidth*blockSize;
+const int screenHeight = offsetY*2 + gridHeight*blockSize;
 
 enum GameState { MENU, PLAYING, GAME_OVER };
 
@@ -110,6 +112,26 @@ int clearLines() {
 int main() {
     InitWindow(screenWidth, screenHeight, "俄罗斯方块 Tetris");
     SetTargetFPS(60);
+
+    Font uiFont = GetFontDefault();
+    bool ownsUIFont = false;
+    {
+        const char* fontPath = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
+        // Only load glyphs we actually render (plus ASCII in the strings below).
+        const char* allText =
+            "0123456789 俄罗斯方块 TETRIS 按 ENTER 开始 左右: 移动 上: 旋转 下: 加速 游戏结束 分数: 0 按 ENTER 返回";
+
+        int cpCount = 0;
+        int* cps = LoadCodepoints(allText, &cpCount);
+        Font f = LoadFontEx(fontPath, 32, cps, cpCount);
+        UnloadCodepoints(cps);
+
+        if (f.texture.id != 0) {
+            uiFont = f;
+            ownsUIFont = true;
+            SetTextureFilter(uiFont.texture, TEXTURE_FILTER_BILINEAR);
+        }
+    }
     
     GameState state = MENU;
     Piece currentPiece;
@@ -192,17 +214,14 @@ int main() {
         ClearBackground(RAYWHITE);
         
         if (state == MENU) {
-            DrawText("俄罗斯方块", screenWidth/2 - 100, 150, 30, DARKBLUE);
-            DrawText("TETRIS", screenWidth/2 - 60, 190, 25, BLUE);
-            DrawText("按 ENTER 开始", screenWidth/2 - 90, 250, 20, DARKGRAY);
-            DrawText("左右: 移动", 20, 320, 18, GRAY);
-            DrawText("上: 旋转", 20, 350, 18, GRAY);
-            DrawText("下: 加速", 20, 380, 18, GRAY);
+            DrawTextEx(uiFont, "俄罗斯方块", {(float)screenWidth/2 - 100.0f, 150.0f}, 30, 1, DARKBLUE);
+            DrawTextEx(uiFont, "TETRIS", {(float)screenWidth/2 - 60.0f, 190.0f}, 25, 1, BLUE);
+            DrawTextEx(uiFont, "按 ENTER 开始", {(float)screenWidth/2 - 90.0f, 250.0f}, 20, 1, DARKGRAY);
+            DrawTextEx(uiFont, "左右: 移动", {20.0f, 320.0f}, 18, 1, GRAY);
+            DrawTextEx(uiFont, "上: 旋转", {20.0f, 350.0f}, 18, 1, GRAY);
+            DrawTextEx(uiFont, "下: 加速", {20.0f, 380.0f}, 18, 1, GRAY);
         }
         else if (state == PLAYING) {
-            const int offsetX = 50;
-            const int offsetY = 50;
-            
             // 绘制网格
             DrawRectangleLines(offsetX - 2, offsetY - 2, 
                              gridWidth * blockSize + 4, gridHeight * blockSize + 4, BLACK);
@@ -233,17 +252,18 @@ int main() {
             }
             
             // 显示分数
-            DrawText(TextFormat("分数: %d", score), 10, 10, 20, DARKGRAY);
+            DrawTextEx(uiFont, TextFormat("分数: %d", score), {10.0f, 10.0f}, 20, 1, DARKGRAY);
         }
         else if (state == GAME_OVER) {
-            DrawText("游戏结束", screenWidth/2 - 80, 200, 35, RED);
-            DrawText(TextFormat("分数: %d", score), screenWidth/2 - 60, 260, 25, DARKGRAY);
-            DrawText("按 ENTER 返回", screenWidth/2 - 90, 320, 20, GRAY);
+            DrawTextEx(uiFont, "游戏结束", {(float)screenWidth/2 - 80.0f, 200.0f}, 35, 1, RED);
+            DrawTextEx(uiFont, TextFormat("分数: %d", score), {(float)screenWidth/2 - 60.0f, 260.0f}, 25, 1, DARKGRAY);
+            DrawTextEx(uiFont, "按 ENTER 返回", {(float)screenWidth/2 - 90.0f, 320.0f}, 20, 1, GRAY);
         }
         
         EndDrawing();
     }
     
+    if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;
 }

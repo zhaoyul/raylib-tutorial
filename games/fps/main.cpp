@@ -17,6 +17,30 @@ struct Target {
 int main() {
     InitWindow(screenWidth, screenHeight, "第一人称射击 FPS");
     SetTargetFPS(60);
+
+    Font uiFont = GetFontDefault();
+    bool ownsUIFont = false;
+    {
+        const char* fontPath = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
+        const char* allText =
+            "0123456789 第一人称射击 按 ENTER 开始 WASD: 移动 | 鼠标: 瞄准 左键: 射击 | ESC: 暂停 分数: 时间: 0.0 目标: 完成！ 剩余时间: 0.0 秒 时间到！ 最终分数: 按 ENTER 返回菜单";
+
+        int cpCount = 0;
+        int* cps = LoadCodepoints(allText, &cpCount);
+        Font f = LoadFontEx(fontPath, 64, cps, cpCount);
+        UnloadCodepoints(cps);
+
+        if (f.texture.id != 0) {
+            uiFont = f;
+            ownsUIFont = true;
+            SetTextureFilter(uiFont.texture, TEXTURE_FILTER_BILINEAR);
+        }
+    }
+
+    auto DrawTextCentered = [&](const char* text, float y, float fontSize, Color color) {
+        Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
+        DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
+    };
     
     GameState state = MENU;
     
@@ -126,11 +150,13 @@ int main() {
         ClearBackground(RAYWHITE);
         
         if (state == MENU) {
-            DrawText("第一人称射击", screenWidth/2 - 150, 150, 50, DARKBLUE);
+            DrawTextCentered("第一人称射击", 150, 50, DARKBLUE);
             DrawText("FPS GAME", screenWidth/2 - 80, 210, 30, BLUE);
-            DrawText("按 ENTER 开始", screenWidth/2 - 100, 280, 20, DARKGRAY);
-            DrawText("WASD: 移动 | 鼠标: 瞄准", screenWidth/2 - 140, 330, 20, GRAY);
-            DrawText("左键: 射击 | ESC: 暂停", screenWidth/2 - 140, 360, 20, GRAY);
+            DrawTextCentered("按 ENTER 开始", 280, 20, DARKGRAY);
+            DrawTextEx(uiFont, "WASD: 移动 | 鼠标: 瞄准",
+                       {(float)screenWidth/2 - 140.0f, 330.0f}, 20, 1.0f, GRAY);
+            DrawTextEx(uiFont, "左键: 射击 | ESC: 暂停",
+                       {(float)screenWidth/2 - 140.0f, 360.0f}, 20, 1.0f, GRAY);
         }
         else if (state == PLAYING) {
             BeginMode3D(camera);
@@ -160,28 +186,32 @@ int main() {
             
             // UI
             DrawRectangle(0, 0, screenWidth, 40, Fade(BLACK, 0.7f));
-            DrawText(TextFormat("分数: %d", score), 10, 10, 20, WHITE);
-            DrawText(TextFormat("时间: %.1f", gameTimer), screenWidth/2 - 50, 10, 20, YELLOW);
+            DrawTextEx(uiFont, TextFormat("分数: %d", score), {10.0f, 10.0f}, 20, 1.0f, WHITE);
+            DrawTextEx(uiFont, TextFormat("时间: %.1f", gameTimer),
+                       {(float)screenWidth/2 - 50.0f, 10.0f}, 20, 1.0f, YELLOW);
             
             int activeTargets = 0;
             for (const auto& t : targets) if (t.active) activeTargets++;
-            DrawText(TextFormat("目标: %d", activeTargets), screenWidth - 130, 10, 20, RED);
+            const char* tgtText = TextFormat("目标: %d", activeTargets);
+            Vector2 tgtSz = MeasureTextEx(uiFont, tgtText, 20, 1.0f);
+            DrawTextEx(uiFont, tgtText, {(float)screenWidth - 10.0f - tgtSz.x, 10.0f}, 20, 1.0f, RED);
         }
         else if (state == GAME_OVER) {
             bool won = gameTimer > 0;
             if (won) {
-                DrawText("完成！", screenWidth/2 - 80, 200, 50, GREEN);
-                DrawText(TextFormat("剩余时间: %.1f 秒", gameTimer), screenWidth/2 - 120, 270, 22, DARKGRAY);
+                DrawTextCentered("完成！", 200, 50, GREEN);
+                DrawTextCentered(TextFormat("剩余时间: %.1f 秒", gameTimer), 270, 22, DARKGRAY);
             } else {
-                DrawText("时间到！", screenWidth/2 - 90, 200, 50, RED);
+                DrawTextCentered("时间到！", 200, 50, RED);
             }
-            DrawText(TextFormat("最终分数: %d", score), screenWidth/2 - 90, 310, 25, DARKGRAY);
-            DrawText("按 ENTER 返回菜单", screenWidth/2 - 120, 360, 20, GRAY);
+            DrawTextCentered(TextFormat("最终分数: %d", score), 310, 25, DARKGRAY);
+            DrawTextCentered("按 ENTER 返回菜单", 360, 20, GRAY);
         }
         
         EndDrawing();
     }
     
+    if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;
 }

@@ -21,6 +21,30 @@ struct Position {
 int main() {
     InitWindow(screenWidth, screenHeight, "贪吃蛇 Snake");
     SetTargetFPS(60);
+
+    Font uiFont = GetFontDefault();
+    bool ownsUIFont = false;
+    {
+        const char* fontPath = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
+        const char* allText =
+            "0123456789 贪吃蛇 按 ENTER 或 空格 开始游戏 操作: 方向键或 WASD 分数: 长度: 游戏结束 最终分数: 蛇的长度: 按 ENTER 返回菜单";
+
+        int cpCount = 0;
+        int* cps = LoadCodepoints(allText, &cpCount);
+        Font f = LoadFontEx(fontPath, 64, cps, cpCount);
+        UnloadCodepoints(cps);
+
+        if (f.texture.id != 0) {
+            uiFont = f;
+            ownsUIFont = true;
+            SetTextureFilter(uiFont.texture, TEXTURE_FILTER_BILINEAR);
+        }
+    }
+
+    auto DrawTextCentered = [&](const char* text, float y, float fontSize, Color color) {
+        Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
+        DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
+    };
     
     GameState state = MENU;
     Direction direction = RIGHT;
@@ -141,10 +165,10 @@ int main() {
         ClearBackground(RAYWHITE);
         
         if (state == MENU) {
-            DrawText("贪吃蛇", screenWidth/2 - 120, 150, 60, DARKGREEN);
+            DrawTextCentered("贪吃蛇", 150, 60, DARKGREEN);
             DrawText("SNAKE", screenWidth/2 - 80, 220, 40, GREEN);
-            DrawText("按 ENTER 或 空格 开始游戏", screenWidth/2 - 180, 300, 20, DARKGRAY);
-            DrawText("操作: 方向键或 WASD", screenWidth/2 - 140, 350, 20, GRAY);
+            DrawTextCentered("按 ENTER 或 空格 开始游戏", 300, 20, DARKGRAY);
+            DrawTextCentered("操作: 方向键或 WASD", 350, 20, GRAY);
         }
         else if (state == PLAYING) {
             // 绘制网格
@@ -167,19 +191,24 @@ int main() {
             }
             
             // 绘制分数
-            DrawText(TextFormat("分数: %d", score), 10, 10, 25, DARKGRAY);
-            DrawText(TextFormat("长度: %d", (int)snake.size()), screenWidth - 150, 10, 25, DARKGRAY);
+            const char* scoreText = TextFormat("分数: %d", score);
+            DrawTextEx(uiFont, scoreText, {10.0f, 10.0f}, 25, 1.0f, DARKGRAY);
+
+            const char* lenText = TextFormat("长度: %d", (int)snake.size());
+            Vector2 lenSz = MeasureTextEx(uiFont, lenText, 25, 1.0f);
+            DrawTextEx(uiFont, lenText, {(float)screenWidth - 10.0f - lenSz.x, 10.0f}, 25, 1.0f, DARKGRAY);
         }
         else if (state == GAME_OVER) {
-            DrawText("游戏结束", screenWidth/2 - 120, 200, 50, RED);
-            DrawText(TextFormat("最终分数: %d", score), screenWidth/2 - 100, 280, 30, DARKGRAY);
-            DrawText(TextFormat("蛇的长度: %d", (int)snake.size()), screenWidth/2 - 100, 320, 25, DARKGRAY);
-            DrawText("按 ENTER 返回菜单", screenWidth/2 - 130, 380, 20, GRAY);
+            DrawTextCentered("游戏结束", 200, 50, RED);
+            DrawTextCentered(TextFormat("最终分数: %d", score), 280, 30, DARKGRAY);
+            DrawTextCentered(TextFormat("蛇的长度: %d", (int)snake.size()), 320, 25, DARKGRAY);
+            DrawTextCentered("按 ENTER 返回菜单", 380, 20, GRAY);
         }
         
         EndDrawing();
     }
     
+    if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;
 }

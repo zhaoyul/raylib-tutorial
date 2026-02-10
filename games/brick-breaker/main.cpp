@@ -26,6 +26,30 @@ struct Brick {
 int main() {
     InitWindow(screenWidth, screenHeight, "打砖块 Brick Breaker");
     SetTargetFPS(60);
+
+    Font uiFont = GetFontDefault();
+    bool ownsUIFont = false;
+    {
+        const char* fontPath = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
+        const char* allText =
+            "0123456789 打砖块 按 ENTER 开始游戏 操作: 左右方向键或 A/D - 移动挡板 空格键 - 发射球 分数: 生命: 暂停 按 P 继续 游戏结束 最终分数: 按 ENTER 返回菜单 恭喜胜利！";
+
+        int cpCount = 0;
+        int* cps = LoadCodepoints(allText, &cpCount);
+        Font f = LoadFontEx(fontPath, 64, cps, cpCount);
+        UnloadCodepoints(cps);
+
+        if (f.texture.id != 0) {
+            uiFont = f;
+            ownsUIFont = true;
+            SetTextureFilter(uiFont.texture, TEXTURE_FILTER_BILINEAR);
+        }
+    }
+
+    auto DrawTextCentered = [&](const char* text, float y, float fontSize, Color color) {
+        Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
+        DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
+    };
     
     GameState state = MENU;
     int score = 0;
@@ -167,16 +191,20 @@ int main() {
         ClearBackground(RAYWHITE);
         
         if (state == MENU) {
-            DrawText("打砖块", screenWidth/2 - 100, 150, 60, DARKBLUE);
-            DrawText("BRICK BREAKER", screenWidth/2 - 150, 220, 30, BLUE);
-            DrawText("按 ENTER 开始游戏", screenWidth/2 - 130, 300, 20, DARKGRAY);
-            DrawText("操作: 左右方向键或 A/D - 移动挡板", screenWidth/2 - 200, 350, 20, GRAY);
-            DrawText("     空格键 - 发射球", screenWidth/2 - 200, 380, 20, GRAY);
+            DrawTextCentered("打砖块", 150, 60, DARKBLUE);
+            DrawTextCentered("BRICK BREAKER", 220, 30, BLUE);
+            DrawTextCentered("按 ENTER 开始游戏", 300, 20, DARKGRAY);
+            DrawTextCentered("操作: 左右方向键或 A/D - 移动挡板", 350, 20, GRAY);
+            DrawTextCentered("空格键 - 发射球", 380, 20, GRAY);
         }
         else if (state == PLAYING || state == PAUSED) {
             // 绘制UI
-            DrawText(TextFormat("分数: %d", score), 10, 10, 25, DARKGRAY);
-            DrawText(TextFormat("生命: %d", lives), screenWidth - 120, 10, 25, RED);
+            const char* scoreText = TextFormat("分数: %d", score);
+            DrawTextEx(uiFont, scoreText, {10.0f, 10.0f}, 25, 1.0f, DARKGRAY);
+
+            const char* livesText = TextFormat("生命: %d", lives);
+            Vector2 livesSz = MeasureTextEx(uiFont, livesText, 25, 1.0f);
+            DrawTextEx(uiFont, livesText, {(float)screenWidth - 10.0f - livesSz.x, 10.0f}, 25, 1.0f, RED);
             
             // 绘制砖块
             for (const auto& brick : bricks) {
@@ -195,24 +223,25 @@ int main() {
             // 暂停提示
             if (state == PAUSED) {
                 DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.5f));
-                DrawText("暂停", screenWidth/2 - 60, screenHeight/2 - 40, 40, WHITE);
-                DrawText("按 P 继续", screenWidth/2 - 70, screenHeight/2 + 20, 20, WHITE);
+                DrawTextCentered("暂停", screenHeight/2 - 40, 40, WHITE);
+                DrawTextCentered("按 P 继续", screenHeight/2 + 20, 20, WHITE);
             }
         }
         else if (state == GAME_OVER) {
-            DrawText("游戏结束", screenWidth/2 - 120, 200, 50, RED);
-            DrawText(TextFormat("最终分数: %d", score), screenWidth/2 - 100, 280, 30, DARKGRAY);
-            DrawText("按 ENTER 返回菜单", screenWidth/2 - 130, 350, 20, GRAY);
+            DrawTextCentered("游戏结束", 200, 50, RED);
+            DrawTextCentered(TextFormat("最终分数: %d", score), 280, 30, DARKGRAY);
+            DrawTextCentered("按 ENTER 返回菜单", 350, 20, GRAY);
         }
         else if (state == WIN) {
-            DrawText("恭喜胜利！", screenWidth/2 - 120, 200, 50, GREEN);
-            DrawText(TextFormat("最终分数: %d", score), screenWidth/2 - 100, 280, 30, DARKGRAY);
-            DrawText("按 ENTER 返回菜单", screenWidth/2 - 130, 350, 20, GRAY);
+            DrawTextCentered("恭喜胜利！", 200, 50, GREEN);
+            DrawTextCentered(TextFormat("最终分数: %d", score), 280, 30, DARKGRAY);
+            DrawTextCentered("按 ENTER 返回菜单", 350, 20, GRAY);
         }
         
         EndDrawing();
     }
     
+    if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;
 }

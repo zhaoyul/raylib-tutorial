@@ -30,6 +30,30 @@ struct Wall {
 int main() {
     InitWindow(screenWidth, screenHeight, "坦克大战 Tank Battle");
     SetTargetFPS(60);
+
+    Font uiFont = GetFontDefault();
+    bool ownsUIFont = false;
+    {
+        const char* fontPath = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
+        const char* allText =
+            "0123456789 坦克大战 按 ENTER 开始 WASD: 移动 | 空格: 射击 分数: 生命: 游戏结束 按 ENTER 返回 胜利！";
+
+        int cpCount = 0;
+        int* cps = LoadCodepoints(allText, &cpCount);
+        Font f = LoadFontEx(fontPath, 64, cps, cpCount);
+        UnloadCodepoints(cps);
+
+        if (f.texture.id != 0) {
+            uiFont = f;
+            ownsUIFont = true;
+            SetTextureFilter(uiFont.texture, TEXTURE_FILTER_BILINEAR);
+        }
+    }
+
+    auto DrawTextCentered = [&](const char* text, float y, float fontSize, Color color) {
+        Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
+        DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
+    };
     
     GameState state = MENU;
     Tank player = {400, 500, 40, UP, BLUE, 3};
@@ -180,15 +204,20 @@ int main() {
         ClearBackground(Fade(GREEN, 0.2f));
         
         if (state == MENU) {
-            DrawText("坦克大战", screenWidth/2 - 100, 150, 50, DARKBLUE);
+            DrawTextCentered("坦克大战", 150, 50, DARKBLUE);
             DrawText("TANK BATTLE", screenWidth/2 - 100, 210, 25, BLUE);
-            DrawText("按 ENTER 开始", screenWidth/2 - 100, 280, 20, DARKGRAY);
-            DrawText("WASD: 移动 | 空格: 射击", screenWidth/2 - 140, 330, 20, GRAY);
+            DrawTextCentered("按 ENTER 开始", 280, 20, DARKGRAY);
+            DrawTextEx(uiFont, "WASD: 移动 | 空格: 射击",
+                       {(float)screenWidth/2 - 140.0f, 330.0f}, 20, 1.0f, GRAY);
         }
         else if (state == PLAYING) {
             // 绘制UI
-            DrawText(TextFormat("分数: %d", score), 10, 10, 25, DARKGRAY);
-            DrawText(TextFormat("生命: %d", player.health), screenWidth - 120, 10, 25, RED);
+            const char* scoreText = TextFormat("分数: %d", score);
+            DrawTextEx(uiFont, scoreText, {10.0f, 10.0f}, 25, 1.0f, DARKGRAY);
+
+            const char* hpText = TextFormat("生命: %d", player.health);
+            Vector2 hpSz = MeasureTextEx(uiFont, hpText, 25, 1.0f);
+            DrawTextEx(uiFont, hpText, {(float)screenWidth - 10.0f - hpSz.x, 10.0f}, 25, 1.0f, RED);
             
             // 绘制墙壁
             for (const auto& wall : walls) {
@@ -219,19 +248,20 @@ int main() {
             }
         }
         else if (state == GAME_OVER) {
-            DrawText("游戏结束", screenWidth/2 - 100, 200, 45, RED);
-            DrawText(TextFormat("分数: %d", score), screenWidth/2 - 70, 270, 28, DARKGRAY);
-            DrawText("按 ENTER 返回", screenWidth/2 - 100, 330, 20, GRAY);
+            DrawTextCentered("游戏结束", 200, 45, RED);
+            DrawTextCentered(TextFormat("分数: %d", score), 270, 28, DARKGRAY);
+            DrawTextCentered("按 ENTER 返回", 330, 20, GRAY);
         }
         else if (state == WIN) {
-            DrawText("胜利！", screenWidth/2 - 80, 200, 50, GREEN);
-            DrawText(TextFormat("分数: %d", score), screenWidth/2 - 70, 270, 28, DARKGRAY);
-            DrawText("按 ENTER 返回", screenWidth/2 - 100, 330, 20, GRAY);
+            DrawTextCentered("胜利！", 200, 50, GREEN);
+            DrawTextCentered(TextFormat("分数: %d", score), 270, 28, DARKGRAY);
+            DrawTextCentered("按 ENTER 返回", 330, 20, GRAY);
         }
         
         EndDrawing();
     }
     
+    if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;
 }

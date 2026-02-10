@@ -16,7 +16,7 @@ bool CheckCollisionRecs(Rectangle rec1, Rectangle rec2);
 
 ### 圆形碰撞
 ```cpp
-bool CheckCollisionCircles(Vector2 center1, float radius1, 
+bool CheckCollisionCircles(Vector2 center1, float radius1,
                           Vector2 center2, float radius2);
 ```
 

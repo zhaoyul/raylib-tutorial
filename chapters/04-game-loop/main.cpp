@@ -13,12 +13,12 @@ int main() {
     const int screenHeight = 600;
     InitWindow(screenWidth, screenHeight, "第4章: 游戏循环示例");
     SetTargetFPS(60);
-    
+
     std::vector<Ball> balls;
-    
+
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
-        
+
         // 输入处理
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             Vector2 mousePos = GetMousePosition();
@@ -31,12 +31,12 @@ int main() {
             newBall.color = ColorFromHSV(GetRandomValue(0, 360), 0.8f, 0.9f);
             balls.push_back(newBall);
         }
-        
+
         // 更新
         for (auto& ball : balls) {
             ball.x += ball.vx * deltaTime;
             ball.y += ball.vy * deltaTime;
-            
+
             // 边界反弹
             if (ball.x < ball.radius || ball.x > screenWidth - ball.radius) {
                 ball.vx = -ball.vx;
@@ -47,21 +47,21 @@ int main() {
                 ball.y = (ball.y < ball.radius) ? ball.radius : screenHeight - ball.radius;
             }
         }
-        
+
         // 渲染
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        
+
         DrawText("游戏循环示例 - 点击创建弹跳球", 10, 10, 20, DARKGRAY);
         DrawText(TextFormat("球数量: %d | FPS: %d", (int)balls.size(), GetFPS()), 10, 40, 20, DARKGRAY);
-        
+
         for (const auto& ball : balls) {
             DrawCircle((int)ball.x, (int)ball.y, ball.radius, ball.color);
         }
-        
+
         EndDrawing();
     }
-    
+
     CloseWindow();
     return 0;
 }

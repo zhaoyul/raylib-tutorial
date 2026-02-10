@@ -15,10 +15,10 @@
 while (!WindowShouldClose()) {
     // 1. 处理输入
     HandleInput();
-    
+
     // 2. 更新游戏状态
     Update(deltaTime);
-    
+
     // 3. 渲染画面
     Render();
 }

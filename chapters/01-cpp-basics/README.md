@@ -52,7 +52,7 @@ class Player {
 public:
     int health;
     float x, y;
-    
+
     void move(float dx, float dy) {
         x += dx;
         y += dy;

@@ -40,6 +40,30 @@ std::vector<Vector2> pathPoints = {
 int main() {
     InitWindow(screenWidth, screenHeight, "塔防游戏 Tower Defense");
     SetTargetFPS(60);
+
+    Font uiFont = GetFontDefault();
+    bool ownsUIFont = false;
+    {
+        const char* fontPath = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
+        const char* allText =
+            "0123456789 塔防游戏 按 ENTER 开始 鼠标左键: 放置塔 (100金币) 金币: 生命: 波次: 0/10 分数: 下一波即将到来... 游戏结束 波次: 0 | 分数: 0 按 ENTER 返回 胜利！ 最终分数:";
+
+        int cpCount = 0;
+        int* cps = LoadCodepoints(allText, &cpCount);
+        Font f = LoadFontEx(fontPath, 64, cps, cpCount);
+        UnloadCodepoints(cps);
+
+        if (f.texture.id != 0) {
+            uiFont = f;
+            ownsUIFont = true;
+            SetTextureFilter(uiFont.texture, TEXTURE_FILTER_BILINEAR);
+        }
+    }
+
+    auto DrawTextCentered = [&](const char* text, float y, float fontSize, Color color) {
+        Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
+        DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
+    };
     
     GameState state = MENU;
     std::vector<Enemy> enemies;
@@ -223,10 +247,10 @@ int main() {
         ClearBackground(Fade(GREEN, 0.3f));
         
         if (state == MENU) {
-            DrawText("塔防游戏", screenWidth/2 - 100, 150, 50, DARKBLUE);
+            DrawTextCentered("塔防游戏", 150, 50, DARKBLUE);
             DrawText("TOWER DEFENSE", screenWidth/2 - 130, 210, 25, BLUE);
-            DrawText("按 ENTER 开始", screenWidth/2 - 100, 280, 20, DARKGRAY);
-            DrawText("鼠标左键: 放置塔 (100金币)", screenWidth/2 - 150, 340, 18, GRAY);
+            DrawTextCentered("按 ENTER 开始", 280, 20, DARKGRAY);
+            DrawTextCentered("鼠标左键: 放置塔 (100金币)", 340, 18, GRAY);
         }
         else if (state == PLAYING) {
             // 绘制路径
@@ -261,30 +285,30 @@ int main() {
             
             // UI
             DrawRectangle(0, 0, screenWidth, 35, Fade(BLACK, 0.7f));
-            DrawText(TextFormat("金币: %d", money), 10, 8, 20, YELLOW);
-            DrawText(TextFormat("生命: %d", lives), 150, 8, 20, RED);
-            DrawText(TextFormat("波次: %d/10", wave), 300, 8, 20, WHITE);
-            DrawText(TextFormat("分数: %d", score), 500, 8, 20, GREEN);
+            DrawTextEx(uiFont, TextFormat("金币: %d", money), {10.0f, 8.0f}, 20, 1.0f, YELLOW);
+            DrawTextEx(uiFont, TextFormat("生命: %d", lives), {150.0f, 8.0f}, 20, 1.0f, RED);
+            DrawTextEx(uiFont, TextFormat("波次: %d/10", wave), {300.0f, 8.0f}, 20, 1.0f, WHITE);
+            DrawTextEx(uiFont, TextFormat("分数: %d", score), {500.0f, 8.0f}, 20, 1.0f, GREEN);
             
             if (enemies.empty()) {
-                DrawText("下一波即将到来...", screenWidth/2 - 100, screenHeight - 40, 20, WHITE);
+                DrawTextCentered("下一波即将到来...", screenHeight - 40, 20, WHITE);
             }
         }
         else if (state == GAME_OVER) {
-            DrawText("游戏结束", screenWidth/2 - 100, 200, 45, RED);
-            DrawText(TextFormat("波次: %d | 分数: %d", wave, score), 
-                    screenWidth/2 - 120, 270, 22, DARKGRAY);
-            DrawText("按 ENTER 返回", screenWidth/2 - 100, 330, 20, GRAY);
+            DrawTextCentered("游戏结束", 200, 45, RED);
+            DrawTextCentered(TextFormat("波次: %d | 分数: %d", wave, score), 270, 22, DARKGRAY);
+            DrawTextCentered("按 ENTER 返回", 330, 20, GRAY);
         }
         else if (state == WIN) {
-            DrawText("胜利！", screenWidth/2 - 70, 200, 50, GREEN);
-            DrawText(TextFormat("最终分数: %d", score), screenWidth/2 - 90, 270, 25, DARKGRAY);
-            DrawText("按 ENTER 返回", screenWidth/2 - 100, 330, 20, GRAY);
+            DrawTextCentered("胜利！", 200, 50, GREEN);
+            DrawTextCentered(TextFormat("最终分数: %d", score), 270, 25, DARKGRAY);
+            DrawTextCentered("按 ENTER 返回", 330, 20, GRAY);
         }
         
         EndDrawing();
     }
     
+    if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;
 }

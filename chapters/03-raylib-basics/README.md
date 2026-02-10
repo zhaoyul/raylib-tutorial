@@ -27,7 +27,7 @@ int main() {
     // 初始化窗口
     InitWindow(800, 600, "My First Raylib Window");
     SetTargetFPS(60);
-    
+
     // 主循环
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -35,7 +35,7 @@ int main() {
         DrawText("Hello Raylib!", 300, 250, 20, BLACK);
         EndDrawing();
     }
-    
+
     CloseWindow();
     return 0;
 }
