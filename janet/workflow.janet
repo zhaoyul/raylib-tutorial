@@ -11,7 +11,7 @@
 (def step-fn nil)
 (def netrepl-state @{:server nil :host "127.0.0.1" :port 9365})
 
-(defn normalize-port [port]
+(defn ensure-port-string [port]
   (if (string? port)
     port
     (string port)))
@@ -79,11 +79,10 @@
 
 (defn start-netrepl [&named host port]
   (def server-host (or host (get netrepl-state :host)))
-  (def port-value (or port (get netrepl-state :port)))
-  (def server-port (normalize-port port-value))
+  (def server-port (ensure-port-string (or port (get netrepl-state :port))))
   (def env (fiber/getenv (fiber/current)))
   (put netrepl-state :host server-host)
-  (put netrepl-state :port port-value)
+  (put netrepl-state :port (or port (get netrepl-state :port)))
   (put netrepl-state :server
        (ev/go (fn [] (netrepl/server server-host server-port env))))
   netrepl-state)
