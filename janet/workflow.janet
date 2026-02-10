@@ -11,11 +11,6 @@
 (def step-fn nil)
 (def netrepl-state @{:server nil :host "127.0.0.1" :port 9365})
 
-(defn ensure-port-string [port]
-  (if (string? port)
-    port
-    (string port)))
-
 (defn init [title width height &named fps]
   (raylib/init-window width height title)
   (raylib/set-target-fps (or fps 60))
@@ -79,10 +74,11 @@
 
 (defn start-netrepl [&named host port]
   (def server-host (or host (get netrepl-state :host)))
-  (def server-port (ensure-port-string (or port (get netrepl-state :port))))
+  (def port-value (or port (get netrepl-state :port)))
+  (def server-port (if (string? port-value) port-value (string port-value)))
   (def env (fiber/getenv (fiber/current)))
   (put netrepl-state :host server-host)
-  (put netrepl-state :port (or port (get netrepl-state :port)))
+  (put netrepl-state :port server-port)
   (put netrepl-state :server
        (ev/go (fn [] (netrepl/server server-host server-port env))))
   netrepl-state)
