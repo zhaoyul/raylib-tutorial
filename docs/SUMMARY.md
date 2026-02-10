@@ -109,6 +109,7 @@
 ✅ 中英文文档
 ✅ 详细的学习指南
 ✅ 构建说明文档
+✅ Janet REPL 互操作实验环境
 
 ## 待完善功能 / Future Enhancements
 

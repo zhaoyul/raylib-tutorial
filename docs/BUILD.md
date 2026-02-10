@@ -92,6 +92,38 @@ cmake --build . --config Release
 ./bin/games/fps
 ```
 
+## Janet + Raylib 互操作模块（可选）
+
+### 依赖安装
+
+Janet 需要单独安装（系统包或源码构建），确保 `janet` 和 `pkg-config` 可用：
+
+```bash
+# Ubuntu/Debian
+sudo apt install janet pkg-config
+
+# macOS (Homebrew)
+brew install janet pkg-config
+```
+
+### 构建 Janet 模块
+
+```bash
+# 在构建目录启用 Janet 模块
+cmake -DBUILD_JANET=ON ..
+cmake --build . --target raylib_janet
+```
+
+### REPL 使用（示例）
+
+```bash
+export JANET_PATH=/path/to/raylib-tutorial/janet
+export JANET_MODULE_PATH=/path/to/raylib-tutorial/build/janet
+janet
+```
+
+更多 REPL 工作流请参考 [docs/JANET.md](JANET.md)。
+
 ## 常见问题 / Troubleshooting
 
 ### 问题：找不到 X11 库（Linux）
