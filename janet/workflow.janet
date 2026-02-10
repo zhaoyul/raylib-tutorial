@@ -56,6 +56,7 @@
 (defn run []
   (while (not (raylib/window-should-close))
     (step))
+  (stop-netrepl)
   (raylib/close-window))
 
 (defn reset-loop []
@@ -74,13 +75,19 @@
 
 (defn start-netrepl [&named host port]
   (def server-host (or host (get netrepl-state :host)))
-  (def port-value (or port (get netrepl-state :port)))
+  (def port-value (or port (get netrepl-state :port) 9365))
   (def server-port (if (string? port-value) port-value (string port-value)))
   (def env (fiber/getenv (fiber/current)))
   (put netrepl-state :host server-host)
   (put netrepl-state :port server-port)
   (put netrepl-state :server
        (ev/go (fn [] (netrepl/server server-host server-port env))))
+  netrepl-state)
+
+(defn stop-netrepl []
+  (when (get netrepl-state :server)
+    (:close (get netrepl-state :server))
+    (put netrepl-state :server nil))
   netrepl-state)
 
 (def template
