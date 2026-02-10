@@ -84,4 +84,4 @@ janet my-game.janet
 janet janet/examples/repl-demo.janet
 ```
 
-该示例会弹出窗口，并提示你在 REPL 中修改 `update` / `draw`。
+该示例会弹出窗口并显示提示文本，需要在 REPL 中手动重定义 `update` / `draw` 来观察变化。

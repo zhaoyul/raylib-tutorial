@@ -5,18 +5,19 @@
 (def update (fn [_ _] nil))
 (def draw (fn [_] nil))
 (def default-background (tuple 18 18 18 255))
-(def game-fiber nil)
+(def frame-fiber nil)
+(def step-fn nil)
 
 (defn init [title width height &named fps]
   (raylib/init-window width height title)
   (raylib/set-target-fps (or fps 60))
-  (set state :title title)
-  (set state :size (tuple width height))
-  (set state :background default-background)
+  (put state :title title)
+  (put state :size (tuple width height))
+  (put state :background default-background)
   state)
 
 (defn set-background [r g b a]
-  (set state :background (tuple r g b a)))
+  (put state :background (tuple r g b a)))
 
 (defn add-entity [entity]
   (array/push entities entity)
@@ -39,6 +40,8 @@
       ((get entity :draw) state entity)))
   (raylib/end-drawing))
 
+(set step-fn step)
+
 (defn run-frames [frames]
   (dotimes [_ frames]
     (when (raylib/window-should-close)
@@ -51,17 +54,18 @@
   (raylib/close-window))
 
 (defn reset-loop []
-  (set game-fiber
+  (set step-fn step)
+  (set frame-fiber
     (fiber (fn []
       (while (not (raylib/window-should-close))
-        (step)
+        (step-fn)
         (yield :frame)))))
-  game-fiber)
+  frame-fiber)
 
 (defn step-frame []
-  (when (nil? game-fiber)
+  (when (nil? frame-fiber)
     (reset-loop))
-  (resume game-fiber))
+  (resume frame-fiber))
 
 (def template
   (string

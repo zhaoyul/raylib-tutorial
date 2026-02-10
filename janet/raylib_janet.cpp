@@ -2,12 +2,20 @@
 
 #include "raylib.h"
 
+static unsigned char color_component(Janet value) {
+    int32_t channel = janet_getinteger(value);
+    if (channel < 0 || channel > 255) {
+        janet_panicf("Color channel out of range: %d", channel);
+    }
+    return static_cast<unsigned char>(channel);
+}
+
 static Color color_from_args(Janet *argv, int32_t offset) {
     return Color{
-        static_cast<unsigned char>(janet_getinteger(argv[offset])),
-        static_cast<unsigned char>(janet_getinteger(argv[offset + 1])),
-        static_cast<unsigned char>(janet_getinteger(argv[offset + 2])),
-        static_cast<unsigned char>(janet_getinteger(argv[offset + 3]))
+        color_component(argv[offset]),
+        color_component(argv[offset + 1]),
+        color_component(argv[offset + 2]),
+        color_component(argv[offset + 3])
     };
 }
 
