@@ -64,18 +64,18 @@ int main() {
         Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
         DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
     };
-    
+
     GameState state = MENU;
     std::vector<Enemy> enemies;
     std::vector<Tower> towers;
     std::vector<Bullet> bullets;
-    
+
     int money = 500;
     int lives = 10;
     int wave = 0;
     float waveTimer = 0;
     int score = 0;
-    
+
     auto spawnWave = [&]() {
         wave++;
         for (int i = 0; i < 5 + wave * 2; i++) {
@@ -90,10 +90,10 @@ int main() {
             enemies.push_back(e);
         }
     };
-    
+
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
-        
+
         if (state == MENU) {
             if (IsKeyPressed(KEY_ENTER)) {
                 state = PLAYING;
@@ -114,7 +114,7 @@ int main() {
                 // 检查是否在路径上
                 bool onPath = false;
                 for (size_t i = 0; i < pathPoints.size() - 1; i++) {
-                    if (CheckCollisionPointLine(mousePos, pathPoints[i], 
+                    if (CheckCollisionPointLine(mousePos, pathPoints[i],
                                                pathPoints[i+1], 30)) {
                         onPath = true;
                         break;
@@ -132,7 +132,7 @@ int main() {
                     money -= 100;
                 }
             }
-            
+
             // 更新敌人
             for (auto& enemy : enemies) {
                 if (enemy.active) {
@@ -140,7 +140,7 @@ int main() {
                         Vector2 target = pathPoints[enemy.pathIndex + 1];
                         Vector2 dir = {target.x - enemy.x, target.y - enemy.y};
                         float dist = sqrtf(dir.x * dir.x + dir.y * dir.y);
-                        
+
                         if (dist < 5) {
                             enemy.pathIndex++;
                         } else {
@@ -156,7 +156,7 @@ int main() {
                     }
                 }
             }
-            
+
             // 更新塔
             for (auto& tower : towers) {
                 tower.fireTimer += deltaTime;
@@ -164,7 +164,7 @@ int main() {
                     // 寻找范围内的敌人
                     for (auto& enemy : enemies) {
                         if (enemy.active) {
-                            float dist = sqrtf(pow(enemy.x - tower.x, 2) + 
+                            float dist = sqrtf(pow(enemy.x - tower.x, 2) +
                                              pow(enemy.y - tower.y, 2));
                             if (dist <= tower.range) {
                                 Bullet b;
@@ -183,19 +183,19 @@ int main() {
                     }
                 }
             }
-            
+
             // 更新子弹
             for (auto& bullet : bullets) {
                 if (bullet.active) {
                     Vector2 dir = {bullet.targetX - bullet.x, bullet.targetY - bullet.y};
                     float dist = sqrtf(dir.x * dir.x + dir.y * dir.y);
-                    
+
                     if (dist < 10) {
                         bullet.active = false;
                         // 击中敌人
                         for (auto& enemy : enemies) {
                             if (enemy.active) {
-                                float enemyDist = sqrtf(pow(enemy.x - bullet.targetX, 2) + 
+                                float enemyDist = sqrtf(pow(enemy.x - bullet.targetX, 2) +
                                                        pow(enemy.y - bullet.targetY, 2));
                                 if (enemyDist < 20) {
                                     enemy.health -= bullet.damage;
@@ -216,13 +216,13 @@ int main() {
                     }
                 }
             }
-            
+
             // 清除无效实体
             enemies.erase(std::remove_if(enemies.begin(), enemies.end(),
                          [](const Enemy& e) { return !e.active; }), enemies.end());
             bullets.erase(std::remove_if(bullets.begin(), bullets.end(),
                          [](const Bullet& b) { return !b.active; }), bullets.end());
-            
+
             // 波次管理
             if (enemies.empty()) {
                 waveTimer += deltaTime;
@@ -241,11 +241,11 @@ int main() {
                 state = MENU;
             }
         }
-        
+
         // 绘制
         BeginDrawing();
         ClearBackground(Fade(GREEN, 0.3f));
-        
+
         if (state == MENU) {
             DrawTextCentered("塔防游戏", 150, 50, DARKBLUE);
             DrawText("TOWER DEFENSE", screenWidth/2 - 130, 210, 25, BLUE);
@@ -257,14 +257,14 @@ int main() {
             for (size_t i = 0; i < pathPoints.size() - 1; i++) {
                 DrawLineEx(pathPoints[i], pathPoints[i+1], 40, Fade(BROWN, 0.5f));
             }
-            
+
             // 绘制塔
             for (const auto& tower : towers) {
                 DrawCircle(tower.x, tower.y, tower.range, Fade(BLUE, 0.1f));
                 DrawCircle(tower.x, tower.y, 15, tower.color);
                 DrawCircleLines(tower.x, tower.y, 15, DARKBLUE);
             }
-            
+
             // 绘制敌人
             for (const auto& enemy : enemies) {
                 if (enemy.active) {
@@ -275,21 +275,21 @@ int main() {
                     DrawRectangle(enemy.x - 15, enemy.y - 20, 30 * healthPercent, 5, GREEN);
                 }
             }
-            
+
             // 绘制子弹
             for (const auto& bullet : bullets) {
                 if (bullet.active) {
                     DrawCircle(bullet.x, bullet.y, 4, YELLOW);
                 }
             }
-            
+
             // UI
             DrawRectangle(0, 0, screenWidth, 35, Fade(BLACK, 0.7f));
             DrawTextEx(uiFont, TextFormat("金币: %d", money), {10.0f, 8.0f}, 20, 1.0f, YELLOW);
             DrawTextEx(uiFont, TextFormat("生命: %d", lives), {150.0f, 8.0f}, 20, 1.0f, RED);
             DrawTextEx(uiFont, TextFormat("波次: %d/10", wave), {300.0f, 8.0f}, 20, 1.0f, WHITE);
             DrawTextEx(uiFont, TextFormat("分数: %d", score), {500.0f, 8.0f}, 20, 1.0f, GREEN);
-            
+
             if (enemies.empty()) {
                 DrawTextCentered("下一波即将到来...", screenHeight - 40, 20, WHITE);
             }
@@ -304,10 +304,10 @@ int main() {
             DrawTextCentered(TextFormat("最终分数: %d", score), 270, 25, DARKGRAY);
             DrawTextCentered("按 ENTER 返回", 330, 20, GRAY);
         }
-        
+
         EndDrawing();
     }
-    
+
     if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;

@@ -45,24 +45,24 @@ int main() {
         Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
         DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
     };
-    
+
     GameState state = MENU;
     Direction direction = RIGHT;
     Direction nextDirection = RIGHT;
-    
+
     std::deque<Position> snake;
     Position food;
     int score = 0;
     float moveTimer = 0;
     float moveInterval = 0.15f;
-    
+
     // 初始化游戏
     auto initGame = [&]() {
         snake.clear();
         snake.push_back({gridWidth/2, gridHeight/2});
         snake.push_back({gridWidth/2 - 1, gridHeight/2});
         snake.push_back({gridWidth/2 - 2, gridHeight/2});
-        
+
         food = {GetRandomValue(0, gridWidth-1), GetRandomValue(0, gridHeight-1)};
         direction = RIGHT;
         nextDirection = RIGHT;
@@ -70,12 +70,12 @@ int main() {
         moveTimer = 0;
         moveInterval = 0.15f;
     };
-    
+
     initGame();
-    
+
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
-        
+
         // 状态处理
         if (state == MENU) {
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
@@ -97,13 +97,13 @@ int main() {
             if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && direction != LEFT) {
                 nextDirection = RIGHT;
             }
-            
+
             // 更新游戏
             moveTimer += deltaTime;
             if (moveTimer >= moveInterval) {
                 moveTimer = 0;
                 direction = nextDirection;
-                
+
                 // 计算新头部位置
                 Position newHead = snake.front();
                 switch (direction) {
@@ -112,23 +112,23 @@ int main() {
                     case LEFT: newHead.x--; break;
                     case RIGHT: newHead.x++; break;
                 }
-                
+
                 // 检查墙壁碰撞
-                if (newHead.x < 0 || newHead.x >= gridWidth || 
+                if (newHead.x < 0 || newHead.x >= gridWidth ||
                     newHead.y < 0 || newHead.y >= gridHeight) {
                     state = GAME_OVER;
                 }
-                
+
                 // 检查自身碰撞
                 for (size_t i = 0; i < snake.size(); i++) {
                     if (snake[i] == newHead) {
                         state = GAME_OVER;
                     }
                 }
-                
+
                 if (state == PLAYING) {
                     snake.push_front(newHead);
-                    
+
                     // 检查食物
                     if (newHead == food) {
                         score += 10;
@@ -159,11 +159,11 @@ int main() {
                 state = MENU;
             }
         }
-        
+
         // 绘制
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        
+
         if (state == MENU) {
             DrawTextCentered("贪吃蛇", 150, 60, DARKGREEN);
             DrawText("SNAKE", screenWidth/2 - 80, 220, 40, GREEN);
@@ -178,18 +178,18 @@ int main() {
                     DrawRectangle(i * gridSize, j * gridSize, gridSize, gridSize, color);
                 }
             }
-            
+
             // 绘制食物
-            DrawRectangle(food.x * gridSize + 2, food.y * gridSize + 2, 
+            DrawRectangle(food.x * gridSize + 2, food.y * gridSize + 2,
                          gridSize - 4, gridSize - 4, RED);
-            
+
             // 绘制蛇
             for (size_t i = 0; i < snake.size(); i++) {
                 Color color = (i == 0) ? DARKGREEN : GREEN;
                 DrawRectangle(snake[i].x * gridSize + 1, snake[i].y * gridSize + 1,
                             gridSize - 2, gridSize - 2, color);
             }
-            
+
             // 绘制分数
             const char* scoreText = TextFormat("分数: %d", score);
             DrawTextEx(uiFont, scoreText, {10.0f, 10.0f}, 25, 1.0f, DARKGRAY);
@@ -204,10 +204,10 @@ int main() {
             DrawTextCentered(TextFormat("蛇的长度: %d", (int)snake.size()), 320, 25, DARKGRAY);
             DrawTextCentered("按 ENTER 返回菜单", 380, 20, GRAY);
         }
-        
+
         EndDrawing();
     }
-    
+
     if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;

@@ -132,13 +132,13 @@ int main() {
             SetTextureFilter(uiFont.texture, TEXTURE_FILTER_BILINEAR);
         }
     }
-    
+
     GameState state = MENU;
     Piece currentPiece;
     int score = 0;
     float fallTimer = 0;
     float fallSpeed = 0.5f;
-    
+
     auto initGame = [&]() {
         for (int i = 0; i < gridHeight; i++) {
             for (int j = 0; j < gridWidth; j++) {
@@ -150,10 +150,10 @@ int main() {
         fallTimer = 0;
         fallSpeed = 0.5f;
     };
-    
+
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
-        
+
         if (state == MENU) {
             if (IsKeyPressed(KEY_ENTER)) {
                 initGame();
@@ -182,7 +182,7 @@ int main() {
             } else {
                 fallSpeed = 0.5f;
             }
-            
+
             // 下落
             fallTimer += deltaTime;
             if (fallTimer >= fallSpeed) {
@@ -195,7 +195,7 @@ int main() {
                     placePiece(currentPiece);
                     int lines = clearLines();
                     score += lines * 100;
-                    
+
                     currentPiece = {GetRandomValue(0, 6), 0, gridWidth/2 - 2, 0};
                     if (checkCollision(currentPiece)) {
                         state = GAME_OVER;
@@ -208,11 +208,11 @@ int main() {
                 state = MENU;
             }
         }
-        
+
         // 绘制
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        
+
         if (state == MENU) {
             DrawTextEx(uiFont, "俄罗斯方块", {(float)screenWidth/2 - 100.0f, 150.0f}, 30, 1, DARKBLUE);
             DrawTextEx(uiFont, "TETRIS", {(float)screenWidth/2 - 60.0f, 190.0f}, 25, 1, BLUE);
@@ -223,9 +223,9 @@ int main() {
         }
         else if (state == PLAYING) {
             // 绘制网格
-            DrawRectangleLines(offsetX - 2, offsetY - 2, 
+            DrawRectangleLines(offsetX - 2, offsetY - 2,
                              gridWidth * blockSize + 4, gridHeight * blockSize + 4, BLACK);
-            
+
             // 绘制已放置的方块
             for (int i = 0; i < gridHeight; i++) {
                 for (int j = 0; j < gridWidth; j++) {
@@ -238,7 +238,7 @@ int main() {
                     }
                 }
             }
-            
+
             // 绘制当前方块
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
@@ -250,7 +250,7 @@ int main() {
                     }
                 }
             }
-            
+
             // 显示分数
             DrawTextEx(uiFont, TextFormat("分数: %d", score), {10.0f, 10.0f}, 20, 1, DARKGRAY);
         }
@@ -259,10 +259,10 @@ int main() {
             DrawTextEx(uiFont, TextFormat("分数: %d", score), {(float)screenWidth/2 - 60.0f, 260.0f}, 25, 1, DARKGRAY);
             DrawTextEx(uiFont, "按 ENTER 返回", {(float)screenWidth/2 - 90.0f, 320.0f}, 20, 1, GRAY);
         }
-        
+
         EndDrawing();
     }
-    
+
     if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;

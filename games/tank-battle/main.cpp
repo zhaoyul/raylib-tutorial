@@ -54,30 +54,30 @@ int main() {
         Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
         DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
     };
-    
+
     GameState state = MENU;
     Tank player = {400, 500, 40, UP, BLUE, 3};
     std::vector<Tank> enemies;
     std::vector<Bullet> bullets;
     std::vector<Wall> walls;
     int score = 0;
-    
+
     // 创建墙壁
     for (int i = 0; i < 10; i++) {
-        walls.push_back({(float)GetRandomValue(100, 700), 
+        walls.push_back({(float)GetRandomValue(100, 700),
                         (float)GetRandomValue(100, 400), 60, 60});
     }
-    
+
     // 创建敌人
     for (int i = 0; i < 3; i++) {
         enemies.push_back({(float)(100 + i * 250), 50, 40, DOWN, RED, 1});
     }
-    
+
     float enemyShootTimer = 0;
-    
+
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
-        
+
         if (state == MENU) {
             if (IsKeyPressed(KEY_ENTER)) {
                 state = PLAYING;
@@ -94,7 +94,7 @@ int main() {
             // 玩家控制
             float speed = 200 * deltaTime;
             Tank oldPlayer = player;
-            
+
             if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
                 player.y -= speed;
                 player.dir = UP;
@@ -111,19 +111,19 @@ int main() {
                 player.x += speed;
                 player.dir = RIGHT;
             }
-            
+
             // 边界检查
             if (player.x < player.size/2) player.x = player.size/2;
             if (player.x > screenWidth - player.size/2) player.x = screenWidth - player.size/2;
             if (player.y < player.size/2) player.y = player.size/2;
             if (player.y > screenHeight - player.size/2) player.y = screenHeight - player.size/2;
-            
+
             // 发射子弹
             if (IsKeyPressed(KEY_SPACE)) {
                 Bullet b = {player.x, player.y, player.dir, 400, true, true};
                 bullets.push_back(b);
             }
-            
+
             // 敌人射击
             enemyShootTimer += deltaTime;
             if (enemyShootTimer > 2.0f) {
@@ -135,7 +135,7 @@ int main() {
                     }
                 }
             }
-            
+
             // 更新子弹
             for (auto& bullet : bullets) {
                 if (bullet.active) {
@@ -145,16 +145,16 @@ int main() {
                         case LEFT: bullet.x -= bullet.speed * deltaTime; break;
                         case RIGHT: bullet.x += bullet.speed * deltaTime; break;
                     }
-                    
-                    if (bullet.x < 0 || bullet.x > screenWidth || 
+
+                    if (bullet.x < 0 || bullet.x > screenWidth ||
                         bullet.y < 0 || bullet.y > screenHeight) {
                         bullet.active = false;
                     }
-                    
+
                     // 子弹击中敌人
                     if (bullet.fromPlayer) {
                         for (auto& enemy : enemies) {
-                            if (CheckCollisionCircles({bullet.x, bullet.y}, 5, 
+                            if (CheckCollisionCircles({bullet.x, bullet.y}, 5,
                                                      {enemy.x, enemy.y}, enemy.size/2)) {
                                 bullet.active = false;
                                 enemy.health--;
@@ -178,11 +178,11 @@ int main() {
                     }
                 }
             }
-            
+
             // 清除无效子弹
             bullets.erase(std::remove_if(bullets.begin(), bullets.end(),
                          [](const Bullet& b) { return !b.active; }), bullets.end());
-            
+
             // 检查胜利
             bool allEnemiesDead = true;
             for (const auto& enemy : enemies) {
@@ -198,11 +198,11 @@ int main() {
                 state = MENU;
             }
         }
-        
+
         // 绘制
         BeginDrawing();
         ClearBackground(Fade(GREEN, 0.2f));
-        
+
         if (state == MENU) {
             DrawTextCentered("坦克大战", 150, 50, DARKBLUE);
             DrawText("TANK BATTLE", screenWidth/2 - 100, 210, 25, BLUE);
@@ -218,12 +218,12 @@ int main() {
             const char* hpText = TextFormat("生命: %d", player.health);
             Vector2 hpSz = MeasureTextEx(uiFont, hpText, 25, 1.0f);
             DrawTextEx(uiFont, hpText, {(float)screenWidth - 10.0f - hpSz.x, 10.0f}, 25, 1.0f, RED);
-            
+
             // 绘制墙壁
             for (const auto& wall : walls) {
                 DrawRectangle(wall.x, wall.y, wall.width, wall.height, BROWN);
             }
-            
+
             // 绘制敌人
             for (const auto& enemy : enemies) {
                 if (enemy.health > 0) {
@@ -233,13 +233,13 @@ int main() {
                                      enemy.size, enemy.size, DARKGRAY);
                 }
             }
-            
+
             // 绘制玩家
             DrawRectangle(player.x - player.size/2, player.y - player.size/2,
                         player.size, player.size, player.color);
             DrawRectangleLines(player.x - player.size/2, player.y - player.size/2,
                              player.size, player.size, DARKBLUE);
-            
+
             // 绘制子弹
             for (const auto& bullet : bullets) {
                 if (bullet.active) {
@@ -257,10 +257,10 @@ int main() {
             DrawTextCentered(TextFormat("分数: %d", score), 270, 28, DARKGRAY);
             DrawTextCentered("按 ENTER 返回", 330, 20, GRAY);
         }
-        
+
         EndDrawing();
     }
-    
+
     if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;

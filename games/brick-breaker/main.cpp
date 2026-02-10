@@ -50,17 +50,17 @@ int main() {
         Vector2 sz = MeasureTextEx(uiFont, text, fontSize, 1.0f);
         DrawTextEx(uiFont, text, {(screenWidth - sz.x) * 0.5f, y}, fontSize, 1.0f, color);
     };
-    
+
     GameState state = MENU;
     int score = 0;
     int lives = 3;
-    
+
     // 初始化挡板
     Paddle paddle = {screenWidth/2 - 60, screenHeight - 40, 120, 20, 8.0f};
-    
+
     // 初始化球
     Ball ball = {screenWidth/2, screenHeight - 60, 8, 0, -300, false};
-    
+
     // 创建砖块
     std::vector<Brick> bricks;
     const int rows = 5;
@@ -70,7 +70,7 @@ int main() {
     const float brickSpacing = 5;
     const float offsetX = 35;
     const float offsetY = 50;
-    
+
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             Brick brick;
@@ -83,10 +83,10 @@ int main() {
             bricks.push_back(brick);
         }
     }
-    
+
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
-        
+
         // 状态处理
         if (state == MENU) {
             if (IsKeyPressed(KEY_ENTER)) {
@@ -104,27 +104,27 @@ int main() {
             // 挡板控制
             if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) paddle.x -= paddle.speed;
             if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) paddle.x += paddle.speed;
-            
+
             // 边界限制
             if (paddle.x < 0) paddle.x = 0;
             if (paddle.x > screenWidth - paddle.width) paddle.x = screenWidth - paddle.width;
-            
+
             // 发射球
             if (!ball.active && IsKeyPressed(KEY_SPACE)) {
                 ball.active = true;
             }
-            
+
             // 球跟随挡板（未发射时）
             if (!ball.active) {
                 ball.x = paddle.x + paddle.width/2;
                 ball.y = paddle.y - ball.radius - 1;
             }
-            
+
             // 更新球
             if (ball.active) {
                 ball.x += ball.vx * deltaTime;
                 ball.y += ball.vy * deltaTime;
-                
+
                 // 墙壁碰撞
                 if (ball.x <= ball.radius || ball.x >= screenWidth - ball.radius) {
                     ball.vx = -ball.vx;
@@ -132,7 +132,7 @@ int main() {
                 if (ball.y <= ball.radius) {
                     ball.vy = -ball.vy;
                 }
-                
+
                 // 挡板碰撞
                 if (ball.y + ball.radius >= paddle.y &&
                     ball.x >= paddle.x && ball.x <= paddle.x + paddle.width &&
@@ -142,7 +142,7 @@ int main() {
                     float hitPos = (ball.x - paddle.x) / paddle.width;
                     ball.vx = (hitPos - 0.5f) * 400;
                 }
-                
+
                 // 砖块碰撞
                 for (auto& brick : bricks) {
                     if (brick.active) {
@@ -154,7 +154,7 @@ int main() {
                         }
                     }
                 }
-                
+
                 // 球掉落
                 if (ball.y > screenHeight) {
                     lives--;
@@ -164,7 +164,7 @@ int main() {
                     ball.active = false;
                 }
             }
-            
+
             // 检查胜利
             bool allBricksDestroyed = true;
             for (const auto& brick : bricks) {
@@ -174,7 +174,7 @@ int main() {
                 }
             }
             if (allBricksDestroyed) state = WIN;
-            
+
             // 暂停
             if (IsKeyPressed(KEY_P)) state = PAUSED;
         }
@@ -185,11 +185,11 @@ int main() {
         else if (state == GAME_OVER || state == WIN) {
             if (IsKeyPressed(KEY_ENTER)) state = MENU;
         }
-        
+
         // 绘制
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        
+
         if (state == MENU) {
             DrawTextCentered("打砖块", 150, 60, DARKBLUE);
             DrawTextCentered("BRICK BREAKER", 220, 30, BLUE);
@@ -205,7 +205,7 @@ int main() {
             const char* livesText = TextFormat("生命: %d", lives);
             Vector2 livesSz = MeasureTextEx(uiFont, livesText, 25, 1.0f);
             DrawTextEx(uiFont, livesText, {(float)screenWidth - 10.0f - livesSz.x, 10.0f}, 25, 1.0f, RED);
-            
+
             // 绘制砖块
             for (const auto& brick : bricks) {
                 if (brick.active) {
@@ -213,13 +213,13 @@ int main() {
                     DrawRectangleLines(brick.x, brick.y, brick.width, brick.height, DARKGRAY);
                 }
             }
-            
+
             // 绘制挡板
             DrawRectangle(paddle.x, paddle.y, paddle.width, paddle.height, BLUE);
-            
+
             // 绘制球
             DrawCircle(ball.x, ball.y, ball.radius, RED);
-            
+
             // 暂停提示
             if (state == PAUSED) {
                 DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.5f));
@@ -237,10 +237,10 @@ int main() {
             DrawTextCentered(TextFormat("最终分数: %d", score), 280, 30, DARKGRAY);
             DrawTextCentered("按 ENTER 返回菜单", 350, 20, GRAY);
         }
-        
+
         EndDrawing();
     }
-    
+
     if (ownsUIFont) UnloadFont(uiFont);
     CloseWindow();
     return 0;
