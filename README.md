@@ -60,6 +60,12 @@ cmake --build .
 
 > 详细构建说明请参考 [构建指南 / Build Guide](docs/BUILD.md)
 
+## 🧪 Janet REPL 实验环境 / Janet REPL Playground
+
+新增可选的 Janet + Raylib 互操作模块，支持在 REPL 中驱动窗口、绘制与状态更新，适合做实时原型和热重载实验。
+
+> 详细流程与示例请参考 [Janet 文档 / Janet Guide](docs/JANET.md)
+
 ## 📁 项目结构 / Project Structure
 
 ```
@@ -78,6 +84,7 @@ raylib-tutorial/
 │   ├── tank-battle/
 │   ├── tower-defense/
 │   └── fps/
+├── janet/             # Janet 互操作模块与 REPL 工作流
 ├── docs/              # 详细文档
 └── cmake/             # CMake 工具脚本
 ```

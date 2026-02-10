@@ -39,6 +39,9 @@ option(BUILD_CHAPTERS "Build tutorial chapters" ON)
 # 选项：构建游戏 / Option: Build games
 option(BUILD_GAMES "Build game projects" ON)
 
+# 选项：构建 Janet 互操作模块 / Option: Build Janet interop module
+option(BUILD_JANET "Build Janet raylib module" OFF)
+
 # 添加章节 / Add chapters
 if(BUILD_CHAPTERS)
     add_subdirectory(chapters/01-cpp-basics)
@@ -57,4 +60,9 @@ if(BUILD_GAMES)
     add_subdirectory(games/tank-battle)
     add_subdirectory(games/tower-defense)
     add_subdirectory(games/fps)
+endif()
+
+# 添加 Janet 模块 / Add Janet module
+if(BUILD_JANET)
+    add_subdirectory(janet)
 endif()
