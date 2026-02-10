@@ -9,8 +9,9 @@
 (def default-background (tuple 18 18 18 255))
 (def frame-fiber nil)
 (def step-fn nil)
-(def default-netrepl-port "9365")
-(def netrepl-state @{:server nil :host "127.0.0.1" :port default-netrepl-port})
+(def default-netrepl-port 9365)
+(def netrepl-state
+  @{:server nil :host "127.0.0.1" :port (string default-netrepl-port)})
 
 (defn init [title width height &named fps]
   (raylib/init-window width height title)
@@ -85,7 +86,8 @@
        (try
          (netrepl/server server-host server-port env)
          (catch err
-           (error (string "Failed to start netrepl server: " err)))))
+           (error (string "Failed to start netrepl server on "
+                          server-host ":" server-port ": " err)))))
   netrepl-state)
 
 (defn stop-netrepl []
