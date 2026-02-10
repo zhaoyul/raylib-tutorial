@@ -7,7 +7,7 @@
 (def default-background (tuple 18 18 18 255))
 (def game-fiber nil)
 
-(defn init [title width height &opt fps]
+(defn init [title width height &named fps]
   (raylib/init-window width height title)
   (raylib/set-target-fps (or fps 60))
   (set state :title title)
@@ -23,7 +23,7 @@
   entity)
 
 (defn clear-entities []
-  (set entities @[]))
+  (array/clear entities))
 
 (defn step []
   (raylib/begin-drawing)
