@@ -20,13 +20,15 @@
         min-x radius
         max-x (- window-width radius)
         min-y radius
-        max-y (- window-height radius)]
+        max-y (- window-height radius)
+        clamped-x (if (< x min-x) min-x (if (> x max-x) max-x x))
+        clamped-y (if (< y min-y) min-y (if (> y max-y) max-y y))]
     (when (or (< x min-x) (> x max-x))
       (set demo-state :vx (- (get demo-state :vx))))
     (when (or (< y min-y) (> y max-y))
       (set demo-state :vy (- (get demo-state :vy))))
-    (set demo-state :x x)
-    (set demo-state :y y)))
+    (set demo-state :x clamped-x)
+    (set demo-state :y clamped-y)))
 
 (defn draw [state]
   (raylib/draw-text "Connect via netrepl client" 20 20 20 230 230 230 255)
