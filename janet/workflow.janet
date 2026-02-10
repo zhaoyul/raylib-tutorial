@@ -75,13 +75,17 @@
 
 (defn start-netrepl [&named host port]
   (def server-host (or host (get netrepl-state :host)))
-  (def port-value (or port (get netrepl-state :port) 9365))
+  (def port-value (or port (get netrepl-state :port)))
   (def server-port (if (string? port-value) port-value (string port-value)))
   (def env (fiber/getenv (fiber/current)))
   (put netrepl-state :host server-host)
   (put netrepl-state :port server-port)
   (put netrepl-state :server
-       (ev/go (fn [] (netrepl/server server-host server-port env))))
+       (try
+         (netrepl/server server-host server-port env)
+         (catch err
+           (print "NetREPL failed to start: " err)
+           (error err))))
   netrepl-state)
 
 (defn stop-netrepl []
