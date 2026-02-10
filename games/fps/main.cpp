@@ -45,10 +45,10 @@ int main() {
     GameState state = MENU;
 
     // 设置相机
-    Camera3D camera = { 0 };
-    camera.position = (Vector3){ 0.0f, 2.0f, 0.0f };
-    camera.target = (Vector3){ 0.0f, 2.0f, 1.0f };
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
+    Camera3D camera{};
+    camera.position = Vector3{ 0.0f, 2.0f, 0.0f };
+    camera.target = Vector3{ 0.0f, 2.0f, 1.0f };
+    camera.up = Vector3{ 0.0f, 1.0f, 0.0f };
     camera.fovy = 60.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
@@ -61,7 +61,7 @@ int main() {
         // 创建目标
         for (int i = 0; i < 10; i++) {
             Target t;
-            t.position = (Vector3){
+            t.position = Vector3{
                 (float)GetRandomValue(-20, 20),
                 (float)GetRandomValue(1, 4),
                 (float)GetRandomValue(5, 30)
@@ -73,8 +73,8 @@ int main() {
         }
         score = 0;
         gameTimer = 60.0f;
-        camera.position = (Vector3){ 0.0f, 2.0f, 0.0f };
-        camera.target = (Vector3){ 0.0f, 2.0f, 1.0f };
+        camera.position = Vector3{ 0.0f, 2.0f, 0.0f };
+        camera.target = Vector3{ 0.0f, 2.0f, 1.0f };
     };
 
     initGame();
@@ -95,7 +95,10 @@ int main() {
 
             // 射击检测
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                Ray ray = GetScreenToWorldRay({(float)screenWidth/2, (float)screenHeight/2}, camera);
+                Ray ray = GetScreenToWorldRay(
+                    Vector2{ (float)screenWidth/2, (float)screenHeight/2 },
+                    camera
+                );
 
                 for (auto& target : targets) {
                     if (target.active) {
@@ -162,7 +165,7 @@ int main() {
             BeginMode3D(camera);
 
             // 绘制地面
-            DrawPlane((Vector3){ 0.0f, 0.0f, 0.0f }, (Vector2){ 50.0f, 50.0f }, Fade(GREEN, 0.5f));
+            DrawPlane(Vector3{ 0.0f, 0.0f, 0.0f }, Vector2{ 50.0f, 50.0f }, Fade(GREEN, 0.5f));
             DrawGrid(50, 1.0f);
 
             // 绘制目标
@@ -174,9 +177,9 @@ int main() {
             }
 
             // 绘制一些环境物体
-            DrawCube((Vector3){-5, 2, 10}, 2, 4, 2, GRAY);
-            DrawCube((Vector3){5, 2, 15}, 2, 4, 2, GRAY);
-            DrawCube((Vector3){0, 1, 25}, 3, 2, 3, DARKGRAY);
+            DrawCube(Vector3{ -5.0f, 2.0f, 10.0f }, 2, 4, 2, GRAY);
+            DrawCube(Vector3{ 5.0f, 2.0f, 15.0f }, 2, 4, 2, GRAY);
+            DrawCube(Vector3{ 0.0f, 1.0f, 25.0f }, 3, 2, 3, DARKGRAY);
 
             EndMode3D();
 

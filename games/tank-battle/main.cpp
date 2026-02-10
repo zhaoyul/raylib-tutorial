@@ -93,7 +93,6 @@ int main() {
         else if (state == PLAYING) {
             // 玩家控制
             float speed = 200 * deltaTime;
-            Tank oldPlayer = player;
 
             if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
                 player.y -= speed;
