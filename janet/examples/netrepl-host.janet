@@ -1,19 +1,29 @@
 (import raylib)
 (import workflow)
 
-(workflow/init "Janet NetREPL Host" 800 450 :fps 60)
-(workflow/start-netrepl :host "127.0.0.1" :port "9365")
+(def window-width 800)
+(def window-height 450)
+(def radius 24)
+(def netrepl-host "127.0.0.1")
+(def netrepl-port 9365)
 
-(print "NetREPL listening on 127.0.0.1:9365")
+(workflow/init "Janet NetREPL Host" window-width window-height :fps 60)
+(workflow/start-netrepl :host netrepl-host :port netrepl-port)
 
-(def demo-state @{:x 200 :y 200 :vx 160 :vy 120 :radius 24})
+(print "NetREPL listening on " netrepl-host ":" netrepl-port)
+
+(def demo-state @{:x 200 :y 200 :vx 160 :vy 120 :radius radius})
 
 (defn update [dt state]
   (let [x (+ (get demo-state :x) (* (get demo-state :vx) dt))
-        y (+ (get demo-state :y) (* (get demo-state :vy) dt))]
-    (when (or (< x 24) (> x 776))
+        y (+ (get demo-state :y) (* (get demo-state :vy) dt))
+        min-x radius
+        max-x (- window-width radius)
+        min-y radius
+        max-y (- window-height radius)]
+    (when (or (< x min-x) (> x max-x))
       (set demo-state :vx (- (get demo-state :vx))))
-    (when (or (< y 24) (> y 426))
+    (when (or (< y min-y) (> y max-y))
       (set demo-state :vy (- (get demo-state :vy))))
     (set demo-state :x x)
     (set demo-state :y y)))
