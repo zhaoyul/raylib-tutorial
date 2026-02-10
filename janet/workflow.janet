@@ -9,7 +9,12 @@
 (def default-background (tuple 18 18 18 255))
 (def frame-fiber nil)
 (def step-fn nil)
-(def netrepl-state @{:server nil :host "127.0.0.1" :port "9365"})
+(def netrepl-state @{:server nil :host "127.0.0.1" :port 9365})
+
+(defn normalize-port [port]
+  (if (string? port)
+    port
+    (string port)))
 
 (defn init [title width height &named fps]
   (raylib/init-window width height title)
@@ -74,10 +79,11 @@
 
 (defn start-netrepl [&named host port]
   (def server-host (or host (get netrepl-state :host)))
-  (def server-port (or port (get netrepl-state :port)))
+  (def port-value (or port (get netrepl-state :port)))
+  (def server-port (normalize-port port-value))
   (def env (fiber/getenv (fiber/current)))
   (put netrepl-state :host server-host)
-  (put netrepl-state :port server-port)
+  (put netrepl-state :port port-value)
   (put netrepl-state :server
        (ev/go (fn [] (netrepl/server server-host server-port env))))
   netrepl-state)
