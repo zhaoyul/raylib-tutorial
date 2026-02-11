@@ -83,6 +83,29 @@ janet janet/examples/netrepl-client.janet
 
 连接后即可在客户端 REPL 中修改 `workflow/update` 与 `workflow/draw`。
 
+### Emacs 作为 NetREPL Client（ajsc）
+
+本仓库提供一个 Emacs 端的 `spork/netrepl` 客户端：`janet/emacs/ajsc.el`。
+
+在 Emacs 配置中加入（把路径替换成你的仓库路径）：
+
+```elisp
+(add-to-list 'load-path "/path/to/raylib-tutorial/janet/emacs")
+(require 'ajsc)
+
+(add-hook 'janet-ts-mode-hook #'ajsc-interaction-mode)
+;; 或者：
+;; (add-hook 'janet-mode-hook #'ajsc-interaction-mode)
+```
+
+使用：
+1. `M-x ajsc`，输入 `127.0.0.1:9365`（默认 `localhost:9365`）。
+2. 在 Janet 源码 buffer 中：
+   - `C-c C-e` 发送 point 表达式
+   - `C-c C-r` 发送 region
+   - `C-c C-b` 发送整个 buffer
+   - `C-c C-z` 切换到 REPL buffer（`*ajsc-repl*`）
+
 ### 热替换玩法 / Hot Reload Tricks
 
 在窗口运行中，你可以直接改写 `update` 或 `draw` 函数，下一帧立即生效。  
