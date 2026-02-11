@@ -39,6 +39,9 @@ option(BUILD_CHAPTERS "Build tutorial chapters" ON)
 # 选项：构建游戏 / Option: Build games
 option(BUILD_GAMES "Build game projects" ON)
 
+# 选项：构建 Snake 扩展版本 / Option: Build Snake phases
+option(BUILD_SNAKE_PHASES "Build Snake game phases (v1-items, etc.)" ON)
+
 # 选项：构建 Janet 互操作模块 / Option: Build Janet interop module
 option(BUILD_JANET "Build Janet raylib module" OFF)
 
@@ -60,6 +63,12 @@ if(BUILD_GAMES)
     add_subdirectory(games/tank-battle)
     add_subdirectory(games/tower-defense)
     add_subdirectory(games/fps)
+endif()
+
+# 添加 Snake 扩展版本 / Add Snake phases
+if(BUILD_SNAKE_PHASES)
+    add_subdirectory(games/snake/phases/v1-items)
+    add_subdirectory(games/snake/phases/v2-fx)
 endif()
 
 # 添加 Janet 模块 / Add Janet module

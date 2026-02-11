@@ -5,20 +5,15 @@
   . ((eval
       . (progn
           (let* ((current-dir (file-name-directory (buffer-file-name)))
-                 ;; 找到包含顶层 CMakeLists.txt 的项目根目录
+                 ;; 找到项目根目录（包含 .git）
                  (project-root
                   (expand-file-name
                    (locate-dominating-file
                     (locate-dominating-file current-dir "CMakeLists.txt")
                     ".git")))
-                 ;; 获取相对于项目根目录的路径
+                 ;; 获取相对路径
                  (relative-path (file-relative-name current-dir project-root))
-                 ;; 判断是在 chapters 还是 games 下
-                 (subproject-match
-                  (string-match "^\\(chapters\\|games\\)/\\([^/]+\\)" relative-path))
-                 (category (when subproject-match (match-string 1 relative-path)))
-                 (subproject (when subproject-match (match-string 2 relative-path)))
-                 ;; 从当前目录的 CMakeLists.txt 中提取可执行文件名
+                 ;; 从 CMakeLists.txt 提取可执行文件名
                  (cmake-file (expand-file-name "CMakeLists.txt" current-dir))
                  (executable-name
                   (with-temp-buffer
@@ -29,13 +24,26 @@
                         (skip-chars-forward " (\t\n")
                         (buffer-substring
                          (point)
-                         (progn (skip-chars-forward "^ )\t\n") (point))))))))
-            (if (and project-root category subproject executable-name)
+                         (progn (skip-chars-forward "^ )\t\n") (point)))))))
+                 ;; 判断路径类型并生成对应的可执行文件路径
+                 (exe-path
+                  (cond
+                   ;; 普通 games/xxx 目录
+                   ((string-match "^games/\\([^/]+\\)/?$" relative-path)
+                    (format "./build/bin/games/%s" executable-name))
+                   ;; snake phases 目录
+                   ((string-match "^games/snake/phases/\\([^/]+\\)" relative-path)
+                    (format "./build/bin/snake-phases/%s" executable-name))
+                   ;; chapters 目录
+                   ((string-match "^chapters/\\([^/]+\\)" relative-path)
+                    (format "./build/bin/chapters/%s" executable-name))
+                   ;; 其他情况
+                   (t nil))))
+            (if (and project-root executable-name exe-path)
                 (setq compile-command
-                      (format "cd %s && cmake -B build -S . && cmake --build build && ./build/bin/%s/%s"
+                      (format "cd %s && cmake -B build -S . && cmake --build build && %s"
                               (shell-quote-argument project-root)
-                              category
-                              executable-name))
+                              exe-path))
               (when project-root
                 (setq compile-command
                       (format "cd %s && cmake -B build -S . && cmake --build build"
@@ -50,10 +58,6 @@
                     (locate-dominating-file current-dir "CMakeLists.txt")
                     ".git")))
                  (relative-path (file-relative-name current-dir project-root))
-                 (subproject-match
-                  (string-match "^\\(chapters\\|games\\)/\\([^/]+\\)" relative-path))
-                 (category (when subproject-match (match-string 1 relative-path)))
-                 (subproject (when subproject-match (match-string 2 relative-path)))
                  (cmake-file (expand-file-name "CMakeLists.txt" current-dir))
                  (executable-name
                   (with-temp-buffer
@@ -64,13 +68,21 @@
                         (skip-chars-forward " (\t\n")
                         (buffer-substring
                          (point)
-                         (progn (skip-chars-forward "^ )\t\n") (point))))))))
-            (if (and project-root category subproject executable-name)
+                         (progn (skip-chars-forward "^ )\t\n") (point)))))))
+                 (exe-path
+                  (cond
+                   ((string-match "^games/\\([^/]+\\)/?$" relative-path)
+                    (format "./build/bin/games/%s" executable-name))
+                   ((string-match "^games/snake/phases/\\([^/]+\\)" relative-path)
+                    (format "./build/bin/snake-phases/%s" executable-name))
+                   ((string-match "^chapters/\\([^/]+\\)" relative-path)
+                    (format "./build/bin/chapters/%s" executable-name))
+                   (t nil))))
+            (if (and project-root executable-name exe-path)
                 (setq compile-command
-                      (format "cd %s && cmake -B build -S . && cmake --build build && ./build/bin/%s/%s"
+                      (format "cd %s && cmake -B build -S . && cmake --build build && %s"
                               (shell-quote-argument project-root)
-                              category
-                              executable-name))
+                              exe-path))
               (when project-root
                 (setq compile-command
                       (format "cd %s && cmake -B build -S . && cmake --build build"

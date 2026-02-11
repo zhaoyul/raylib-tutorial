@@ -11,11 +11,160 @@ This is a comprehensive tutorial project for learning C++, CMake, and Raylib fro
 本教程包含以下游戏项目：
 
 1. **打砖块 (Brick Breaker)** - 学习基础游戏循环、碰撞检测
-2. **贪吃蛇 (Snake)** - 学习游戏状态管理、数据结构
+2. **贪吃蛇 (Snake)** - 学习游戏状态管理、数据结构、粒子系统、存档系统
 3. **俄罗斯方块 (Tetris)** - 学习二维数组、旋转算法
 4. **坦克大战 (Tank Battle)** - 学习精灵动画、多对象管理
 5. **塔防游戏 (Tower Defense)** - 学习路径寻找、升级系统
 6. **第一人称射击 (FPS)** - 学习3D图形、相机控制
+
+### 🐍 Snake 游戏扩展路线图
+
+贪吃蛇游戏设计为**渐进式学习项目**，通过多个阶段逐步引入新的编程概念。每个阶段都是独立的代码版本，可在 `games/snake/phases/` 目录找到。
+
+| 阶段         | 功能                  | 教学内容                       | 难度     |
+|--------------|-----------------------|--------------------------------|----------|
+| **v0-base**  | 经典贪吃蛇            | `std::deque`, 游戏循环, 状态机 | ⭐       |
+| **v1-items** | 多种食物 + 障碍物     | 枚举类, 继承, 多态碰撞         | ⭐⭐     |
+| **v2-fx**    | 粒子系统 + 动画       | 对象池, 时间管理, 缓动函数     | ⭐⭐     |
+| **v3-audio** | 音效 + 高分榜         | 资源管理, JSON, 文件I/O        | ⭐⭐⭐   |
+| **v4-multi** | 双人模式 + 关卡编辑器 | 设计模式, 序列化, 架构         | ⭐⭐⭐⭐ |
+
+<details>
+<summary>📋 各阶段详细说明 (点击展开)</summary>
+
+#### 🎯 v0-base - 经典贪吃蛇
+**核心功能：**
+- 蛇的移动和成长机制
+- 食物随机生成
+- 墙壁和自身碰撞检测
+- 分数系统和速度递增
+
+**学习目标：**
+- `std::deque` 双端队列管理蛇身
+- 基于时间的移动控制 (`GetFrameTime()`)
+- 简单状态机 (MENU/PLAYING/GAME_OVER)
+- 基础 Raylib 绘图 API
+
+---
+
+#### 🍎 v1-items - 道具与障碍系统
+**新增功能：**
+- **多种食物类型：**
+  - 普通食物 (+10分)
+  - 金色食物 (+50分，限时出现)
+  - 速度食物 (临时加速/减速)
+- **障碍物系统：**
+  - 随机生成墙壁
+  - 随关卡增加的障碍密度
+- **生命系统：** 3条命，撞墙不立即结束
+
+**学习目标：**
+- `enum class` 强类型枚举
+- 继承和多态：`Item` 基类 + 各种道具派生类
+- 虚函数实现多态行为
+- 更复杂的碰撞检测逻辑
+
+**代码结构变化：**
+```cpp
+class Item {
+public:
+    virtual void onEat(Snake& snake, Game& game) = 0;
+    virtual Color getColor() const = 0;
+    virtual ~Item() = default;
+};
+```
+
+---
+
+#### ✨ v2-fx - 视觉特效
+**新增功能：**
+- **粒子系统：**
+  - 吃食物时的爆炸效果
+  - 蛇移动时的轨迹拖尾
+  - 游戏结束时的消散动画
+- **平滑动画：**
+  - 蛇头朝向旋转
+  - 身体间的平滑连接
+  - 食物浮动动画
+- **屏幕震动：** 碰撞时的反馈
+
+**学习目标：**
+- 对象池模式 (Object Pool) 管理粒子
+- 缓动函数 (Easing Functions)
+- 向量数学基础 (`Vector2` 运算)
+- 透明度混合和颜色插值
+
+**关键算法：**
+```cpp
+// 线性插值 (Lerp)
+Vector2 Lerp(Vector2 a, Vector2 b, float t) {
+    return {a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t};
+}
+```
+
+---
+
+#### 🎵 v3-audio - 音效与数据持久化
+**新增功能：**
+- **音效系统：**
+  - 吃食物音效 (不同食物不同音调)
+  - 碰撞音效
+  - 背景音乐 (循环播放)
+- **高分榜系统：**
+  - 本地存储前10名
+  - 玩家名字输入
+  - 按分数排序
+- **设置菜单：**
+  - 音量调节
+  - 难度选择 (影响速度和障碍数)
+  - 按键自定义
+
+**学习目标：**
+- Raylib 音频 API (`LoadSound`, `PlaySound`)
+- JSON 解析 (使用 [nlohmann/json](https://github.com/nlohmann/json))
+- 文件 I/O 和错误处理
+- 资源管理器模式 (RAII)
+
+**数据结构：**
+```cpp
+struct HighScore {
+    std::string name;
+    int score;
+    int length;
+    std::string date;
+};
+```
+
+---
+
+#### 👥 v4-multi - 多人模式与关卡编辑器
+**新增功能：**
+- **双人模式：**
+  - 本地双人同屏对战
+  - 竞争吃食物，可互相阻挡
+  - 先到指定分数者获胜
+- **关卡编辑器：**
+  - 可视化编辑障碍位置
+  - 保存/加载关卡文件
+  - 预设关卡 + 自定义关卡
+- **AI 对手：**
+  - 简单寻路算法 (BFS)
+  - 可调整难度
+
+**学习目标：**
+- 组件-实体系统 (ECS) 基础
+- BFS 路径寻找算法
+- 工厂模式创建游戏对象
+- 序列化/反序列化
+- 现代 C++ 特性 (lambda, smart pointers)
+
+**设计模式应用：**
+- **单例模式：** 资源管理器、配置管理器
+- **观察者模式：** 事件系统 (吃食物、碰撞事件)
+- **状态模式：** 更复杂的状态机
+- **策略模式：** AI 行为切换
+
+</details>
 
 ## 📖 学习章节 / Learning Chapters
 
@@ -56,7 +205,22 @@ cmake --build .
 
 # 运行游戏 (示例) / Run game (example)
 ./bin/games/brick-breaker
+./bin/games/snake          # 🐍 试试贪吃蛇！
 ```
+
+### 🐍 快速体验 Snake 游戏
+
+```bash
+# 构建并运行 Snake
+cmake --build . --target snake
+./bin/games/snake
+
+# 在 Emacs 中开发 (使用 .dir-locals.el 配置)
+emacs games/snake/main.cpp
+# 然后按 M-x compile 即可编译运行
+```
+
+**想扩展 Snake？** 查看 [games/snake/ROADMAP.md](games/snake/ROADMAP.md) 了解完整的渐进式开发计划！
 
 > 详细构建说明请参考 [构建指南 / Build Guide](docs/BUILD.md)
 
