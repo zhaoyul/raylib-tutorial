@@ -70,6 +70,7 @@ if(BUILD_SNAKE_PHASES)
     add_subdirectory(games/snake/phases/v1-items)
     add_subdirectory(games/snake/phases/v2-fx)
     add_subdirectory(games/snake/phases/v3-audio)
+    add_subdirectory(games/snake/phases/v4-multi)
 endif()
 
 # 添加 Janet 模块 / Add Janet module
