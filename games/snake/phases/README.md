@@ -9,9 +9,9 @@ phases/
 ├── README.md           # 本文件
 ├── v0-base/           # 基础版本
 ├── v1-items/          # 道具系统 ✅
-├── v2-fx/             # 粒子特效 (TODO)
-├── v3-audio/          # 音效存储 (TODO)
-└── v4-multi/          # 多人模式 (TODO)
+├── v2-fx/             # 粒子特效 ✅
+├── v3-audio/          # 音效存储 ✅
+└── v4-multi/          # 多人模式 📝
 ```
 
 ## 版本状态
@@ -21,7 +21,7 @@ phases/
 | v0-base  | ✅ 完成   | 经典贪吃蛇，位于上级目录 `games/snake/main.cpp` |
 | v1-items | ✅ 完成   | 多种食物类型、障碍物系统、继承多态              |
 | v2-fx    | ✅ 完成   | 粒子效果、屏幕震动、缓动函数                    |
-| v3-audio | 📝 待实现 | 音效、高分榜、设置                              |
+| v3-audio | ✅ 完成   | 音效系统、JSON 存储、设置菜单                   |
 | v4-multi | 📝 待实现 | 双人模式、关卡编辑器                            |
 
 ## 如何开始

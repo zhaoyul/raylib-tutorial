@@ -37,3 +37,4 @@ compile_commands.json
 # Raylib downloaded files
 _deps/
 /jpm_tree/
+/data/
