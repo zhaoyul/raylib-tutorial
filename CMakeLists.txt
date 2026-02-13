@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Web 构建：输出可直接在浏览器打开的 html 启动文件
+if(EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+endif()
+
 # 导出编译命令 / Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
