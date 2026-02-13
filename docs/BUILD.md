@@ -207,10 +207,19 @@ cd emsdk
 ./emsdk activate latest
 source ./emsdk_env.sh
 
-# 构建项目
-mkdir build-web && cd build-web
-emcmake cmake ..
-emmake make
+# 在仓库根目录构建 Web 版本（示例：Snake）
+cd /path/to/repository
+emcmake cmake -S . -B build-web \
+  -DBUILD_CHAPTERS=OFF \
+  -DBUILD_GAMES=ON \
+  -DBUILD_SNAKE_PHASES=OFF \
+  -DBUILD_JANET=OFF
+cmake --build build-web --target snake
+
+# 生成产物位于 build-web/bin/games/snake.html + snake.js + snake.wasm
+# 使用本地静态服务器运行（浏览器直接打开 file:// 往往会被跨域限制）
+python3 -m http.server 8080 --directory build-web/bin/games
+# 打开 http://127.0.0.1:8080/snake.html
 ```
 
 ### 为 Android 构建
