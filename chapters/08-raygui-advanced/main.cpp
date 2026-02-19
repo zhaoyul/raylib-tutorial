@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include <stdlib.h>  // For malloc/free
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -84,6 +85,34 @@ struct UIText {
     const char* diffHard;
 };
 
+// Common Chinese characters for UI
+// Includes: ASCII + Full CJK (0x4E00-0x9FFF) + Punctuation
+int GetChineseCodepoints(int** codepoints) {
+    // ASCII range
+    int asciiCount = 0x007E - 0x0020 + 1;  // 95 chars
+
+    // Full CJK Unified Ideographs (0x4E00-0x9FFF) - ~20k chars
+    int cjkStart = 0x4E00;
+    int cjkEnd = 0x9FFF;  // Full CJK range
+    int cjkCount = cjkEnd - cjkStart + 1;
+
+    // CJK Punctuation (0x3000-0x303F)
+    int punctStart = 0x3000;
+    int punctEnd = 0x303F;
+    int punctCount = punctEnd - punctStart + 1;
+
+    int total = asciiCount + cjkCount + punctCount;
+    *codepoints = (int*)malloc(total * sizeof(int));
+
+    int idx = 0;
+    for (int cp = 0x0020; cp <= 0x007E; cp++) (*codepoints)[idx++] = cp;
+    for (int cp = cjkStart; cp <= cjkEnd; cp++) (*codepoints)[idx++] = cp;
+    for (int cp = punctStart; cp <= punctEnd; cp++) (*codepoints)[idx++] = cp;
+
+    TraceLog(LOG_INFO, "Generated %d codepoints for Chinese font", idx);
+    return idx;
+}
+
 // Try to load font with Chinese support
 bool TryLoadFont(UIText& ui, const char* path) {
     if (!FileExists(path)) {
@@ -92,7 +121,14 @@ bool TryLoadFont(UIText& ui, const char* path) {
 
     TraceLog(LOG_INFO, "Loading font: %s", path);
 
-    ui.chineseFont = LoadFontEx(path, 32, NULL, 0);
+    // Generate codepoints for Chinese characters
+    int* codepoints = NULL;
+    int codepointCount = GetChineseCodepoints(&codepoints);
+
+    TraceLog(LOG_INFO, "Loading %d codepoints...", codepointCount);
+
+    ui.chineseFont = LoadFontEx(path, 32, codepoints, codepointCount);
+    free(codepoints);
 
     if (ui.chineseFont.texture.id != 0) {
         TraceLog(LOG_INFO, "Font loaded: %s (glyphs: %d)", path, ui.chineseFont.glyphCount);
@@ -104,8 +140,7 @@ bool TryLoadFont(UIText& ui, const char* path) {
             TraceLog(LOG_INFO, "Chinese font active: %s", path);
             return true;
         } else {
-            TraceLog(LOG_WARNING, "Font has only %d glyphs, Chinese may not display correctly",
-                     ui.chineseFont.glyphCount);
+            TraceLog(LOG_WARNING, "Font has only %d glyphs", ui.chineseFont.glyphCount);
             UnloadFont(ui.chineseFont);
             ui.chineseFont = (Font){0};
         }
@@ -219,9 +254,15 @@ void UnloadChineseFont(UIText& ui) {
 }
 
 void ApplyTheme(int theme, UIText& ui) {
+    // Set larger text size for all controls
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 24);
+
     switch (theme) {
         case 0:
-            GuiLoadStyleDefault();
+            GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(RAYWHITE));
+            GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL, ColorToInt(DARKGRAY));
+            GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, ColorToInt(LIGHTGRAY));
+            GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, ColorToInt(DARKGRAY));
             if (ui.hasChineseFont) GuiSetFont(ui.chineseFont);
             break;
         case 1:
@@ -242,6 +283,15 @@ void ApplyTheme(int theme, UIText& ui) {
 
 bool GuiIconButton(Rectangle bounds, int iconId, const char* text, UIText& ui) {
     return GuiButton(bounds, TextFormat("#%03d# %s", iconId, text));
+}
+
+// Helper function to draw text with Chinese font support
+void DrawChineseText(const char* text, int x, int y, int fontSize, Color color, UIText& ui) {
+    if (ui.hasChineseFont && ui.chineseFont.texture.id != 0) {
+        DrawTextEx(ui.chineseFont, text, (Vector2){(float)x, (float)y}, (float)fontSize * 2.0f, 2.0f, color);
+    } else {
+        DrawText(text, x, y, fontSize, color);
+    }
 }
 
 int main() {
@@ -271,8 +321,15 @@ int main() {
         ClearBackground(bgColor);
 
         GuiPanel((Rectangle){0, 0, (float)screenWidth, 100}, NULL);
-        DrawText(uiText.title, 20, 10, 30, (theme == 1) ? WHITE : DARKGRAY);
-        DrawText(TextFormat(uiText.goldLabel, gold), screenWidth - 200, 15, 20, GOLD);
+
+        // Use DrawTextEx with Chinese font, or fallback to DrawText
+        if (uiText.hasChineseFont) {
+            DrawTextEx(uiText.chineseFont, uiText.title, (Vector2){20.0f, 10.0f}, 56.0f, 2.0f, (theme == 1) ? WHITE : DARKGRAY);
+            DrawTextEx(uiText.chineseFont, TextFormat(uiText.goldLabel, gold), (Vector2){(float)(screenWidth - 280), 15.0f}, 36.0f, 2.0f, GOLD);
+        } else {
+            DrawText(uiText.title, 20, 10, 30, (theme == 1) ? WHITE : DARKGRAY);
+            DrawText(TextFormat(uiText.goldLabel, gold), screenWidth - 200, 15, 20, GOLD);
+        }
 
         // Tab buttons
         int tabX = 20, tabY = 60, tabWidth = 100, tabHeight = 35;
@@ -304,10 +361,10 @@ int main() {
                     Item& item = items[selectedItem];
                     DrawRectangle(460, 150, 80, 80, item.color);
                     DrawRectangleLines(460, 150, 80, 80, DARKGRAY);
-                    DrawText(item.name, 560, 150, 24, (theme == 1) ? WHITE : DARKGRAY);
+                    DrawChineseText(item.name, 560, 150, 24, (theme == 1) ? WHITE : DARKGRAY, uiText);
                     const char* typeStr = (item.type == ITEM_WEAPON) ? uiText.typeWeapon : (item.type == ITEM_ARMOR) ? uiText.typeArmor : (item.type == ITEM_POTION) ? uiText.typePotion : uiText.typeMisc;
-                    DrawText(TextFormat("Type: %s", typeStr), 560, 180, 18, GRAY);
-                    DrawText(TextFormat(uiText.valueLabel, item.value), 560, 205, 18, GOLD);
+                    DrawChineseText(TextFormat("Type: %s", typeStr), 560, 180, 18, GRAY, uiText);
+                    DrawChineseText(TextFormat(uiText.valueLabel, item.value), 560, 205, 18, GOLD, uiText);
 
                     if (GuiIconButton((Rectangle){560, 250, 120, 35}, 147, uiText.btnUse, uiText)) {
                         messageTitle = uiText.btnUse; messageText = TextFormat(uiText.msgUseItem, item.name); showMessage = true;
@@ -319,11 +376,15 @@ int main() {
                         gold += item.value / 2; messageTitle = uiText.btnSell; messageText = TextFormat(uiText.msgSold, item.name, item.value / 2); showMessage = true;
                     }
                 } else {
-                    DrawText(uiText.selectPrompt, 560, 150, 20, GRAY);
+                    if (uiText.hasChineseFont) {
+                        DrawTextEx(uiText.chineseFont, uiText.selectPrompt, (Vector2){560.0f, 150.0f}, 20.0f, 2.0f, GRAY);
+                    } else {
+                        DrawText(uiText.selectPrompt, 560, 150, 20, GRAY);
+                    }
                 }
                 GuiPanel((Rectangle){440, 530, 540, 90}, NULL);
-                DrawText(TextFormat(uiText.capacityLabel, itemCount, 20), 460, 550, 18, (theme == 1) ? WHITE : DARKGRAY);
-                DrawText(TextFormat(uiText.totalValue, 2000), 460, 575, 18, GOLD);
+                DrawChineseText(TextFormat(uiText.capacityLabel, itemCount, 20), 460, 550, 18, (theme == 1) ? WHITE : DARKGRAY, uiText);
+                DrawChineseText(TextFormat(uiText.totalValue, 2000), 460, 575, 18, GOLD, uiText);
                 break;
             }
 
@@ -335,15 +396,15 @@ int main() {
                     GuiPanel((Rectangle){slots[i].x - 5, slots[i].y - 25, slots[i].width + 10, slots[i].height + 35}, uiText.equipSlots[i]);
                     DrawRectangleRec(slots[i], slotColor);
                     DrawRectangleLinesEx(slots[i], 2, DARKGRAY);
-                    if (i == 2) DrawText("Iron", (int)slots[i].x + 15, (int)slots[i].y + 30, 16, DARKGRAY);
+                    if (i == 2) DrawChineseText("Iron", (int)slots[i].x + 15, (int)slots[i].y + 30, 16, DARKGRAY, uiText);
                 }
                 GuiPanel((Rectangle){600, 150, 300, 300}, uiText.statsTitle);
-                DrawText(TextFormat(uiText.statAttack, 25), 620, 180, 18, RED);
-                DrawText(TextFormat(uiText.statDefense, 40), 620, 205, 18, BLUE);
-                DrawText(TextFormat(uiText.statHP, 100, 100), 620, 230, 18, GREEN);
-                DrawText(TextFormat(uiText.statMP, 50, 50), 620, 255, 18, PURPLE);
+                DrawChineseText(TextFormat(uiText.statAttack, 25), 620, 180, 18, RED, uiText);
+                DrawChineseText(TextFormat(uiText.statDefense, 40), 620, 205, 18, BLUE, uiText);
+                DrawChineseText(TextFormat(uiText.statHP, 100, 100), 620, 230, 18, GREEN, uiText);
+                DrawChineseText(TextFormat(uiText.statMP, 50, 50), 620, 255, 18, PURPLE, uiText);
                 GuiColorPicker((Rectangle){620, 300, 150, 150}, NULL, &playerColor);
-                DrawText(uiText.appearanceLabel, 790, 320, 16, (theme == 1) ? WHITE : DARKGRAY);
+                DrawChineseText(uiText.appearanceLabel, 790, 320, 16, (theme == 1) ? WHITE : DARKGRAY, uiText);
                 break;
             }
 
@@ -356,8 +417,8 @@ int main() {
                     Color rowColor2 = (theme == 1 ? (Color){50,50,50,255} : WHITE);
                     DrawRectangle(30, shopY, 580, 80, (i % 2 == 0) ? rowColor1 : rowColor2);
                     DrawRectangle(40, shopY + 10, 60, 60, item.color);
-                    DrawText(item.name, 120, shopY + 15, 20, (theme == 1) ? WHITE : DARKGRAY);
-                    DrawText(TextFormat("%d Gold", item.value), 120, shopY + 45, 16, GOLD);
+                    DrawChineseText(item.name, 120, shopY + 15, 20, (theme == 1) ? WHITE : DARKGRAY, uiText);
+                    DrawChineseText(TextFormat("%d Gold", item.value), 120, shopY + 45, 16, GOLD, uiText);
                     bool canAfford = gold >= item.value;
                     if (!canAfford) GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, ColorToInt(GRAY));
                     if (GuiButton((Rectangle){500, (float)(shopY + 20), 100, 40}, uiText.btnBuy)) {
@@ -368,9 +429,9 @@ int main() {
                     shopY += 90;
                 }
                 GuiPanel((Rectangle){640, 120, 340, 200}, uiText.shopInfo);
-                DrawText(uiText.shopHint1, 660, 150, 16, (theme == 1) ? WHITE : DARKGRAY);
-                DrawText(uiText.shopHint2, 660, 175, 16, (theme == 1) ? WHITE : DARKGRAY);
-                DrawText(uiText.shopHint3, 660, 200, 16, (theme == 1) ? WHITE : DARKGRAY);
+                DrawChineseText(uiText.shopHint1, 660, 150, 16, (theme == 1) ? WHITE : DARKGRAY, uiText);
+                DrawChineseText(uiText.shopHint2, 660, 175, 16, (theme == 1) ? WHITE : DARKGRAY, uiText);
+                DrawChineseText(uiText.shopHint3, 660, 200, 16, (theme == 1) ? WHITE : DARKGRAY, uiText);
                 break;
             }
 
@@ -387,7 +448,7 @@ int main() {
                 GuiLabel((Rectangle){(float)sx, (float)sy, (float)lw, 24}, uiText.lblDifficulty);
                 GuiSliderBar((Rectangle){(float)(sx + lw), (float)(sy + 5), 200, 15}, uiText.diffEasy, uiText.diffHard, &difficulty, 0.0f, 2.0f);
                 int di = (int)(difficulty + 0.5f);
-                DrawText((di == 0) ? uiText.diffEasy : (di == 1) ? uiText.diffMedium : uiText.diffHard, sx + lw + 210, sy, 16, (theme == 1) ? WHITE : DARKGRAY);
+                DrawChineseText((di == 0) ? uiText.diffEasy : (di == 1) ? uiText.diffMedium : uiText.diffHard, sx + lw + 210, sy, 16, (theme == 1) ? WHITE : DARKGRAY, uiText);
                 sy += 60;
                 GuiLabel((Rectangle){(float)sx, (float)sy, (float)lw, 24}, uiText.lblTheme);
                 int newTheme = theme;
