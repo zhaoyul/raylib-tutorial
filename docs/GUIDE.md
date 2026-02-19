@@ -159,6 +159,27 @@ enum GameState {
 };
 ```
 
+### Raygui UI 系统
+
+Raygui 是 Raylib 的官方 GUI 库：
+
+```cpp
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
+
+// 基础控件
+if (GuiButton((Rectangle){10, 10, 120, 30}, "开始游戏")) {
+    currentState = PLAYING;
+}
+
+// 滑块
+float volume = GuiSlider((Rectangle){10, 50, 200, 20}, 
+                         "音量", NULL, 0.5f, 0.0f, 1.0f);
+
+// 样式定制
+GuiSetStyle(BUTTON, BASE_COLOR_NORMAL, ColorToInt(BLUE));
+```
+
 ### Delta Time
 
 使用 delta time 确保游戏速度独立于帧率：
@@ -265,8 +286,9 @@ position += velocity * deltaTime;
 
 ### 中级（3-4周）
 1. 完成 Chapter 4-6
-2. 实现 Tetris 和 Tank Battle
-3. 学习基本设计模式
+2. 学习 Chapter 7-8 (Raygui UI 开发)
+3. 实现 Tetris 和 Tank Battle
+4. 学习基本设计模式
 
 ### 高级（5-8周）
 1. 实现 Tower Defense 和 FPS

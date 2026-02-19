@@ -38,6 +38,18 @@ if (NOT raylib_FOUND)
     FetchContent_MakeAvailable(raylib)
 endif()
 
+# 下载 Raygui（单头文件 GUI 库）/ Download Raygui
+include(FetchContent)
+FetchContent_Declare(
+    raygui
+    GIT_REPOSITORY https://github.com/raysan5/raygui.git
+    GIT_TAG 4.0
+    GIT_SHALLOW 1
+)
+FetchContent_MakeAvailable(raygui)
+# 设置 raygui 头文件路径变量
+set(RAYGUI_INCLUDE_DIR ${raygui_SOURCE_DIR}/src)
+
 # 选项：构建教程章节 / Option: Build tutorial chapters
 option(BUILD_CHAPTERS "Build tutorial chapters" ON)
 
@@ -58,6 +70,8 @@ if(BUILD_CHAPTERS)
     add_subdirectory(chapters/04-game-loop)
     add_subdirectory(chapters/05-collision)
     add_subdirectory(chapters/06-game-states)
+    add_subdirectory(chapters/07-raygui-basics)
+    add_subdirectory(chapters/08-raygui-advanced)
 endif()
 
 # 添加游戏 / Add games
