@@ -82,6 +82,7 @@ if(BUILD_GAMES)
     add_subdirectory(games/tank-battle)
     add_subdirectory(games/tower-defense)
     add_subdirectory(games/fps)
+    add_subdirectory(games/git-fighter)
 endif()
 
 # 添加 Snake 扩展版本 / Add Snake phases

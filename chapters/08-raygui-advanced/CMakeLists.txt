@@ -19,10 +19,4 @@ set_target_properties(chapter08_raygui_advanced PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/chapters
 )
 
-# Test executable
-add_executable(test_chinese test_chinese.cpp)
-target_link_libraries(test_chinese raylib)
-target_include_directories(test_chinese PRIVATE ${RAYGUI_INCLUDE_DIR})
-set_target_properties(test_chinese PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
+# Test executables removed

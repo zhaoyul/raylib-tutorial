@@ -28,6 +28,9 @@
                  ;; 判断路径类型并生成对应的可执行文件路径
                  (exe-path
                   (cond
+                   ;; games/git-fighter 特殊处理（源码在 src/ 子目录）
+                   ((string-match "^games/git-fighter" relative-path)
+                    "./build/bin/git-fighter")
                    ;; 普通 games/xxx 目录
                    ((string-match "^games/\\([^/]+\\)/?$" relative-path)
                     (format "./build/bin/games/%s" executable-name))
@@ -39,15 +42,19 @@
                     (format "./build/bin/chapters/%s" executable-name))
                    ;; 其他情况
                    (t nil))))
-            (if (and project-root executable-name exe-path)
-                (setq compile-command
-                      (format "cd %s && cmake -B build -S . && cmake --build build && %s"
-                              (shell-quote-argument project-root)
-                              exe-path))
-              (when project-root
-                (setq compile-command
-                      (format "cd %s && cmake -B build -S . && cmake --build build"
-                              (shell-quote-argument project-root))))))))))
+            ;; For git-fighter and similar projects, exe-path is set directly
+            ;; For others, we need both executable-name and exe-path
+            (let ((has-exe (or (and exe-path (string-match "^games/git-fighter" relative-path))
+                               (and executable-name exe-path))))
+              (if (and project-root has-exe)
+                  (setq compile-command
+                        (format "cd %s && cmake -B build -S . && cmake --build build && %s"
+                                (shell-quote-argument project-root)
+                                exe-path))
+                (when project-root
+                  (setq compile-command
+                        (format "cd %s && cmake -B build -S . && cmake --build build"
+                                (shell-quote-argument project-root))))))))))))
  (c-mode
   . ((eval
       . (progn
@@ -71,6 +78,9 @@
                          (progn (skip-chars-forward "^ )\t\n") (point)))))))
                  (exe-path
                   (cond
+                   ;; games/git-fighter 特殊处理
+                   ((string-match "^games/git-fighter" relative-path)
+                    "./build/bin/git-fighter")
                    ((string-match "^games/\\([^/]+\\)/?$" relative-path)
                     (format "./build/bin/games/%s" executable-name))
                    ((string-match "^games/snake/phases/\\([^/]+\\)" relative-path)
@@ -78,15 +88,17 @@
                    ((string-match "^chapters/\\([^/]+\\)" relative-path)
                     (format "./build/bin/chapters/%s" executable-name))
                    (t nil))))
-            (if (and project-root executable-name exe-path)
-                (setq compile-command
-                      (format "cd %s && cmake -B build -S . && cmake --build build && %s"
-                              (shell-quote-argument project-root)
-                              exe-path))
-              (when project-root
-                (setq compile-command
-                      (format "cd %s && cmake -B build -S . && cmake --build build"
-                              (shell-quote-argument project-root))))))))))
+            (let ((has-exe (or (and exe-path (string-match "^games/git-fighter" relative-path))
+                               (and executable-name exe-path))))
+              (if (and project-root has-exe)
+                  (setq compile-command
+                        (format "cd %s && cmake -B build -S . && cmake --build build && %s"
+                                (shell-quote-argument project-root)
+                                exe-path))
+                (when project-root
+                  (setq compile-command
+                        (format "cd %s && cmake -B build -S . && cmake --build build"
+                                (shell-quote-argument project-root))))))))))))
  (nil . ((indent-tabs-mode . nil)
          (tab-width . 4)
          (c-basic-offset . 4)
