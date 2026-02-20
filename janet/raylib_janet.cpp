@@ -109,6 +109,30 @@ static Janet cfun_is_key_down(int32_t argc, Janet *argv) {
     return janet_wrap_boolean(IsKeyDown(key));
 }
 
+static Janet cfun_is_key_pressed(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 1);
+    int key = janet_getinteger(argv, 0);
+    return janet_wrap_boolean(IsKeyPressed(key));
+}
+
+static Janet cfun_is_key_released(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 1);
+    int key = janet_getinteger(argv, 0);
+    return janet_wrap_boolean(IsKeyReleased(key));
+}
+
+static Janet cfun_is_mouse_button_down(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 1);
+    int button = janet_getinteger(argv, 0);
+    return janet_wrap_boolean(IsMouseButtonDown(button));
+}
+
+static Janet cfun_is_mouse_button_pressed(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 1);
+    int button = janet_getinteger(argv, 0);
+    return janet_wrap_boolean(IsMouseButtonPressed(button));
+}
+
 static Janet cfun_get_mouse_position(int32_t argc, Janet *argv) {
     janet_fixarity(argc, 0);
     (void) argv;
@@ -117,6 +141,24 @@ static Janet cfun_get_mouse_position(int32_t argc, Janet *argv) {
     tuple[0] = janet_wrap_number(pos.x);
     tuple[1] = janet_wrap_number(pos.y);
     return janet_wrap_tuple(janet_tuple_end(tuple));
+}
+
+static Janet cfun_get_screen_width(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 0);
+    (void) argv;
+    return janet_wrap_integer(GetScreenWidth());
+}
+
+static Janet cfun_get_screen_height(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 0);
+    (void) argv;
+    return janet_wrap_integer(GetScreenHeight());
+}
+
+static Janet cfun_get_time(int32_t argc, Janet *argv) {
+    janet_fixarity(argc, 0);
+    (void) argv;
+    return janet_wrap_number(GetTime());
 }
 
 static const JanetReg cfuns[] = {
@@ -132,7 +174,14 @@ static const JanetReg cfuns[] = {
     {"get-frame-time", cfun_get_frame_time, "(get-frame-time)\nGet frame delta time."},
     {"close-window", cfun_close_window, "(close-window)\nClose raylib window."},
     {"is-key-down", cfun_is_key_down, "(is-key-down key)\nCheck if key is down."},
+    {"is-key-pressed", cfun_is_key_pressed, "(is-key-pressed key)\nCheck if key was pressed this frame."},
+    {"is-key-released", cfun_is_key_released, "(is-key-released key)\nCheck if key was released this frame."},
+    {"is-mouse-button-down", cfun_is_mouse_button_down, "(is-mouse-button-down button)\nCheck if mouse button is down."},
+    {"is-mouse-button-pressed", cfun_is_mouse_button_pressed, "(is-mouse-button-pressed button)\nCheck if mouse button was pressed this frame."},
     {"get-mouse-position", cfun_get_mouse_position, "(get-mouse-position)\nGet mouse position tuple."},
+    {"get-screen-width", cfun_get_screen_width, "(get-screen-width)\nGet current screen width."},
+    {"get-screen-height", cfun_get_screen_height, "(get-screen-height)\nGet current screen height."},
+    {"get-time", cfun_get_time, "(get-time)\nGet elapsed time in seconds."},
     {nullptr, nullptr, nullptr}
 };
 
@@ -142,7 +191,14 @@ JANET_MODULE_ENTRY(JanetTable *env) {
     janet_def(env, "KEY_DOWN", janet_wrap_integer(KEY_DOWN), "Arrow down key.");
     janet_def(env, "KEY_LEFT", janet_wrap_integer(KEY_LEFT), "Arrow left key.");
     janet_def(env, "KEY_RIGHT", janet_wrap_integer(KEY_RIGHT), "Arrow right key.");
+    janet_def(env, "KEY_W", janet_wrap_integer(KEY_W), "W key.");
+    janet_def(env, "KEY_A", janet_wrap_integer(KEY_A), "A key.");
+    janet_def(env, "KEY_S", janet_wrap_integer(KEY_S), "S key.");
+    janet_def(env, "KEY_D", janet_wrap_integer(KEY_D), "D key.");
     janet_def(env, "KEY_SPACE", janet_wrap_integer(KEY_SPACE), "Space key.");
     janet_def(env, "KEY_ENTER", janet_wrap_integer(KEY_ENTER), "Enter key.");
     janet_def(env, "KEY_ESCAPE", janet_wrap_integer(KEY_ESCAPE), "Escape key.");
+    janet_def(env, "MOUSE_BUTTON_LEFT", janet_wrap_integer(MOUSE_BUTTON_LEFT), "Left mouse button.");
+    janet_def(env, "MOUSE_BUTTON_RIGHT", janet_wrap_integer(MOUSE_BUTTON_RIGHT), "Right mouse button.");
+    janet_def(env, "MOUSE_BUTTON_MIDDLE", janet_wrap_integer(MOUSE_BUTTON_MIDDLE), "Middle mouse button.");
 }
