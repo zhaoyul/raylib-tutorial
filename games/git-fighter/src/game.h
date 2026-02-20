@@ -55,6 +55,7 @@ private:
     GameState currentState;
     int currentLevel;
     bool shouldQuit;
+    bool levelCompleteShown;  // Track if level is complete but waiting for Next click
 
     std::unique_ptr<LevelManager> levelManager;
     std::unique_ptr<UIManager> uiManager;

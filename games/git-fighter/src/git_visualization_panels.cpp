@@ -3,6 +3,14 @@
 #include <algorithm>
 #include <iostream>
 #include "rlgl.h"
+#include <filesystem>
+#include <fstream>
+#include <queue>
+#include <map>
+#include <set>
+#include <functional>
+
+namespace fs = std::filesystem;
 
 namespace GitVis {
 
@@ -141,58 +149,172 @@ void InternalStructurePanel::LoadWorkingDirectory() {
     LayoutObjects();
 }
 
-void InternalStructurePanel::LayoutObjects() {
-    // Tree layout algorithm
-    std::map<int, std::vector<std::string>> levels;
+void InternalStructurePanel::ScanWorkingDirectory(const std::string& repoPath) {
+    Clear();
     
-    // Group by level (BFS)
-    std::vector<std::string> currentLevel = {rootCommit};
-    int level = 0;
+    std::cout << "ScanWorkingDirectory: Scanning " << repoPath << std::endl;
     
-    while (!currentLevel.empty()) {
-        levels[level] = currentLevel;
-        
-        std::vector<std::string> nextLevel;
-        for (const auto& hash : currentLevel) {
-            if (!objects.count(hash)) continue;
-            const auto& obj = objects[hash];
-            if (obj.expanded) {
-                for (const auto& child : obj.children) {
-                    nextLevel.push_back(child);
+    // Create root node
+    GitObject root;
+    root.hash = "WORK_DIR";
+    root.shortHash = ".";
+    root.type = GitObjectType::TREE;
+    root.content = "Working Directory\n(repo root)";
+    root.position = {100, 100};
+    root.targetPos = {100, 100};
+    root.scale = 1;
+    root.alpha = 1;
+    root.expanded = true;
+    objects["WORK_DIR"] = root;
+    rootCommit = "WORK_DIR";
+    
+    // Recursive function to scan directory
+    std::function<void(const std::string&, const std::string&)> scanDir = 
+        [&](const std::string& dirPath, const std::string& parentHash) {
+        try {
+            for (const auto& entry : fs::directory_iterator(dirPath)) {
+                std::string name = entry.path().filename().string();
+                
+                // Skip hidden files and .git
+                if (name[0] == '.' || name == ".git") continue;
+                
+                std::string fullPath = entry.path().string();
+                std::string hash = parentHash + "/" + name;
+                
+                if (fs::is_directory(entry)) {
+                    // Create tree object for directory
+                    GitObject dir;
+                    dir.hash = hash;
+                    dir.shortHash = name;
+                    dir.type = GitObjectType::TREE;
+                    dir.content = "Directory: " + name;
+                    dir.position = {100, 100};
+                    dir.targetPos = {100, 100};
+                    dir.scale = 1;
+                    dir.alpha = 1;
+                    dir.expanded = false; // Collapsed by default for directories
+                    dir.parents.push_back(parentHash);
+                    
+                    objects[hash] = dir;
+                    objects[parentHash].children.push_back(hash);
+                    
+                    // Recursively scan subdirectory
+                    scanDir(fullPath, hash);
+                } else {
+                    // Create blob object for file
+                    GitObject file;
+                    file.hash = hash;
+                    file.shortHash = name;
+                    file.type = GitObjectType::BLOB;
+                    
+                    // Try to read file content preview
+                    std::ifstream f(fullPath);
+                    if (f) {
+                        std::string content((std::istreambuf_iterator<char>(f)),
+                                           std::istreambuf_iterator<char>());
+                        if (content.length() > 200) {
+                            content = content.substr(0, 200) + "...";
+                        }
+                        file.content = "File: " + name + "\n\n" + content;
+                    } else {
+                        file.content = "File: " + name + "\n<binary or unreadable>";
+                    }
+                    
+                    file.position = {100, 100};
+                    file.targetPos = {100, 100};
+                    file.scale = 1;
+                    file.alpha = 1;
+                    file.parents.push_back(parentHash);
+                    
+                    objects[hash] = file;
+                    objects[parentHash].children.push_back(hash);
                 }
             }
+        } catch (const std::exception& e) {
+            std::cerr << "Error scanning directory: " << e.what() << std::endl;
         }
-        currentLevel = nextLevel;
-        level++;
-    }
+    };
     
-    // Position objects
-    for (const auto& levelPair : levels) {
-        int lvl = levelPair.first;
-        const auto& items = levelPair.second;
-        
-        float totalWidth = items.size() * siblingSpacing;
-        float startX = 100;
-        float y = 100 + lvl * levelHeight;
-        
-        for (size_t i = 0; i < items.size(); i++) {
-            if (objects.count(items[i])) {
-                auto& obj = objects[items[i]];
-                obj.targetPos = {startX + i * siblingSpacing, y};
-                // Initialize position to target to avoid animation from (0,0)
-                if (obj.position.x == 100 && obj.position.y == 100) {
-                    obj.position = obj.targetPos;
-                }
-            }
-        }
-    }
+    scanDir(repoPath, "WORK_DIR");
+    
+    std::cout << "ScanWorkingDirectory: Loaded " << objects.size() << " objects" << std::endl;
+    
+    LayoutObjects();
 }
 
+void InternalStructurePanel::LayoutObjects() {
+    if (rootCommit.empty() || !objects.count(rootCommit)) return;
+    
+    // Simple tree layout with fixed positions per level
+    std::map<int, std::vector<std::string>> nodesAtDepth;
+    std::map<std::string, int> nodeDepth;
+    
+    // BFS to assign depths to visible nodes only
+    std::queue<std::pair<std::string, int>> queue;
+    queue.push({rootCommit, 0});
+    nodeDepth[rootCommit] = 0;
+    nodesAtDepth[0].push_back(rootCommit);
+    
+    while (!queue.empty()) {
+        auto [hash, depth] = queue.front();
+        queue.pop();
+        
+        if (!objects.count(hash)) continue;
+        auto& obj = objects[hash];
+        
+        // Only add children if this node is expanded
+        if (obj.expanded) {
+            for (const auto& childHash : obj.children) {
+                if (!objects.count(childHash)) continue;
+                // Skip if already assigned (avoid cycles)
+                if (nodeDepth.count(childHash)) continue;
+                
+                int childDepth = depth + 1;
+                nodeDepth[childHash] = childDepth;
+                nodesAtDepth[childDepth].push_back(childHash);
+                queue.push({childHash, childDepth});
+            }
+        }
+    }
+    
+    // Position nodes - simple grid layout
+    for (const auto& [depth, nodes] : nodesAtDepth) {
+        float y = 100 + depth * levelHeight;
+        
+        for (size_t i = 0; i < nodes.size(); i++) {
+            const std::string& hash = nodes[i];
+            if (!objects.count(hash)) continue;
+            
+            auto& obj = objects[hash];
+            // Simple horizontal spacing
+            float x = 100 + i * siblingSpacing;
+            obj.targetPos = {x, y};
+            
+            // Initialize position if not set or was hidden
+            if (obj.position.x == 100 && obj.position.y == 100) {
+                obj.position = obj.targetPos;
+            } else if (obj.position.x < -500) {
+                // Was hidden off-screen, teleport to new position
+                obj.position = obj.targetPos;
+            }
+        }
+    }
+    
+    // Hide nodes that are not in the visible tree
+    for (auto& [hash, obj] : objects) {
+        if (!nodeDepth.count(hash)) {
+            obj.targetPos = {-1000, -1000};  // Move off-screen
+        }
+    }
+    
+    std::cout << "LayoutObjects: " << nodesAtDepth.size() << " levels, " << nodeDepth.size() << " visible nodes" << std::endl;
+}
 void InternalStructurePanel::ToggleNode(const std::string& hash) {
     if (!objects.count(hash)) return;
     
     auto& obj = objects[hash];
     obj.expanded = !obj.expanded;
+    std::cout << "ToggleNode: " << hash << " expanded=" << obj.expanded << std::endl;
     LayoutObjects();
 }
 
@@ -201,8 +323,9 @@ GitObject* InternalStructurePanel::GetObjectAt(Vector2 screenPos) {
     
     for (auto& pair : objects) {
         auto& obj = pair.second;
-        float dx = worldPos.x - obj.position.x;
-        float dy = worldPos.y - obj.position.y;
+        // Use targetPos for hit testing
+        float dx = worldPos.x - obj.targetPos.x;
+        float dy = worldPos.y - obj.targetPos.y;
         if (dx*dx + dy*dy < 900) {  // 30px radius
             return &obj;
         }
@@ -231,14 +354,41 @@ void InternalStructurePanel::Update(float deltaTime) {
         Vector2 localMouse = {mousePos.x - bounds.x, mousePos.y - bounds.y};
         
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            auto* obj = GetObjectAt(mousePos);
-            if (obj) {
-                if (obj->type == GitObjectType::TREE) {
-                    ToggleNode(obj->hash);
+            // First check if clicked on expand/collapse button for TREE nodes
+            bool clickedToggle = false;
+            for (auto& pair : objects) {
+                auto& obj = pair.second;
+                if (obj.type == GitObjectType::TREE && !obj.children.empty()) {
+                    // Use targetPos for click detection to avoid animation issues
+                    Vector2 localPos = viewport.WorldToScreen(obj.targetPos);
+                    Vector2 screenPos = {localPos.x + bounds.x, localPos.y + bounds.y};
+                    float r = 25 * viewport.GetZoom();
+                    
+                    // +/- button rect - match the drawn button exactly
+                    float btnSize = 20 * viewport.GetZoom();
+                    float btnY = screenPos.y - r - 30;
+                    Rectangle toggleRect = {
+                        screenPos.x - btnSize/2 - 2,
+                        btnY - 2,
+                        btnSize + 4,
+                        btnSize
+                    };
+                    
+                    if (CheckCollisionPointRec(mousePos, toggleRect)) {
+                        ToggleNode(obj.hash);
+                        clickedToggle = true;
+                        break;
+                    }
                 }
-                SelectObject(obj->hash);
-            } else {
-                viewport.OnDragStart(localMouse);
+            }
+            
+            if (!clickedToggle) {
+                auto* obj = GetObjectAt(mousePos);
+                if (obj) {
+                    SelectObject(obj->hash);
+                } else {
+                    viewport.OnDragStart(localMouse);
+                }
             }
         }
         
@@ -269,8 +419,9 @@ void InternalStructurePanel::Draw() {
         for (const auto& parentHash : obj.parents) {
             if (!objects.count(parentHash)) continue;
             
-            Vector2 childLocal = viewport.WorldToScreen(obj.position);
-            Vector2 parentLocal = viewport.WorldToScreen(objects[parentHash].position);
+            // Use targetPos for consistent positioning
+            Vector2 childLocal = viewport.WorldToScreen(obj.targetPos);
+            Vector2 parentLocal = viewport.WorldToScreen(objects[parentHash].targetPos);
             
             Vector2 childPos = {childLocal.x + bounds.x, childLocal.y + bounds.y};
             Vector2 parentPos = {parentLocal.x + bounds.x, parentLocal.y + bounds.y};
@@ -297,7 +448,8 @@ void InternalStructurePanel::Draw() {
     // Draw objects
     for (auto& pair : objects) {
         auto& obj = pair.second;
-        Vector2 localPos = viewport.WorldToScreen(obj.position);
+        // Use targetPos for drawing to match click detection
+        Vector2 localPos = viewport.WorldToScreen(obj.targetPos);
         Vector2 screenPos = {localPos.x + bounds.x, localPos.y + bounds.y};
         float r = 25 * viewport.GetZoom();
         
@@ -316,10 +468,35 @@ void InternalStructurePanel::Draw() {
                 {screenPos.x - r, screenPos.y - r*0.7f, r*2, r*1.4f},
                 0.3f, 8, c
             );
+            // Expand/collapse button for tree nodes with children
             if (!obj.children.empty()) {
                 const char* indicator = obj.expanded ? "-" : "+";
-                DrawText(indicator, (int)(screenPos.x - 5), (int)(screenPos.y - 25 - r), 
-                        (int)(16 * viewport.GetZoom()), WHITE);
+                float btnSize = 20 * viewport.GetZoom();
+                float btnY = screenPos.y - r - 30;
+                
+                // Draw button background
+                DrawRectangle(
+                    (int)(screenPos.x - btnSize/2 - 2),
+                    (int)(btnY - 2),
+                    (int)(btnSize + 4),
+                    (int)(btnSize),
+                    {60, 60, 70, 200}
+                );
+                DrawRectangleLines(
+                    (int)(screenPos.x - btnSize/2 - 2),
+                    (int)(btnY - 2),
+                    (int)(btnSize + 4),
+                    (int)(btnSize),
+                    {150, 150, 160, 255}
+                );
+                
+                // Draw +/- text
+                int fontSize = (int)(14 * viewport.GetZoom());
+                int textW = MeasureText(indicator, fontSize);
+                DrawText(indicator, 
+                        (int)(screenPos.x - textW/2), 
+                        (int)(btnY + 2),
+                        fontSize, WHITE);
             }
         } else {
             DrawCircle(screenPos.x, screenPos.y, r, c);

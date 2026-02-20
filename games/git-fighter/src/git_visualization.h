@@ -238,6 +238,9 @@ public:
     // Load working directory (untracked/staged files)
     void LoadWorkingDirectory();
     
+    // Scan real filesystem and display working directory structure
+    void ScanWorkingDirectory(const std::string& repoPath);
+    
     void Clear();
     
     // Expand/collapse tree nodes

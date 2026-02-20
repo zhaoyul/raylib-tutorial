@@ -52,9 +52,23 @@ public:
     GitResult Commit(const std::string& message);
     GitResult Status();
     
+    // Branch commands (Level 2)
+    GitResult CreateBranch(const std::string& branchName);
+    GitResult Checkout(const std::string& branchName);
+    GitResult Merge(const std::string& branchName);
+    std::vector<std::string> GetBranches();
+    
     // For simulation (Level 1 tutorial)
     bool CreateFile(const std::string& filename, const std::string& content);
     bool ModifyFile(const std::string& filename, const std::string& newContent);
+    
+    // Random content generation for testing internal structure visualization
+    std::string GenerateRandomContent(int minLines = 5, int maxLines = 20);
+    std::string GenerateRandomFilename();
+    std::string GenerateRandomDirname();
+    bool CreateRandomFile(const std::string& subdir = "");
+    bool CreateRandomDirectory(const std::string& parentDir = "");
+    bool AppendRandomContent(const std::string& filename);
     
     // Visualization data
     std::vector<FileStatus> GetWorkingDirectoryStatus();

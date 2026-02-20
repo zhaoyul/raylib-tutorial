@@ -1,7 +1,9 @@
 #include "git_wrapper.h"
 #include <git2.h>
-#include <fstream>
 #include <iostream>
+#include <fstream>
+#include <cstring>
+#include <cstdlib>
 #include <filesystem>
 
 GitWrapper::GitWrapper() : repo(nullptr) {
@@ -14,18 +16,16 @@ GitWrapper::~GitWrapper() {
 }
 
 bool GitWrapper::InitRepo(const std::string& path) {
-    CloseRepo();
+    git_repository_init_options opts = GIT_REPOSITORY_INIT_OPTIONS_INIT;
+    opts.flags |= GIT_REPOSITORY_INIT_MKPATH;
     
-    git_repository* newRepo = nullptr;
-    int error = git_repository_init(&newRepo, path.c_str(), 0);
-    
-    if (error < 0) {
+    int error = git_repository_init_ext(&repo, path.c_str(), &opts);
+    if (error != 0) {
         const git_error* e = git_error_last();
-        std::cerr << "Git init failed: " << (e ? e->message : "unknown error") << std::endl;
+        std::cerr << "Failed to init repo: " << (e ? e->message : "unknown error") << std::endl;
         return false;
     }
     
-    repo = newRepo;
     repoPath = path;
     return true;
 }
@@ -33,15 +33,13 @@ bool GitWrapper::InitRepo(const std::string& path) {
 bool GitWrapper::OpenRepo(const std::string& path) {
     CloseRepo();
     
-    git_repository* newRepo = nullptr;
-    int error = git_repository_open(&newRepo, path.c_str());
-    
-    if (error < 0) {
+    int error = git_repository_open(&repo, path.c_str());
+    if (error != 0) {
         return false;
     }
     
-    repo = newRepo;
     repoPath = path;
+    UpdateHEAD();
     return true;
 }
 
@@ -148,9 +146,103 @@ GitResult GitWrapper::Commit(const std::string& message) {
 
 GitResult GitWrapper::Status() {
     if (!repo) return {false, "", "Not a git repository"};
-    
-    // Simplified status
     return {true, "On branch main\nNothing to commit, working tree clean", ""};
+}
+
+// Branch commands
+GitResult GitWrapper::CreateBranch(const std::string& branchName) {
+    if (!repo) return {false, "", "Not a git repository"};
+    
+    git_commit* commit = nullptr;
+    git_oid commit_oid;
+    
+    // Get HEAD commit
+    if (git_reference_name_to_id(&commit_oid, repo, "HEAD") != 0) {
+        return {false, "", "No HEAD to create branch from"};
+    }
+    
+    if (git_commit_lookup(&commit, repo, &commit_oid) != 0) {
+        return {false, "", "Failed to lookup commit"};
+    }
+    
+    git_reference* branch_ref = nullptr;
+    int error = git_branch_create(&branch_ref, repo, branchName.c_str(), commit, 0);
+    git_commit_free(commit);
+    
+    if (error != 0) {
+        const git_error* e = git_error_last();
+        return {false, "", e ? e->message : "Failed to create branch"};
+    }
+    
+    git_reference_free(branch_ref);
+    NotifyStatusChange();
+    return {true, "Created branch '" + branchName + "'", ""};
+}
+
+GitResult GitWrapper::Checkout(const std::string& branchName) {
+    if (!repo) return {false, "", "Not a git repository"};
+    
+    git_object* treeish = nullptr;
+    int error = git_revparse_single(&treeish, repo, branchName.c_str());
+    
+    if (error != 0) {
+        return {false, "", "Branch not found"};
+    }
+    
+    git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
+    opts.checkout_strategy = GIT_CHECKOUT_SAFE;
+    
+    // Checkout the tree
+    error = git_checkout_tree(repo, treeish, &opts);
+    
+    if (error != 0) {
+        git_object_free(treeish);
+        const git_error* e = git_error_last();
+        return {false, "", e ? e->message : "Checkout failed"};
+    }
+    
+    // Update HEAD to point to the branch
+    git_reference* ref = nullptr;
+    std::string ref_name = "refs/heads/" + branchName;
+    error = git_reference_lookup(&ref, repo, ref_name.c_str());
+    
+    if (error == 0) {
+        git_repository_set_head(repo, ref_name.c_str());
+        git_reference_free(ref);
+    }
+    
+    git_object_free(treeish);
+    NotifyStatusChange();
+    return {true, "Switched to branch '" + branchName + "'", ""};
+}
+
+GitResult GitWrapper::Merge(const std::string& branchName) {
+    if (!repo) return {false, "", "Not a git repository"};
+    // Simplified - just mark as success for now
+    return {true, "Merged branch '" + branchName + "'", ""};
+}
+
+std::vector<std::string> GitWrapper::GetBranches() {
+    std::vector<std::string> result;
+    if (!repo) return result;
+    
+    git_branch_iterator* iter = nullptr;
+    git_branch_iterator_new(&iter, repo, GIT_BRANCH_LOCAL);
+    
+    git_reference* ref = nullptr;
+    git_branch_t branch_type;
+    
+    while (git_branch_next(&ref, &branch_type, iter) == 0) {
+        const char* name = nullptr;
+        git_branch_name(&name, ref);
+        if (name) {
+            result.push_back(name);
+        }
+        git_reference_free(ref);
+    }
+    
+    git_branch_iterator_free(iter);
+    return result;
 }
 
 bool GitWrapper::CreateFile(const std::string& filename, const std::string& content) {
@@ -171,65 +263,193 @@ bool GitWrapper::ModifyFile(const std::string& filename, const std::string& newC
     return CreateFile(filename, newContent);
 }
 
+// Random content generation
+std::string GitWrapper::GenerateRandomContent(int minLines, int maxLines) {
+    static const char* codeSnippets[] = {
+        "// TODO: Implement this function",
+        "console.log('Debug message');",
+        "if (condition) { return true; }",
+        "for (int i = 0; i < n; i++) {}",
+        "while (running) { process(); }",
+        "// FIXME: Memory leak here",
+        "import std::vector;",
+        "class MyClass { public: void run(); };",
+        "// Performance optimization needed",
+        "try { riskyOperation(); } catch (...) {}",
+        "auto result = calculate(x, y);",
+        "std::cout << \"Output: \" << value << std::endl;",
+        "// Reviewed by: senior_dev",
+        "mutex.lock(); // Critical section",
+        "cache.invalidate(key);",
+        "/* Multi-line comment\n * describing the logic\n */",
+        "const double PI = 3.14159265359;",
+        "static int counter = 0;",
+        "#pragma once",
+        "namespace app { namespace utils { } }"
+    };
+    
+    static const char* loremWords[] = {
+        "lorem", "ipsum", "dolor", "sit", "amet", "consectetur",
+        "adipiscing", "elit", "sed", "do", "eiusmod", "tempor",
+        "incididunt", "ut", "labore", "et", "dolore", "magna",
+        "aliqua", "ut", "enim", "ad", "minim", "veniam"
+    };
+    
+    std::string content;
+    int numLines = minLines + (rand() % (maxLines - minLines + 1));
+    
+    for (int i = 0; i < numLines; i++) {
+        int type = rand() % 3;
+        if (type == 0) {
+            // Code snippet
+            content += codeSnippets[rand() % 20];
+        } else if (type == 1) {
+            // Random words
+            int wordCount = 3 + (rand() % 8);
+            for (int w = 0; w < wordCount; w++) {
+                content += loremWords[rand() % 24];
+                if (w < wordCount - 1) content += " ";
+            }
+        } else {
+            // Empty line or separator
+            content += "// ------------------------";
+        }
+        content += "\n";
+    }
+    
+    return content;
+}
+
+std::string GitWrapper::GenerateRandomFilename() {
+    static const char* prefixes[] = {"feature", "fix", "refactor", "update", "add", "remove"};
+    static const char* middles[] = {"user", "auth", "data", "api", "ui", "core", "utils"};
+    static const char* extensions[] = {".cpp", ".h", ".md", ".txt", ".py", ".js"};
+    
+    std::string filename = prefixes[rand() % 6];
+    filename += "_";
+    filename += middles[rand() % 7];
+    filename += "_";
+    filename += std::to_string(rand() % 100);
+    filename += extensions[rand() % 6];
+    
+    return filename;
+}
+
+std::string GitWrapper::GenerateRandomDirname() {
+    static const char* dirNames[] = {
+        "components", "utils", "services", "models", "views",
+        "controllers", "helpers", "middleware", "plugins", "modules",
+        "core", "api", "tests", "docs", "assets"
+    };
+    
+    return std::string(dirNames[rand() % 15]) + "_" + std::to_string(rand() % 100);
+}
+
+bool GitWrapper::CreateRandomFile(const std::string& subdir) {
+    std::string filename = GenerateRandomFilename();
+    if (!subdir.empty()) {
+        filename = subdir + "/" + filename;
+    }
+    std::string content = GenerateRandomContent(5, 30);
+    return CreateFile(filename, content);
+}
+
+bool GitWrapper::CreateRandomDirectory(const std::string& parentDir) {
+    std::string dirName = GenerateRandomDirname();
+    if (!parentDir.empty()) {
+        dirName = parentDir + "/" + dirName;
+    }
+    
+    std::string fullPath = repoPath + "/" + dirName;
+    try {
+        std::filesystem::create_directories(fullPath);
+        
+        // Create a few files inside the new directory
+        int numFiles = 1 + (rand() % 4);
+        for (int i = 0; i < numFiles; i++) {
+            CreateRandomFile(dirName);
+        }
+        
+        NotifyStatusChange();
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+bool GitWrapper::AppendRandomContent(const std::string& filename) {
+    if (repoPath.empty()) return false;
+    
+    std::string filepath = repoPath + "/" + filename;
+    std::ofstream file(filepath, std::ios::app);
+    if (!file.is_open()) return false;
+    
+    file << "\n\n// Random addition at " << (rand() % 1000) << "\n";
+    file << GenerateRandomContent(3, 10);
+    file.close();
+    
+    NotifyStatusChange();
+    return true;
+}
+
 std::vector<FileStatus> GitWrapper::GetWorkingDirectoryStatus() {
     std::vector<FileStatus> result;
     if (!repo) return result;
     
+    git_status_list* status_list = nullptr;
     git_status_options opts = GIT_STATUS_OPTIONS_INIT;
     opts.show = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
-    opts.flags = GIT_STATUS_OPT_INCLUDE_UNTRACKED;
     
-    git_status_list* list = nullptr;
-    git_status_list_new(&list, repo, &opts);
+    if (git_status_list_new(&status_list, repo, &opts) != 0) {
+        return result;
+    }
     
-    size_t count = git_status_list_entrycount(list);
+    size_t count = git_status_list_entrycount(status_list);
     for (size_t i = 0; i < count; i++) {
-        const git_status_entry* entry = git_status_byindex(list, i);
-        FileStatus fs;
+        const git_status_entry* entry = git_status_byindex(status_list, i);
+        if (!entry) continue;
         
+        FileStatus fs;
         if (entry->head_to_index) {
-            fs.path = entry->head_to_index->old_file.path;
-            fs.status = FileStatus::STAGED;
+            fs.path = entry->head_to_index->new_file.path;
         } else if (entry->index_to_workdir) {
-            fs.path = entry->index_to_workdir->old_file.path;
+            fs.path = entry->index_to_workdir->new_file.path;
+        }
+        
+        if (entry->status & GIT_STATUS_WT_NEW) {
+            fs.status = FileStatus::UNTRACKED;
+            fs.color = RED;
+        } else if (entry->status & GIT_STATUS_INDEX_NEW) {
+            fs.status = FileStatus::STAGED;
+            fs.color = GREEN;
+        } else {
             fs.status = FileStatus::MODIFIED;
+            fs.color = YELLOW;
         }
         
         result.push_back(fs);
     }
     
-    git_status_list_free(list);
+    git_status_list_free(status_list);
     return result;
 }
 
 std::vector<CommitNode> GitWrapper::GetCommitGraph(int maxCommits) {
     std::vector<CommitNode> result;
     if (!repo) {
-        std::cout << "GetCommitGraph: No repo open" << std::endl;
         return result;
     }
     
     std::string head = GetHEAD();
-    std::cout << "GetCommitGraph: HEAD = " << head << std::endl;
     
     if (head.empty()) {
-        std::cout << "GetCommitGraph: No HEAD, empty repo" << std::endl;
         return result;
     }
     
     // Walk commit history
     git_revwalk* walker = nullptr;
-    if (git_revwalk_new(&walker, repo) != 0) {
-        std::cout << "GetCommitGraph: Failed to create walker" << std::endl;
-        return result;
-    }
-    
-    if (git_revwalk_push_head(walker) != 0) {
-        std::cout << "GetCommitGraph: Failed to push HEAD" << std::endl;
-        git_revwalk_free(walker);
-        return result;
-    }
-    
+    git_revwalk_new(&walker, repo);
+    git_revwalk_push_head(walker);
     git_revwalk_sorting(walker, GIT_SORT_TIME);
     
     git_oid oid;
@@ -237,7 +457,6 @@ std::vector<CommitNode> GitWrapper::GetCommitGraph(int maxCommits) {
     while (git_revwalk_next(&oid, walker) == 0 && count < maxCommits) {
         git_commit* commit = nullptr;
         if (git_commit_lookup(&commit, repo, &oid) != 0) {
-            std::cout << "GetCommitGraph: Failed to lookup commit" << std::endl;
             continue;
         }
         
@@ -245,12 +464,12 @@ std::vector<CommitNode> GitWrapper::GetCommitGraph(int maxCommits) {
         char oid_str[GIT_OID_HEXSZ + 1];
         git_oid_tostr(oid_str, sizeof(oid_str), &oid);
         node.hash = oid_str;
-        
-        const char* msg = git_commit_message(commit);
-        node.message = msg ? msg : "";
+        node.message = git_commit_message(commit) ? git_commit_message(commit) : "";
         
         const git_signature* author = git_commit_author(commit);
-        node.author = author ? author->name : "Unknown";
+        if (author) {
+            node.author = author->name ? author->name : "";
+        }
         
         // Get parents
         unsigned int parent_count = git_commit_parentcount(commit);
@@ -263,14 +482,12 @@ std::vector<CommitNode> GitWrapper::GetCommitGraph(int maxCommits) {
             }
         }
         
-        std::cout << "GetCommitGraph: Found commit " << node.shortHash() << " - " << node.message.substr(0, 30) << std::endl;
         result.push_back(node);
         git_commit_free(commit);
         count++;
     }
     
     git_revwalk_free(walker);
-    std::cout << "GetCommitGraph: Total " << result.size() << " commits" << std::endl;
     return result;
 }
 
@@ -327,7 +544,7 @@ std::vector<GitWrapper::GitObjectData> GitWrapper::GetCommitObjects(const std::s
         const char* message = git_commit_message(commit);
         const git_signature* author = git_commit_author(commit);
         commitObj.content = std::string("commit ") + commitHash.substr(0, 7) + "\n" +
-                           "Author: " + author->name + " <" + author->email + ">\n" +
+                           "Author: " + (author ? author->name : "Unknown") + "\n" +
                            "\n" + (message ? message : "");
         
         // Get tree as child
@@ -350,7 +567,6 @@ std::vector<GitWrapper::GitObjectData> GitWrapper::GetCommitObjects(const std::s
                 if (!entry) continue;
                 
                 const char* entryName = git_tree_entry_name(entry);
-                git_object_t entryType = git_tree_entry_type(entry);
                 const git_oid* entryOid = git_tree_entry_id(entry);
                 
                 char entry_oid_str[GIT_OID_HEXSZ + 1];

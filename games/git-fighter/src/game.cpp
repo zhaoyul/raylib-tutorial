@@ -54,6 +54,7 @@ GitGame::GitGame()
     : currentState(GameState::MENU),
       currentLevel(1),
       shouldQuit(false),
+      levelCompleteShown(false),
       levelManager(std::make_unique<LevelManager>()),
       uiManager(nullptr),
       renderTarget({0}),
@@ -106,6 +107,7 @@ void GitGame::ChangeState(GameState newState) {
 
 void GitGame::LoadLevel(int levelNum) {
     currentLevel = levelNum;
+    levelCompleteShown = false;
     levelManager->LoadLevel(levelNum);
     ChangeState(GameState::PLAYING);
 }
@@ -128,8 +130,44 @@ void GitGame::Update(float deltaTime) {
         case GameState::PLAYING:
             levelManager->Update(deltaTime);
 
-            if (levelManager->IsCurrentLevelComplete()) {
-                CompleteCurrentLevel();
+            // Check if level is complete, but don't auto-transition
+            if (levelManager->IsCurrentLevelComplete() && !levelCompleteShown) {
+                levelCompleteShown = true;
+                std::cout << "Level " << currentLevel << " complete! Click NEXT to continue." << std::endl;
+            }
+            
+            // Handle Next button click
+            if (levelCompleteShown && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                Vector2 mousePos = GetMousePosition();
+                // Convert to render target coordinates
+                int screenWidth = GetScreenWidth();
+                int screenHeight = GetScreenHeight();
+                float scaleX = (float)screenWidth / SCREEN_WIDTH;
+                float scaleY = (float)screenHeight / SCREEN_HEIGHT;
+                float scale = (scaleX < scaleY) ? scaleX : scaleY;
+                int drawWidth = (int)(SCREEN_WIDTH * scale);
+                int drawHeight = (int)(SCREEN_HEIGHT * scale);
+                int drawX = (screenWidth - drawWidth) / 2;
+                int drawY = (screenHeight - drawHeight) / 2;
+                
+                // Convert mouse to virtual screen coordinates
+                int virtualMouseX = (int)((mousePos.x - drawX) / scale);
+                int virtualMouseY = (int)((mousePos.y - drawY) / scale);
+                
+                Rectangle nextButton = {
+                    (float)(SCREEN_WIDTH/2 - 150),
+                    10,
+                    300,
+                    50
+                };
+                
+                if (virtualMouseX >= nextButton.x && 
+                    virtualMouseX <= nextButton.x + nextButton.width &&
+                    virtualMouseY >= nextButton.y && 
+                    virtualMouseY <= nextButton.y + nextButton.height) {
+                    levelCompleteShown = false;
+                    LoadLevel(currentLevel + 1);
+                }
             }
 
             if (IsKeyPressed(KEY_ESCAPE)) {
@@ -147,9 +185,8 @@ void GitGame::Update(float deltaTime) {
             break;
 
         case GameState::LEVEL_COMPLETE:
-            if (IsKeyPressed(KEY_ENTER)) {
-                LoadLevel(currentLevel + 1);
-            }
+            // Kept for compatibility, but now we use levelCompleteShown flag in PLAYING
+            ChangeState(GameState::PLAYING);
             break;
 
         default:
@@ -174,6 +211,14 @@ void GitGame::Draw() {
         case GameState::PLAYING:
             levelManager->Draw();
             DrawHUD();
+            
+            // Draw Next button when level is complete
+            if (levelCompleteShown) {
+                // Semi-transparent overlay at top
+                DrawRectangle(SCREEN_WIDTH/2 - 150, 10, 300, 50, {0, 100, 0, 200});
+                DrawRectangleLines(SCREEN_WIDTH/2 - 150, 10, 300, 50, {0, 255, 0, 255});
+                DrawChineseText("✓ 关卡完成! 点击此处进入下一关", SCREEN_WIDTH/2 - 130, 22, 20, WHITE);
+            }
             break;
 
         case GameState::PAUSED:

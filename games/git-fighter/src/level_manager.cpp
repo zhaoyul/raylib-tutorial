@@ -1,6 +1,9 @@
 #include "level_manager.h"
 #include "git_wrapper.h"
 #include "../levels/level_01_realgit.h"
+#include "../levels/level_02_branch.h"
+#include "../levels/level_03_merge.h"
+#include "../levels/level_04_remote.h"
 #include <iostream>
 #include <algorithm>
 
@@ -19,6 +22,16 @@ bool LevelManager::Initialize() {
     // Register all levels - store them in a separate registry
     auto level1 = std::make_unique<Level01_RealGit>();
     levels.push_back(std::move(level1));
+    
+    auto level2 = std::make_unique<Level02_Branch>();
+    levels.push_back(std::move(level2));
+    
+    auto level3 = std::make_unique<Level03_Merge>();
+    levels.push_back(std::move(level3));
+    
+    auto level4 = std::make_unique<Level04_Remote>();
+    levels.push_back(std::move(level4));
+    
     // TODO: Register more levels
     
     return true;
