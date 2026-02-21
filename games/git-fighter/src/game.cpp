@@ -2,6 +2,27 @@
 #include "level_manager.h"
 #include <iostream>
 #include <cstdlib>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+// Clean up any leftover temp directories from previous runs
+static void CleanupTempDirectories() {
+    std::cout << "Cleaning up temp directories..." << std::endl;
+    try {
+        for (const auto& entry : fs::directory_iterator("/tmp")) {
+            if (entry.is_directory()) {
+                std::string name = entry.path().filename().string();
+                if (name.find("gitfighter_level") == 0) {
+                    std::cout << "  Removing: " << entry.path() << std::endl;
+                    fs::remove_all(entry.path());
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error cleaning up temp directories: " << e.what() << std::endl;
+    }
+}
 
 // GameFont implementation
 void GameFont::Load() {
@@ -64,17 +85,55 @@ GitGame::GitGame()
 GitGame::~GitGame() = default;
 
 bool GitGame::Initialize() {
-    // Create resizable window, render target handles the scaling
+    // Clean up any leftover temp directories from previous runs
+    CleanupTempDirectories();
+    
+    // Create resizable window
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE);
     SetTargetFPS(60);
 
-    // Create render target for consistent rendering at fixed resolution
-    renderTarget = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
-    useRenderTarget = true;
+    // Render target disabled - drawing directly to screen for fixed-size UI elements
+    // renderTarget = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
+    useRenderTarget = false;
 
     // Load Chinese font
     gameFont.Load();
+
+    // Initialize Git Console
+    gitConsole.Initialize(100, 100, 800, 300);
+    
+    // Set font for Chinese text rendering
+    gitConsole.SetFont(&levelManager->GetFont());
+    
+    // Setup command callback to forward to current level
+    gitConsole.SetCommandCallback([this](const std::string& cmd) {
+        if (auto* level = levelManager->GetCurrentLevel()) {
+            // Execute command through level and get result
+            std::string result = level->ExecuteGitCommand(cmd);
+            
+            // Add result to console output
+            if (!result.empty()) {
+                // Split result by lines and add each line
+                std::string line;
+                for (char c : result) {
+                    if (c == '\n') {
+                        if (!line.empty()) {
+                            gitConsole.AddOutput(line, WHITE);
+                            line.clear();
+                        }
+                    } else {
+                        line += c;
+                    }
+                }
+                if (!line.empty()) {
+                    gitConsole.AddOutput(line, WHITE);
+                }
+            }
+        } else {
+            gitConsole.AddOutput("错误: 没有活动的关卡", RED);
+        }
+    });
 
     if (!levelManager->Initialize()) {
         std::cerr << "Failed to initialize level manager" << std::endl;
@@ -93,9 +152,10 @@ void GitGame::Run() {
 }
 
 void GitGame::Shutdown() {
-    if (useRenderTarget) {
-        UnloadRenderTexture(renderTarget);
-    }
+    // Render target disabled
+    // if (useRenderTarget) {
+    //     UnloadRenderTexture(renderTarget);
+    // }
     gameFont.Unload();
     levelManager.reset();
     CloseWindow();
@@ -128,7 +188,13 @@ void GitGame::Update(float deltaTime) {
             break;
 
         case GameState::PLAYING:
-            levelManager->Update(deltaTime);
+            // Update git console first (handles TAB toggle)
+            gitConsole.Update(deltaTime);
+            
+            // Only update level if console is not visible (to avoid interference)
+            if (!gitConsole.IsVisible()) {
+                levelManager->Update(deltaTime);
+            }
 
             // Check if level is complete, but don't auto-transition
             if (levelManager->IsCurrentLevelComplete() && !levelCompleteShown) {
@@ -139,32 +205,16 @@ void GitGame::Update(float deltaTime) {
             // Handle Next button click
             if (levelCompleteShown && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
-                // Convert to render target coordinates
-                int screenWidth = GetScreenWidth();
-                int screenHeight = GetScreenHeight();
-                float scaleX = (float)screenWidth / SCREEN_WIDTH;
-                float scaleY = (float)screenHeight / SCREEN_HEIGHT;
-                float scale = (scaleX < scaleY) ? scaleX : scaleY;
-                int drawWidth = (int)(SCREEN_WIDTH * scale);
-                int drawHeight = (int)(SCREEN_HEIGHT * scale);
-                int drawX = (screenWidth - drawWidth) / 2;
-                int drawY = (screenHeight - drawHeight) / 2;
-                
-                // Convert mouse to virtual screen coordinates
-                int virtualMouseX = (int)((mousePos.x - drawX) / scale);
-                int virtualMouseY = (int)((mousePos.y - drawY) / scale);
+                int windowWidth = GetScreenWidth();
                 
                 Rectangle nextButton = {
-                    (float)(SCREEN_WIDTH/2 - 150),
+                    (float)(windowWidth/2 - 150),
                     10,
                     300,
                     50
                 };
                 
-                if (virtualMouseX >= nextButton.x && 
-                    virtualMouseX <= nextButton.x + nextButton.width &&
-                    virtualMouseY >= nextButton.y && 
-                    virtualMouseY <= nextButton.y + nextButton.height) {
+                if (CheckCollisionPointRec(mousePos, nextButton)) {
                     levelCompleteShown = false;
                     LoadLevel(currentLevel + 1);
                 }
@@ -195,13 +245,14 @@ void GitGame::Update(float deltaTime) {
 }
 
 void GitGame::Draw() {
-    if (useRenderTarget) {
-        // Render to fixed-size texture
-        BeginTextureMode(renderTarget);
-        ClearBackground(BLACK);
-    } else {
-        BeginDrawing();
-    }
+    BeginDrawing();
+    
+    // Get actual window size
+    int windowWidth = GetScreenWidth();
+    int windowHeight = GetScreenHeight();
+    
+    // Fill entire window with background color
+    ClearBackground((Color){30, 30, 40, 255});
 
     switch (currentState) {
         case GameState::MENU:
@@ -212,64 +263,53 @@ void GitGame::Draw() {
             levelManager->Draw();
             DrawHUD();
             
+            // Draw Git Console
+            gitConsole.Draw();
+            
             // Draw Next button when level is complete
             if (levelCompleteShown) {
                 // Semi-transparent overlay at top
-                DrawRectangle(SCREEN_WIDTH/2 - 150, 10, 300, 50, {0, 100, 0, 200});
-                DrawRectangleLines(SCREEN_WIDTH/2 - 150, 10, 300, 50, {0, 255, 0, 255});
-                DrawChineseText("✓ 关卡完成! 点击此处进入下一关", SCREEN_WIDTH/2 - 130, 22, 20, WHITE);
+                DrawRectangle(windowWidth/2 - 150, 10, 300, 50, {0, 100, 0, 200});
+                DrawRectangleLines(windowWidth/2 - 150, 10, 300, 50, {0, 255, 0, 255});
+                DrawChineseText("✓ 关卡完成! 点击此处进入下一关", windowWidth/2 - 130, 22, 20, WHITE);
             }
             break;
 
         case GameState::PAUSED:
             levelManager->Draw();
-            DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (Color){0, 0, 0, 180});
-            DrawChineseText("已暂停", SCREEN_WIDTH/2 - 80, SCREEN_HEIGHT/2 - 40, 56, WHITE);
-            DrawChineseText("按 [ENTER] 继续", SCREEN_WIDTH/2 - 140, SCREEN_HEIGHT/2 + 40, 26, LIGHTGRAY);
-            DrawChineseText("按 [ESC] 返回主菜单", SCREEN_WIDTH/2 - 160, SCREEN_HEIGHT/2 + 75, 22, GRAY);
+            DrawRectangle(0, 0, windowWidth, windowHeight, (Color){0, 0, 0, 180});
+            DrawChineseText("已暂停", windowWidth/2 - 80, windowHeight/2 - 40, 56, WHITE);
+            DrawChineseText("按 [ENTER] 继续", windowWidth/2 - 140, windowHeight/2 + 40, 26, LIGHTGRAY);
+            DrawChineseText("按 [ESC] 返回主菜单", windowWidth/2 - 160, windowHeight/2 + 75, 22, GRAY);
             break;
 
         case GameState::LEVEL_COMPLETE:
             levelManager->Draw();
-            DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (Color){0, 0, 0, 200});
-            DrawChineseText("关卡完成!", SCREEN_WIDTH/2 - 150, SCREEN_HEIGHT/2 - 50, 56, GREEN);
-            DrawChineseText("按 [ENTER] 进入下一关", SCREEN_WIDTH/2 - 180, SCREEN_HEIGHT/2 + 40, 26, WHITE);
+            DrawRectangle(0, 0, windowWidth, windowHeight, (Color){0, 0, 0, 200});
+            DrawChineseText("关卡完成!", windowWidth/2 - 150, windowHeight/2 - 50, 56, GREEN);
+            DrawChineseText("按 [ENTER] 进入下一关", windowWidth/2 - 180, windowHeight/2 + 40, 26, WHITE);
             break;
 
         default:
             break;
     }
 
-    if (useRenderTarget) {
-        EndTextureMode();
+    EndDrawing();
+}
 
-        // Draw scaled render target to screen
-        BeginDrawing();
-        ClearBackground(BLACK);
+Vector2 GitGame::GetGameMouseOffset() const {
+    int windowWidth = GetScreenWidth();
+    int windowHeight = GetScreenHeight();
+    int offsetX = (windowWidth - SCREEN_WIDTH) / 2;
+    int offsetY = (windowHeight - SCREEN_HEIGHT) / 2;
+    if (offsetX < 0) offsetX = 0;
+    if (offsetY < 0) offsetY = 0;
+    return {(float)offsetX, (float)offsetY};
+}
 
-        int screenWidth = GetScreenWidth();
-        int screenHeight = GetScreenHeight();
-
-        // Calculate scale to fit while maintaining aspect ratio
-        float scaleX = (float)screenWidth / SCREEN_WIDTH;
-        float scaleY = (float)screenHeight / SCREEN_HEIGHT;
-        float scale = (scaleX < scaleY) ? scaleX : scaleY;
-
-        // Calculate centered position
-        int drawWidth = (int)(SCREEN_WIDTH * scale);
-        int drawHeight = (int)(SCREEN_HEIGHT * scale);
-        int drawX = (screenWidth - drawWidth) / 2;
-        int drawY = (screenHeight - drawHeight) / 2;
-
-        // Draw render texture (flipped Y because OpenGL)
-        Rectangle sourceRec = {0, 0, (float)renderTarget.texture.width, -(float)renderTarget.texture.height};
-        Rectangle destRec = {(float)drawX, (float)drawY, (float)drawWidth, (float)drawHeight};
-        DrawTexturePro(renderTarget.texture, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
-
-        EndDrawing();
-    } else {
-        EndDrawing();
-    }
+Vector2 GitGame::ScreenToGameMouse(Vector2 screenPos) const {
+    Vector2 offset = GetGameMouseOffset();
+    return {screenPos.x - offset.x, screenPos.y - offset.y};
 }
 
 void GitGame::DrawChineseText(const char* text, int x, int y, int fontSize, Color color) {
@@ -301,6 +341,9 @@ void GitGame::DrawMenu() {
 }
 
 void GitGame::DrawHUD() {
+    int windowWidth = GetScreenWidth();
+    int windowHeight = GetScreenHeight();
+    
     // Level info at top left
     if (auto* level = levelManager->GetCurrentLevel()) {
         DrawRectangle(0, 0, 400, 50, (Color){30, 30, 40, 200});
@@ -308,8 +351,8 @@ void GitGame::DrawHUD() {
                  20, 12, 26, WHITE);
     }
 
-    // Help at bottom
-    DrawRectangle(0, SCREEN_HEIGHT - 40, SCREEN_WIDTH, 40, (Color){30, 30, 40, 200});
+    // Help at bottom - fixed to window bottom
+    DrawRectangle(0, windowHeight - 40, windowWidth, 40, (Color){30, 30, 40, 200});
     DrawChineseText("[ESC] 暂停  |  [I] git init  |  [A] git add  |  [C] git commit",
-             250, SCREEN_HEIGHT - 32, 22, LIGHTGRAY);
+             250, windowHeight - 32, 22, LIGHTGRAY);
 }

@@ -26,6 +26,7 @@ struct CommitNode {
     std::string hash;
     std::string message;
     std::string author;
+    int64_t timestamp;  // Unix timestamp for sorting
     int x, y;  // Position for visualization
     std::vector<std::string> parents;
     std::vector<std::string> branches;  // Branches pointing to this commit

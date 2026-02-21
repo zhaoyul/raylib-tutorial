@@ -11,7 +11,14 @@ Level::Level(int id, const std::string& name, const std::string& desc)
     : levelId(id), levelName(name), description(desc) {}
 
 LevelManager::LevelManager() = default;
-LevelManager::~LevelManager() = default;
+
+LevelManager::~LevelManager() {
+    // Ensure current level is properly shut down
+    if (currentLevel) {
+        currentLevel->Shutdown();
+        currentLevel.reset();
+    }
+}
 
 bool LevelManager::Initialize() {
     git = std::make_unique<GitWrapper>();

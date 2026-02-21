@@ -1,7 +1,7 @@
 #pragma once
 #include "raylib.h"
 #include "ui_manager.h"
-#include "raylib.h"
+#include "git_console.h"
 #include <memory>
 #include <string>
 
@@ -51,6 +51,10 @@ private:
     void DrawHUD();
 
     void DrawChineseText(const char* text, int x, int y, int fontSize, Color color);
+    
+    // Get mouse offset for game area centering
+    Vector2 GetGameMouseOffset() const;
+    Vector2 ScreenToGameMouse(Vector2 screenPos) const;
 
     GameState currentState;
     int currentLevel;
@@ -59,9 +63,10 @@ private:
 
     std::unique_ptr<LevelManager> levelManager;
     std::unique_ptr<UIManager> uiManager;
+    GitConsole gitConsole;
     GameFont gameFont;
 
-    // Render target for scaling
+    // Render target for scaling (disabled)
     RenderTexture2D renderTarget;
     bool useRenderTarget;
 

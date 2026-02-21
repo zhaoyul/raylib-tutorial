@@ -38,7 +38,8 @@ enum class GitObjectType {
     COMMIT,
     TREE,
     BLOB,
-    TAG
+    TAG,
+    BRANCH
 };
 
 struct GitObject {
@@ -87,22 +88,17 @@ public:
     float GetViewWidth() const { return viewWidth; }
     float GetViewHeight() const { return viewHeight; }
     
-    // Spring physics for bounce-back
-    void ApplySpringForce();
+    // Direct positioning (no spring physics)
+    void ApplySpringForce() {}  // No-op
     
 private:
     Vector2 offset;
-    Vector2 velocity;
     float zoom;
     
     // Bounds
     float boundsMinX, boundsMinY;
     float boundsMaxX, boundsMaxY;
     float viewWidth, viewHeight;
-    
-    // Spring params
-    float springStiffness;
-    float springDamping;
     
     // Drag state
     bool isDragging;
@@ -144,9 +140,7 @@ struct CommitNode {
     std::vector<std::string> branches;
     std::vector<std::string> tags;
     
-    // Animation
-    SpringAnim springX;
-    SpringAnim springY;
+    // Animation (disabled - direct positioning)
     float animProgress;
     AnimType currentAnim;
     
@@ -295,6 +289,7 @@ public:
     
     // Resize
     void SetSplitRatio(float ratio);  // 0.0 - 1.0, where to split
+    void SetBounds(int x, int y, int width, int height);
     
 private:
     CommitGraphPanel commitPanel;

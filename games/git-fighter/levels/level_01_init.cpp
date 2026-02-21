@@ -2,6 +2,9 @@
 #include "../src/git_wrapper.h"
 #include "raylib.h"
 #include <cstring>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 Level01_Init::Level01_Init() 
     : Level(1, "周末加班", "建立基础架构，学习 Git 基础命令"),
@@ -19,7 +22,13 @@ void Level01_Init::Initialize() {
     commitCount = 0;
     
     // Create a temporary directory for this level
-    std::string levelPath = "/tmp/gitfighter_level1_" + std::to_string(GetTime());
+    repoPath = "/tmp/gitfighter_level1_" + std::to_string((int)GetTime());
+    
+    // Clean up any old directory with the same name (shouldn't happen, but safety first)
+    try {
+        fs::remove_all(repoPath);
+    } catch (...) {}
+    
     git = new GitWrapper();
     
     // Don't init yet - let player do it
@@ -106,6 +115,14 @@ void Level01_Init::Shutdown() {
         delete git;
         git = nullptr;
     }
+    
+    // Clean up temp directory
+    if (!repoPath.empty()) {
+        try {
+            fs::remove_all(repoPath);
+            std::cout << "Level01_Init cleaned up: " << repoPath << std::endl;
+        } catch (...) {}
+    }
 }
 
 bool Level01_Init::IsComplete() const {
@@ -129,7 +146,7 @@ bool Level01_Init::CheckCommandInput() {
     // In the full game, this would check a command input buffer
     // For now, use keyboard shortcuts for testing
     if (currentStage == Stage::WAIT_INIT && IsKeyPressed(KEY_I)) {
-        git->Init("/tmp/gitfighter_level1_repo");
+        git->Init(repoPath);
         return true;
     }
     if (currentStage == Stage::WAIT_ADD && IsKeyPressed(KEY_A)) {

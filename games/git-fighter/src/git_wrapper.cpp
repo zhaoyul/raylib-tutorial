@@ -469,6 +469,9 @@ std::vector<CommitNode> GitWrapper::GetCommitGraph(int maxCommits) {
         const git_signature* author = git_commit_author(commit);
         if (author) {
             node.author = author->name ? author->name : "";
+            node.timestamp = author->when.time;  // Get commit timestamp
+        } else {
+            node.timestamp = 0;
         }
         
         // Get parents
@@ -568,42 +571,53 @@ std::vector<GitWrapper::GitObjectData> GitWrapper::GetCommitObjects(const std::s
                 
                 const char* entryName = git_tree_entry_name(entry);
                 const git_oid* entryOid = git_tree_entry_id(entry);
+                git_object_t entryType = git_tree_entry_type(entry);
                 
                 char entry_oid_str[GIT_OID_HEXSZ + 1];
                 git_oid_tostr(entry_oid_str, sizeof(entry_oid_str), entryOid);
                 
                 treeObj.content += "\n" + std::string(entry_oid_str).substr(0, 7) + "  " + entryName;
                 
-                // Add blob child
+                // Add child
                 treeObj.children.push_back(entry_oid_str);
                 
-                // Create blob object
-                GitObjectData blobObj;
-                blobObj.hash = entry_oid_str;
-                blobObj.type = "blob";
-                
-                // Try to read blob content
-                git_blob* blob = nullptr;
-                if (git_blob_lookup(&blob, repo, entryOid) == 0) {
-                    size_t blobSize = git_blob_rawsize(blob);
-                    const void* blobData = git_blob_rawcontent(blob);
+                if (entryType == GIT_OBJECT_TREE) {
+                    // Subdirectory - recursively process
+                    GitObjectData subTreeObj;
+                    subTreeObj.hash = entry_oid_str;
+                    subTreeObj.type = "tree";
+                    subTreeObj.content = "tree " + std::string(entry_oid_str).substr(0, 7) + "\n" + entryName + "/";
+                    // Note: recursive processing would go here for nested dirs
+                    result.push_back(subTreeObj);
+                } else {
+                    // Blob (file)
+                    GitObjectData blobObj;
+                    blobObj.hash = entry_oid_str;
+                    blobObj.type = "blob";
                     
-                    // Store first 200 chars or size info
-                    if (blobData && blobSize > 0) {
-                        size_t previewSize = blobSize > 200 ? 200 : blobSize;
-                        blobObj.content = std::string((const char*)blobData, previewSize);
-                        if (blobSize > 200) blobObj.content += "...";
+                    // Try to read blob content
+                    git_blob* blob = nullptr;
+                    if (git_blob_lookup(&blob, repo, entryOid) == 0) {
+                        size_t blobSize = git_blob_rawsize(blob);
+                        const void* blobData = git_blob_rawcontent(blob);
+                        
+                        // Store first 200 chars or size info
+                        if (blobData && blobSize > 0) {
+                            size_t previewSize = blobSize > 200 ? 200 : blobSize;
+                            blobObj.content = std::string((const char*)blobData, previewSize);
+                            if (blobSize > 200) blobObj.content += "...";
+                        } else {
+                            blobObj.content = "<empty file>";
+                        }
+                        
+                        git_blob_free(blob);
                     } else {
-                        blobObj.content = "<empty file>";
+                        blobObj.content = "<binary or unreadable>";
                     }
                     
-                    git_blob_free(blob);
-                } else {
-                    blobObj.content = "<binary or unreadable>";
+                    blobObj.content = "blob " + std::string(entry_oid_str).substr(0, 7) + "\n" + entryName + "\n\n" + blobObj.content;
+                    result.push_back(blobObj);
                 }
-                
-                blobObj.content = "blob " + std::string(entry_oid_str).substr(0, 7) + "\n" + entryName + "\n\n" + blobObj.content;
-                result.push_back(blobObj);
             }
             
             result.push_back(treeObj);

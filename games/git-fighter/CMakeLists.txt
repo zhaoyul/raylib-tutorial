@@ -33,10 +33,14 @@ add_executable(git-fighter
     src/git_graph.cpp
     src/git_visualization.cpp
     src/git_visualization_panels.cpp
+    src/gui_manager.cpp
+    src/ui_theme.cpp
+    src/git_console.cpp
     levels/level_01_realgit.cpp
     levels/level_02_branch.cpp
     levels/level_03_merge.cpp
     levels/level_04_remote.cpp
+    levels/level_01_gui.cpp
 )
 
 # Demo executables

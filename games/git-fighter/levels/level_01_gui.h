@@ -2,14 +2,15 @@
 #include "level_manager.h"
 #include "../src/git_visualization.h"
 #include "../src/git_wrapper.h"
+#include "../src/gui_manager.h"
 #include <memory>
 #include <string>
 
-// Level 1: 使用真实 Git 操作的可视化教学
-class Level01_RealGit : public Level {
+// Level 1: Modern GUI version
+class Level01_GUI : public Level {
 public:
-    Level01_RealGit();
-    ~Level01_RealGit();
+    Level01_GUI();
+    ~Level01_GUI();
     
     void Initialize() override;
     void Update(float deltaTime) override;
@@ -17,43 +18,44 @@ public:
     void Shutdown() override;
     
     bool IsComplete() const override;
-    std::string ExecuteGitCommand(const std::string& cmd) override;
     
 private:
     enum class Stage {
-        INTRO,              // CTO 对话
-        SHOW_WORKSPACE,     // 显示工作区
-        WAIT_INIT,          // 等待 git init
-        WAIT_ADD,           // 等待 git add
-        WAIT_COMMIT,        // 等待 git commit
-        COMPLETE            // 完成
+        INTRO,
+        WAIT_INIT,
+        WAIT_ADD,
+        WAIT_COMMIT,
+        COMPLETE
     };
     
     Stage currentStage;
     float timer;
     bool stageComplete;
     
-    // Git 相关
+    // Git
     std::unique_ptr<GitWrapper> git;
     std::string repoPath;
     std::string lastCommitHash;
     
-    // 可视化
+    // Visualization
     std::unique_ptr<GitVis::SplitGitView> splitView;
     
-    // 文件创建状态
+    // GUI
+    std::unique_ptr<GitGUI::GUIManager> gui;
+    std::unique_ptr<GitGUI::StepIndicator> stepIndicator;
+    std::unique_ptr<GitGUI::InfoCard> infoCard;
+    
+    // File creation flags
     bool readmeCreated;
     bool mainCppCreated;
     bool filesAdded;
     
-    // 方法
+    // Methods
     void CreateSampleFiles();
     void SyncGraphWithRepo();
     void ProcessGitCommand(const std::string& cmd);
-    void DrawCommandInput();
-    void DrawStatusPanel();
-    void DrawDialogueIfNeeded();
-    
-    // 检查 Git 状态
+    void DrawLeftPanel();
+    void DrawRightPanel();
+    void DrawBottomBar();
     void CheckGitStatus();
 };

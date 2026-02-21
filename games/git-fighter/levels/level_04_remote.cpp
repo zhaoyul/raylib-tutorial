@@ -89,8 +89,7 @@ void Level04_Remote::SyncGraphWithRepo() {
         node.scale = 1;
         node.position = {200, 100};
         node.targetPos = {200, 100};
-        node.springX.position = node.springX.target = 200;
-        node.springY.position = node.springY.target = 100;
+        node.position = {200, 100};
         commitPanel->AddCommit(node);
     }
     

@@ -41,6 +41,7 @@ Color GitObject::GetColor() const {
         case GitObjectType::TREE: return COLOR_TREE;
         case GitObjectType::BLOB: return COLOR_BLOB;
         case GitObjectType::TAG: return COLOR_TAG;
+        case GitObjectType::BRANCH: return COLOR_BRANCH;
     }
     return WHITE;
 }
@@ -51,6 +52,7 @@ const char* GitObject::GetIcon() const {
         case GitObjectType::TREE: return "🌳";
         case GitObjectType::BLOB: return "📄";
         case GitObjectType::TAG: return "🏷️";
+        case GitObjectType::BRANCH: return "🌿";
     }
     return "?";
 }
@@ -61,16 +63,16 @@ const char* GitObject::GetLabel() const {
         case GitObjectType::TREE: return "tree";
         case GitObjectType::BLOB: return "blob";
         case GitObjectType::TAG: return "tag";
+        case GitObjectType::BRANCH: return "branch";
     }
     return "unknown";
 }
 
 // DraggableView implementation
 DraggableView::DraggableView()
-    : offset{0, 0}, velocity{0, 0}, zoom(1.0f)
+    : offset{0, 0}, zoom(1.0f)
     , boundsMinX(-1000), boundsMinY(-1000), boundsMaxX(2000), boundsMaxY(2000)
     , viewWidth(800), viewHeight(600)
-    , springStiffness(300.0f), springDamping(0.85f)
     , isDragging(false) {}
 
 void DraggableView::SetBounds(float minX, float minY, float maxX, float maxY) {
@@ -89,7 +91,6 @@ void DraggableView::OnDragStart(Vector2 pos) {
     isDragging = true;
     dragStartPos = pos;
     dragStartOffset = offset;
-    velocity = {0, 0};
 }
 
 void DraggableView::OnDrag(Vector2 pos) {
@@ -101,7 +102,7 @@ void DraggableView::OnDrag(Vector2 pos) {
 
 void DraggableView::OnDragEnd() {
     isDragging = false;
-    ApplySpringForce();
+    // No spring physics - position stays where dragged
 }
 
 void DraggableView::OnZoom(float factor, Vector2 center) {
@@ -129,35 +130,11 @@ Vector2 DraggableView::ScreenToWorld(Vector2 screenPos) const {
     };
 }
 
-void DraggableView::ApplySpringForce() {
-    // Calculate visible bounds
-    float visibleW = viewWidth / zoom;
-    float visibleH = viewHeight / zoom;
-    
-    float minOffsetX = boundsMinX - visibleW / 4;
-    float maxOffsetX = boundsMaxX - visibleW * 0.75f;
-    float minOffsetY = boundsMinY - visibleH / 4;
-    float maxOffsetY = boundsMaxY - visibleH * 0.75f;
-    
-    // Apply spring force if out of bounds
-    if (offset.x < minOffsetX) velocity.x += (minOffsetX - offset.x) * 5;
-    if (offset.x > maxOffsetX) velocity.x -= (offset.x - maxOffsetX) * 5;
-    if (offset.y < minOffsetY) velocity.y += (minOffsetY - offset.y) * 5;
-    if (offset.y > maxOffsetY) velocity.y -= (offset.y - maxOffsetY) * 5;
-}
+// ApplySpringForce removed - direct positioning only
 
 void DraggableView::Update(float deltaTime) {
-    if (!isDragging) {
-        ApplySpringForce();
-        
-        // Apply velocity
-        offset.x += velocity.x * deltaTime;
-        offset.y += velocity.y * deltaTime;
-        
-        // Damping
-        velocity.x *= 0.95f;
-        velocity.y *= 0.95f;
-    }
+    // No spring physics - direct positioning only
+    // offset is set directly in OnDrag
 }
 
 void DraggableView::Draw() const {
@@ -178,12 +155,8 @@ void DraggableView::Draw() const {
 
 // CommitNode implementation
 void CommitNode::Update(float deltaTime) {
-    springX.Update(deltaTime);
-    springY.Update(deltaTime);
-    position.x = springX.position;
-    position.y = springY.position;
-    
-    // Scale animation
+    // Direct positioning - no spring physics
+    // Scale animation (keep hover effect)
     float targetScale = hovered ? 1.2f : 1.0f;
     scale += (targetScale - scale) * 10 * deltaTime;
     
@@ -356,15 +329,9 @@ void CommitGraphPanel::RecalculateLayout() {
         commitLanes[hash] = lane;
         node.lane = lane;
         node.targetPos = {200.0f + lane * 150.0f, y};
-        node.springX.target = node.targetPos.x;
-        node.springY.target = node.targetPos.y;
         
-        // Initialize spring position if not set (first time)
-        if (node.springX.position == 0 && node.springY.position == 0) {
-            node.springX.position = node.targetPos.x;
-            node.springY.position = node.targetPos.y;
-            node.position = node.targetPos;
-        }
+        // Direct positioning - no spring animation
+        node.position = node.targetPos;
         y += 100;
     }
     
@@ -382,10 +349,9 @@ void CommitGraphPanel::RecalculateLayout() {
 }
 
 void CommitGraphPanel::AnimateToLayout() {
+    // Direct positioning - no animation
     for (auto& pair : nodes) {
-        auto& node = pair.second;
-        node.springX.target = node.targetPos.x;
-        node.springY.target = node.targetPos.y;
+        pair.second.position = pair.second.targetPos;
     }
 }
 
@@ -448,24 +414,38 @@ void CommitGraphPanel::Update(float deltaTime) {
     Vector2 mousePos = GetMousePosition();
     Vector2 localMouse = {mousePos.x - bounds.x, mousePos.y - bounds.y};
     
-    if (CheckCollisionPointRec(mousePos, bounds)) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    // Track if we started dragging within this panel
+    static bool startedDragInPanel = false;
+    
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (CheckCollisionPointRec(mousePos, bounds)) {
             auto* node = GetNodeAt(mousePos);
             if (node) {
                 SelectNode(node->hash);
+                startedDragInPanel = false;
             } else {
                 viewport.OnDragStart(localMouse);
+                startedDragInPanel = true;
             }
+        } else {
+            startedDragInPanel = false;
         }
-        
-        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            viewport.OnDrag(localMouse);
-        }
-        
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+    }
+    
+    // Continue dragging even if mouse leaves panel (more responsive)
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && startedDragInPanel) {
+        viewport.OnDrag(localMouse);
+    }
+    
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        if (startedDragInPanel) {
             viewport.OnDragEnd();
         }
-        
+        startedDragInPanel = false;
+    }
+    
+    // Only zoom and hover when mouse is over panel
+    if (CheckCollisionPointRec(mousePos, bounds)) {
         float wheel = GetMouseWheelMove();
         if (wheel != 0) {
             viewport.OnZoom(1 + wheel * 0.1f, localMouse);
@@ -546,7 +526,7 @@ void CommitGraphPanel::DrawEdges() {
                 mt*mt*mt*fromScreen.x + 3*mt*mt*t*cp1.x + 3*mt*t*t*cp2.x + t*t*t*toScreen.x,
                 mt*mt*mt*fromScreen.y + 3*mt*mt*t*cp1.y + 3*mt*t*t*cp2.y + t*t*t*toScreen.y
             };
-            DrawLineEx(prev, curr, 2 * viewport.GetZoom(), lineColor);
+            DrawLineEx(prev, curr, 2.0f, lineColor);
             prev = curr;
         }
     }
@@ -557,9 +537,14 @@ void CommitGraphPanel::DrawNodes() {
         const auto& node = pair.second;
         
         Vector2 screenPos = viewport.WorldToScreen(node.position);
-        float r = node.radius * node.scale * viewport.GetZoom();
+        // Fixed node size - doesn't scale with zoom
+        float r = node.radius * node.scale;
         
-        if (r < 2) continue;  // Too small to see
+        // Skip if node would be off-screen (culling optimization)
+        if (screenPos.x < bounds.x - 50 || screenPos.x > bounds.x + bounds.width + 50 ||
+            screenPos.y < bounds.y - 50 || screenPos.y > bounds.y + bounds.height + 50) {
+            continue;
+        }
         
         Color nodeColor = COLOR_COMMIT;
         if (node.branches.size() > 1 || node.parents.size() > 1) {
@@ -585,15 +570,13 @@ void CommitGraphPanel::DrawNodes() {
         // Inner circle
         DrawCircle(screenPos.x, screenPos.y, r * 0.7f, {40, 44, 52, 255});
         
-        // Hash text
-        if (r > 10) {
-            int fontSize = (int)(12 * viewport.GetZoom());
-            int textW = MeasureText(node.shortHash.c_str(), fontSize);
-            DrawText(node.shortHash.c_str(), 
-                    (int)(screenPos.x - textW/2), 
-                    (int)(screenPos.y - fontSize/2),
-                    fontSize, WHITE);
-        }
+        // Hash text - fixed font size
+        int fontSize = 12;
+        int textW = MeasureText(node.shortHash.c_str(), fontSize);
+        DrawText(node.shortHash.c_str(), 
+                (int)(screenPos.x - textW/2), 
+                (int)(screenPos.y - fontSize/2),
+                fontSize, WHITE);
     }
 }
 
@@ -603,7 +586,8 @@ void CommitGraphPanel::DrawBranchLabels() {
         if (node.branches.empty()) continue;
         
         Vector2 screenPos = viewport.WorldToScreen(node.position);
-        float r = node.radius * node.scale * viewport.GetZoom();
+        // Fixed node size
+        float r = node.radius * node.scale;
         
         float labelY = screenPos.y - r - 10;
         
@@ -627,7 +611,8 @@ void CommitGraphPanel::DrawHEADIndicator() {
     
     const auto& head = nodes[headHash];
     Vector2 screenPos = viewport.WorldToScreen(head.position);
-    float r = head.radius * head.scale * viewport.GetZoom();
+    // Fixed node size
+    float r = head.radius * head.scale;
     
     std::string label = " HEAD ";
     int fontSize = 14;

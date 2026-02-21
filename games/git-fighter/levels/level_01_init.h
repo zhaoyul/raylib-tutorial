@@ -30,6 +30,7 @@ private:
     Stage currentStage;
     float timer;
     int commitCount;
+    std::string repoPath;  // Temp directory for this level
     
     // Visual elements
     void DrawWorkspace();

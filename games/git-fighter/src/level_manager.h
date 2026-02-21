@@ -15,6 +15,7 @@ struct LevelFont {
     void Load();
     void Unload();
     void DrawChinese(const char* text, int x, int y, int fontSize, Color color) const;
+    int MeasureChineseWidth(const char* text, int fontSize) const;
 };
 
 // Base class for all levels
@@ -32,8 +33,12 @@ public:
     // Check if level objectives are complete
     virtual bool IsComplete() const = 0;
     
+    // Execute a git command from console
+    virtual std::string ExecuteGitCommand(const std::string& cmd) { return "当前关卡不支持命令执行"; }
+    
     // Font setter
     void SetFont(const LevelFont* f) { font = f; }
+    const LevelFont* GetFont() const { return font; }
     
     // Getters
     int GetId() const { return levelId; }
@@ -44,6 +49,11 @@ protected:
     void DrawChinese(const char* text, int x, int y, int fontSize, Color color) const {
         if (font) font->DrawChinese(text, x, y, fontSize, color);
         else DrawText(text, x, y, fontSize, color);
+    }
+    
+    int MeasureChinese(const char* text, int fontSize) const {
+        if (font) return font->MeasureChineseWidth(text, fontSize);
+        return MeasureText(text, fontSize);
     }
     
     int levelId;

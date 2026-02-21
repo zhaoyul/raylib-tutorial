@@ -23,8 +23,6 @@ int main() {
     c1.author = "小王";
     c1.timestamp = 1700000000;
     c1.radius = 20;
-    c1.springX.position = c1.springX.target = 200;
-    c1.springY.position = c1.springY.target = 100;
     c1.position = {200, 100};
     c1.targetPos = {200, 100};
     c1.alpha = 1;
@@ -38,8 +36,6 @@ int main() {
     c2.timestamp = 1699996400;
     c2.parents.push_back("a1b2c3d");
     c2.radius = 20;
-    c2.springX.position = c2.springX.target = 200;
-    c2.springY.position = c2.springY.target = 200;
     c2.position = {200, 200};
     c2.targetPos = {200, 200};
     c2.alpha = 1;
@@ -53,8 +49,6 @@ int main() {
     c3.timestamp = 1699992800;
     c3.parents.push_back("e4f5g6h");
     c3.radius = 20;
-    c3.springX.position = c3.springX.target = 200;
-    c3.springY.position = c3.springY.target = 300;
     c3.position = {200, 300};
     c3.targetPos = {200, 300};
     c3.alpha = 1;
@@ -70,8 +64,6 @@ int main() {
     c4.timestamp = 1699992800;
     c4.parents.push_back("e4f5g6h");
     c4.radius = 20;
-    c4.springX.position = c4.springX.target = 350;
-    c4.springY.position = c4.springY.target = 300;
     c4.position = {350, 300};
     c4.targetPos = {350, 300};
     c4.alpha = 1;
@@ -88,8 +80,6 @@ int main() {
     c5.parents.push_back("i7j8k9l");
     c5.parents.push_back("m0n1o2p");
     c5.radius = 20;
-    c5.springX.position = c5.springX.target = 200;
-    c5.springY.position = c5.springY.target = 400;
     c5.position = {200, 400};
     c5.targetPos = {200, 400};
     c5.alpha = 1;

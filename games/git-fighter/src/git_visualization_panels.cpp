@@ -32,6 +32,19 @@ void InternalStructurePanel::LoadCommitObjects(const std::string& commitHash) {
     
     std::cout << "LoadCommitObjects: Loading for commit " << commitHash.substr(0, 7) << std::endl;
     
+    // Create a virtual root to hold branches/tags
+    GitObject virtualRoot;
+    virtualRoot.hash = "VIRTUAL_ROOT";
+    virtualRoot.shortHash = "refs";
+    virtualRoot.type = GitObjectType::TREE;
+    virtualRoot.content = "References";
+    virtualRoot.position = {100, 50};
+    virtualRoot.targetPos = {100, 50};
+    virtualRoot.scale = 1;
+    virtualRoot.alpha = 1;
+    virtualRoot.expanded = true;
+    objects["VIRTUAL_ROOT"] = virtualRoot;
+    
     if (git) {
         // Load real objects from git
         std::cout << "LoadCommitObjects: Using real git data" << std::endl;
@@ -70,6 +83,44 @@ void InternalStructurePanel::LoadCommitObjects(const std::string& commitHash) {
                     objects[childHash].parents.push_back(obj.hash);
                 }
             }
+        }
+        
+        // Add branches pointing to this commit
+        if (objects.count(commitHash)) {
+            GitObject& commitObj = objects[commitHash];
+            
+            // Check if this is HEAD
+            std::string head = git->GetHEAD();
+            if (head == commitHash) {
+                GitObject headBranch;
+                headBranch.hash = "HEAD_ref";
+                headBranch.shortHash = "HEAD";
+                headBranch.type = GitObjectType::BRANCH;
+                headBranch.content = "HEAD -> main";
+                headBranch.position = {100, 100};
+                headBranch.targetPos = {100, 100};
+                headBranch.scale = 1;
+                headBranch.alpha = 1;
+                headBranch.children.push_back(commitHash);
+                objects["HEAD_ref"] = headBranch;
+                virtualRoot.children.push_back("HEAD_ref");
+                commitObj.parents.push_back("HEAD_ref");
+            }
+            
+            // Add main branch reference
+            GitObject mainBranch;
+            mainBranch.hash = "branch_main";
+            mainBranch.shortHash = "main";
+            mainBranch.type = GitObjectType::BRANCH;
+            mainBranch.content = "main branch";
+            mainBranch.position = {200, 100};
+            mainBranch.targetPos = {200, 100};
+            mainBranch.scale = 1;
+            mainBranch.alpha = 1;
+            mainBranch.children.push_back(commitHash);
+            objects["branch_main"] = mainBranch;
+            virtualRoot.children.push_back("branch_main");
+            commitObj.parents.push_back("branch_main");
         }
     } else {
         // Fallback to simulated data if no git wrapper
@@ -243,7 +294,13 @@ void InternalStructurePanel::ScanWorkingDirectory(const std::string& repoPath) {
 }
 
 void InternalStructurePanel::LayoutObjects() {
-    if (rootCommit.empty() || !objects.count(rootCommit)) return;
+    // Determine starting node - prefer VIRTUAL_ROOT if exists (for commit view with refs)
+    std::string startNode = rootCommit;
+    if (objects.count("VIRTUAL_ROOT")) {
+        startNode = "VIRTUAL_ROOT";
+    }
+    
+    if (startNode.empty() || !objects.count(startNode)) return;
     
     // Simple tree layout with fixed positions per level
     std::map<int, std::vector<std::string>> nodesAtDepth;
@@ -251,9 +308,9 @@ void InternalStructurePanel::LayoutObjects() {
     
     // BFS to assign depths to visible nodes only
     std::queue<std::pair<std::string, int>> queue;
-    queue.push({rootCommit, 0});
-    nodeDepth[rootCommit] = 0;
-    nodesAtDepth[0].push_back(rootCommit);
+    queue.push({startNode, 0});
+    nodeDepth[startNode] = 0;
+    nodesAtDepth[0].push_back(startNode);
     
     while (!queue.empty()) {
         auto [hash, depth] = queue.front();
@@ -349,11 +406,13 @@ void InternalStructurePanel::Update(float deltaTime) {
     
     // Handle input
     Vector2 mousePos = GetMousePosition();
+    Vector2 localMouse = {mousePos.x - bounds.x, mousePos.y - bounds.y};
     
-    if (CheckCollisionPointRec(mousePos, bounds)) {
-        Vector2 localMouse = {mousePos.x - bounds.x, mousePos.y - bounds.y};
-        
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    // Track if we started dragging within this panel
+    static bool startedDragInPanel = false;
+    
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (CheckCollisionPointRec(mousePos, bounds)) {
             // First check if clicked on expand/collapse button for TREE nodes
             bool clickedToggle = false;
             for (auto& pair : objects) {
@@ -362,10 +421,11 @@ void InternalStructurePanel::Update(float deltaTime) {
                     // Use targetPos for click detection to avoid animation issues
                     Vector2 localPos = viewport.WorldToScreen(obj.targetPos);
                     Vector2 screenPos = {localPos.x + bounds.x, localPos.y + bounds.y};
-                    float r = 25 * viewport.GetZoom();
+                    // Fixed node size for click detection
+                    float r = 25.0f;
                     
-                    // +/- button rect - match the drawn button exactly
-                    float btnSize = 20 * viewport.GetZoom();
+                    // +/- button rect - match the drawn button exactly (fixed size)
+                    float btnSize = 20.0f;
                     float btnY = screenPos.y - r - 30;
                     Rectangle toggleRect = {
                         screenPos.x - btnSize/2 - 2,
@@ -386,20 +446,33 @@ void InternalStructurePanel::Update(float deltaTime) {
                 auto* obj = GetObjectAt(mousePos);
                 if (obj) {
                     SelectObject(obj->hash);
+                    startedDragInPanel = false;  // Selection, not drag
                 } else {
                     viewport.OnDragStart(localMouse);
+                    startedDragInPanel = true;
                 }
+            } else {
+                startedDragInPanel = false;
             }
+        } else {
+            startedDragInPanel = false;
         }
-        
-        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            viewport.OnDrag(localMouse);
-        }
-        
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+    }
+    
+    // Continue dragging even if mouse leaves panel (more responsive)
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && startedDragInPanel) {
+        viewport.OnDrag(localMouse);
+    }
+    
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        if (startedDragInPanel) {
             viewport.OnDragEnd();
         }
-        
+        startedDragInPanel = false;
+    }
+    
+    // Only zoom when mouse is over panel
+    if (CheckCollisionPointRec(mousePos, bounds)) {
         float wheel = GetMouseWheelMove();
         if (wheel != 0) {
             viewport.OnZoom(1 + wheel * 0.1f, localMouse);
@@ -419,14 +492,19 @@ void InternalStructurePanel::Draw() {
         for (const auto& parentHash : obj.parents) {
             if (!objects.count(parentHash)) continue;
             
+            const auto& parent = objects[parentHash];
+            
+            // Skip if parent is not expanded
+            if (!parent.expanded) continue;
+            
             // Use targetPos for consistent positioning
             Vector2 childLocal = viewport.WorldToScreen(obj.targetPos);
-            Vector2 parentLocal = viewport.WorldToScreen(objects[parentHash].targetPos);
+            Vector2 parentLocal = viewport.WorldToScreen(parent.targetPos);
             
             Vector2 childPos = {childLocal.x + bounds.x, childLocal.y + bounds.y};
             Vector2 parentPos = {parentLocal.x + bounds.x, parentLocal.y + bounds.y};
             
-            // Draw curved connection
+            // Draw curved connection - fixed line width
             Vector2 mid = {(parentPos.x + childPos.x)/2, (parentPos.y + childPos.y)/2};
             Vector2 cp1 = {parentPos.x, mid.y};
             Vector2 cp2 = {childPos.x, mid.y};
@@ -439,7 +517,7 @@ void InternalStructurePanel::Draw() {
                     mt*mt*mt*parentPos.x + 3*mt*mt*t*cp1.x + 3*mt*t*t*cp2.x + t*t*t*childPos.x,
                     mt*mt*mt*parentPos.y + 3*mt*mt*t*cp1.y + 3*mt*t*t*cp2.y + t*t*t*childPos.y
                 };
-                DrawLineEx(prev, curr, 2 * viewport.GetZoom(), {100, 100, 120, 200});
+                DrawLineEx(prev, curr, 2.0f, {100, 100, 120, 200});
                 prev = curr;
             }
         }
@@ -451,7 +529,7 @@ void InternalStructurePanel::Draw() {
         // Use targetPos for drawing to match click detection
         Vector2 localPos = viewport.WorldToScreen(obj.targetPos);
         Vector2 screenPos = {localPos.x + bounds.x, localPos.y + bounds.y};
-        float r = 25 * viewport.GetZoom();
+        float r = 25.0f;  // Fixed node size
         
         if (r < 3) continue;
         
@@ -471,7 +549,7 @@ void InternalStructurePanel::Draw() {
             // Expand/collapse button for tree nodes with children
             if (!obj.children.empty()) {
                 const char* indicator = obj.expanded ? "-" : "+";
-                float btnSize = 20 * viewport.GetZoom();
+                float btnSize = 20.0f;  // Fixed button size
                 float btnY = screenPos.y - r - 30;
                 
                 // Draw button background
@@ -491,7 +569,7 @@ void InternalStructurePanel::Draw() {
                 );
                 
                 // Draw +/- text
-                int fontSize = (int)(14 * viewport.GetZoom());
+                int fontSize = 14;  // Fixed font size
                 int textW = MeasureText(indicator, fontSize);
                 DrawText(indicator, 
                         (int)(screenPos.x - textW/2), 
@@ -505,7 +583,7 @@ void InternalStructurePanel::Draw() {
         DrawCircleLines(screenPos.x, screenPos.y, r, WHITE);
         
         // Labels
-        int fontSize = (int)(11 * viewport.GetZoom());
+        int fontSize = 11;  // Fixed font size
         DrawText(obj.GetLabel(), (int)(screenPos.x - r + 5), (int)(screenPos.y - r + 5), 
                 fontSize, WHITE);
         DrawText(obj.shortHash.c_str(), (int)(screenPos.x - r + 5), (int)(screenPos.y + 5),
@@ -522,18 +600,23 @@ void InternalStructurePanel::Draw() {
 }
 
 void InternalStructurePanel::DrawConnections() {
+    // Only draw connections for visible objects (whose parents are expanded)
     for (const auto& pair : objects) {
         const auto& obj = pair.second;
         if (obj.parents.empty()) continue;
         
-        Vector2 childPos = viewport.WorldToScreen(obj.position);
-        
         for (const auto& parentHash : obj.parents) {
             if (!objects.count(parentHash)) continue;
             
-            Vector2 parentPos = viewport.WorldToScreen(objects[parentHash].position);
+            const auto& parent = objects[parentHash];
             
-            // Draw curved connection
+            // Skip if parent is not expanded - child should not be visible
+            if (!parent.expanded) continue;
+            
+            Vector2 childPos = viewport.WorldToScreen(obj.position);
+            Vector2 parentPos = viewport.WorldToScreen(parent.position);
+            
+            // Draw curved connection - line width fixed, not zoomed
             Vector2 mid = {(parentPos.x + childPos.x)/2, (parentPos.y + childPos.y)/2};
             Vector2 cp1 = {parentPos.x, mid.y};
             Vector2 cp2 = {childPos.x, mid.y};
@@ -546,7 +629,7 @@ void InternalStructurePanel::DrawConnections() {
                     mt*mt*mt*parentPos.x + 3*mt*mt*t*cp1.x + 3*mt*t*t*cp2.x + t*t*t*childPos.x,
                     mt*mt*mt*parentPos.y + 3*mt*mt*t*cp1.y + 3*mt*t*t*cp2.y + t*t*t*childPos.y
                 };
-                DrawLineEx(prev, curr, 2 * viewport.GetZoom(), {100, 100, 120, 200});
+                DrawLineEx(prev, curr, 2.0f, {100, 100, 120, 200});
                 prev = curr;
             }
         }
@@ -555,9 +638,8 @@ void InternalStructurePanel::DrawConnections() {
 
 void InternalStructurePanel::DrawObject(const GitObject& obj) {
     Vector2 screenPos = viewport.WorldToScreen(obj.position);
-    float r = 25 * viewport.GetZoom();
-    
-    if (r < 3) return;
+    // Fixed node size - doesn't scale with zoom
+    float r = 25.0f;
     
     Color c = obj.GetColor();
     
@@ -566,18 +648,18 @@ void InternalStructurePanel::DrawObject(const GitObject& obj) {
         DrawCircle(screenPos.x, screenPos.y, r + 8, {255, 255, 255, 80});
     }
     
-    // Main shape - rounded rect for tree, circle for blob
+    // Main shape - rounded rect for tree, circle for blob (fixed size)
     if (obj.type == GitObjectType::TREE) {
         DrawRectangleRounded(
             {screenPos.x - r, screenPos.y - r*0.7f, r*2, r*1.4f},
             0.3f, 8, c
         );
         
-        // Expand indicator
+        // Expand indicator - fixed size and position
         if (!obj.children.empty()) {
             const char* indicator = obj.expanded ? "-" : "+";
             DrawText(indicator, (int)(screenPos.x - 5), (int)(screenPos.y - 25 - r), 
-                    (int)(16 * viewport.GetZoom()), WHITE);
+                    16, WHITE);
         }
     } else {
         DrawCircle(screenPos.x, screenPos.y, r, c);
@@ -585,8 +667,8 @@ void InternalStructurePanel::DrawObject(const GitObject& obj) {
     
     DrawCircleLines(screenPos.x, screenPos.y, r, WHITE);
     
-    // Icon and text
-    int fontSize = (int)(11 * viewport.GetZoom());
+    // Icon and text - fixed font size
+    int fontSize = 11;
     
     // Type label
     DrawText(obj.GetLabel(), (int)(screenPos.x - r + 5), (int)(screenPos.y - r + 5), 
@@ -684,6 +766,17 @@ void SplitGitView::OnCommitSelected(const std::string& hash) {
 
 void SplitGitView::SetSplitRatio(float ratio) {
     splitRatio = std::clamp(ratio, 0.3f, 0.8f);
+}
+
+void SplitGitView::SetBounds(int x, int y, int width, int height) {
+    bounds = {(float)x, (float)y, (float)width, (float)height};
+    
+    // Update split position based on ratio
+    splitY = (int)(bounds.y + bounds.height * splitRatio);
+    
+    // Re-initialize panels with new bounds
+    commitPanel.Initialize(x, y, width, splitY - y);
+    structurePanel.Initialize(x, splitY, width, (y + height) - splitY);
 }
 
 } // namespace GitVis
