@@ -6,6 +6,12 @@
 
 This is a comprehensive tutorial project for learning C++, CMake, and Raylib from scratch. Master game development core concepts by building classic games.
 
+### 🌐 Raylib 全景 / Raylib at a Glance
+
+Raylib 是一个轻量、跨平台、以 C 语言为核心的开源游戏开发库，强调“简单 API + 快速上手”。它覆盖了 2D/3D 渲染、窗口与输入、音频播放、数学结构（如 `Vector2/Vector3`）、基础资源加载等常见游戏开发能力，适合教学、原型验证与小中型游戏项目。
+
+Raylib is a lightweight, cross-platform, open-source game development library centered on a C API and a “simple API, fast onboarding” philosophy. It provides practical building blocks for 2D/3D rendering, window/input handling, audio, math types (`Vector2/Vector3`), and asset loading—making it well-suited for learning, rapid prototyping, and small-to-medium game projects.
+
 ## 🎮 游戏项目 / Game Projects
 
 本教程包含以下游戏项目：
