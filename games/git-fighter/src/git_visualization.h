@@ -72,6 +72,7 @@ public:
     // Viewport control
     void SetBounds(float minX, float minY, float maxX, float maxY);
     void SetViewSize(float width, float height);
+    void SetOffset(Vector2 off) { offset = off; }
     
     // Interaction
     void OnDragStart(Vector2 pos);
@@ -177,6 +178,7 @@ public:
     void AddCommit(const CommitNode& commit);
     void AddBranch(const std::string& name, const std::string& head, Color color);
     void SetHEAD(const std::string& hash);
+    void SetCurrentBranch(const std::string& branch);
     void Clear();
     
     // Layout
@@ -186,6 +188,7 @@ public:
     // Interaction
     CommitNode* GetNodeAt(Vector2 screenPos);
     void SelectNode(const std::string& hash);
+    void DeselectNode();
     void CenterOnNode(const std::string& hash);
     
     // Callbacks
@@ -205,6 +208,7 @@ private:
     std::map<std::string, Color> branchColors;
     std::string headHash;
     std::string selectedHash;
+    std::string currentBranch;  // Current branch name (e.g., "master")
     
     DraggableView viewport;
     Rectangle bounds;
@@ -234,6 +238,9 @@ public:
     
     // Scan real filesystem and display working directory structure
     void ScanWorkingDirectory(const std::string& repoPath);
+    
+    // Load entire git database (all objects)
+    void LoadGitDatabase();
     
     void Clear();
     
@@ -284,6 +291,9 @@ public:
         structurePanel.SetGitWrapper(gitWrapper); 
     }
     
+    // Set repo path for working directory scanning
+    void SetRepoPath(const std::string& path) { repoPath = path; }
+    
     // Sync selection
     void OnCommitSelected(const std::string& hash);
     
@@ -301,6 +311,9 @@ private:
     
     // Drag divider
     bool draggingDivider;
+    
+    // Repo path for working directory view
+    std::string repoPath;
 };
 
 // Detail popup for commit/object info

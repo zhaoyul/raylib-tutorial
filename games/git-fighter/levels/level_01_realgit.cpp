@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
+#include <set>
 
 namespace fs = std::filesystem;
 
@@ -47,6 +48,9 @@ void Level01_RealGit::Initialize() {
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
+    
+    // 设置仓库路径用于工作目录扫描
+    splitView->SetRepoPath(repoPath);
     
     std::cout << "Level 1 initialized at: " << repoPath << std::endl;
     
@@ -119,10 +123,44 @@ void Level01_RealGit::SyncGraphWithRepo() {
         commitPanel->AddCommit(node);
     }
     
+    // Add all branches to visualization
+    std::set<std::string> addedBranches;
+    Color branchColors[] = {
+        {100, 200, 255, 255},   // Blue - main
+        {255, 200, 100, 255},   // Orange
+        {100, 255, 150, 255},   // Green
+        {255, 100, 200, 255},   // Pink
+        {200, 255, 100, 255},   // Yellow-green
+        {255, 150, 100, 255},   // Coral
+        {150, 100, 255, 255},   // Purple
+    };
+    int colorIndex = 0;
+    
+    for (const auto& c : commits) {
+        for (const auto& branchName : c.branches) {
+            if (addedBranches.insert(branchName).second) {
+                // New branch - add it
+                Color color = branchColors[colorIndex % 7];
+                commitPanel->AddBranch(branchName, c.hash, color);
+                colorIndex++;
+            }
+        }
+    }
+    
+    // If no branches found, add main as fallback
+    if (addedBranches.empty() && !head.empty()) {
+        commitPanel->AddBranch("main", head, branchColors[0]);
+    }
+    
     if (!head.empty()) {
-        commitPanel->AddBranch("main", head, {100, 200, 255, 255});
         commitPanel->SetHEAD(head);
         splitView->OnCommitSelected(head);
+    }
+    
+    // Set current branch name
+    std::string currentBranch = git->GetCurrentBranch();
+    if (!currentBranch.empty()) {
+        commitPanel->SetCurrentBranch(currentBranch);
     }
     
     commitPanel->RecalculateLayout();
@@ -514,171 +552,48 @@ std::string Level01_RealGit::ExecuteGitCommand(const std::string& cmd) {
         return "错误: Git 仓库未初始化";
     }
     
-    // Parse command
-    std::vector<std::string> args;
-    std::string token;
-    bool inQuote = false;
+    // Execute command in the repo directory using system()
+    std::string fullCmd = "cd " + repoPath + " && " + cmd + " 2>&1";
     
-    for (char c : cmd) {
-        if (c == '"') {
-            inQuote = !inQuote;
-        } else if (c == ' ' && !inQuote) {
-            if (!token.empty()) {
-                args.push_back(token);
-                token.clear();
-            }
-        } else {
-            token += c;
-        }
-    }
-    if (!token.empty()) {
-        args.push_back(token);
-    }
-    
-    if (args.empty()) {
-        return "错误: 空命令";
-    }
-    
-    // Execute based on command
     std::string result;
+    char buffer[4096];
     
-    if (args[0] == "git") {
-        if (args.size() < 2) {
-            return "错误: 缺少 git 子命令";
-        }
+    FILE* pipe = popen(fullCmd.c_str(), "r");
+    if (!pipe) {
+        return "错误: 无法执行命令";
+    }
+    
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result += buffer;
+    }
+    
+    int exitCode = pclose(pipe);
+    
+    // Trim trailing newline
+    if (!result.empty() && result.back() == '\n') {
+        result.pop_back();
+    }
+    
+    // Update visualization after git commands
+    if (cmd.find("git") == 0) {
+        SyncGraphWithRepo();
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
         
-        std::string subcmd = args[1];
-        
-        if (subcmd == "status") {
-            auto status = git->GetWorkingDirectoryStatus();
-            result = "工作区状态:\n";
-            for (const auto& file : status) {
-                const char* statusStr = "";
-                switch (file.status) {
-                    case FileStatus::UNTRACKED: statusStr = "??"; break;
-                    case FileStatus::MODIFIED: statusStr = "M"; break;
-                    case FileStatus::STAGED: statusStr = "A"; break;
-                    case FileStatus::COMMITTED: statusStr = "C"; break;
+        // Check for commit
+        if (cmd.find("git commit") == 0 && exitCode == 0) {
+            std::string head = git->GetHEAD();
+            if (!head.empty() && head != lastCommitHash) {
+                lastCommitHash = head;
+                if (currentStage == Stage::WAIT_COMMIT) {
+                    currentStage = Stage::COMPLETE;
+                    stageComplete = true;
                 }
-                result += std::string("  ") + statusStr + " " + file.path + "\n";
-            }
-            if (status.empty()) {
-                result += "  (无文件)";
-            }
-        }
-        else if (subcmd == "add") {
-            if (args.size() < 3) {
-                result = "错误: git add 需要文件参数";
-            } else {
-                std::string filePattern = args[2];
-                auto res = git->Add(filePattern);
-                result = res.success ? "成功: 文件已添加到暂存区" : "错误: " + res.error;
-                if (res.success) {
-                    CheckGitStatus();
-                }
-            }
-        }
-        else if (subcmd == "commit") {
-            std::string message = "Console commit";
-            // Parse -m message
-            for (size_t i = 2; i < args.size(); i++) {
-                if (args[i] == "-m" && i + 1 < args.size()) {
-                    message = args[i + 1];
-                    break;
-                }
-            }
-            auto res = git->Commit(message);
-            if (res.success) {
-                result = "成功: 提交完成\n" + res.output;
-                SyncGraphWithRepo();
-                std::string head = git->GetHEAD();
-                if (!head.empty() && head != lastCommitHash) {
-                    lastCommitHash = head;
-                    if (currentStage == Stage::WAIT_COMMIT) {
-                        currentStage = Stage::COMPLETE;
-                        stageComplete = true;
-                    }
-                }
-            } else {
-                result = "错误: " + res.error;
-            }
-        }
-        else if (subcmd == "init") {
-            result = "仓库已经初始化";
-        }
-        else if (subcmd == "log") {
-            auto commits = git->GetCommitGraph(10);
-            result = "提交历史:\n";
-            for (const auto& c : commits) {
-                result += "  " + c.shortHash() + " " + c.message + "\n";
-            }
-        }
-        else if (subcmd == "tree") {
-            // Show directory tree structure
-            result = "目录结构:\n";
-            std::function<void(const std::string&, int)> printTree = [&](const std::string& path, int depth) {
-                try {
-                    for (const auto& entry : fs::directory_iterator(path)) {
-                        std::string name = entry.path().filename().string();
-                        if (name[0] == '.' || name == ".git") continue;
-                        
-                        std::string indent(depth * 2, ' ');
-                        if (entry.is_directory()) {
-                            result += indent + "📁 " + name + "/\n";
-                            printTree(entry.path().string(), depth + 1);
-                        } else {
-                            result += indent + "📄 " + name + "\n";
-                        }
-                    }
-                } catch (...) {}
-            };
-            printTree(repoPath, 0);
-            if (result == "目录结构:\n") {
-                result += "  (空目录)";
-            }
-        }
-        else {
-            result = "未支持的 git 命令: " + subcmd;
-        }
-    }
-    else if (args[0] == "ls" || args[0] == "dir") {
-        // List files in repo using filesystem (not just git tracked files)
-        result = "工作区文件:\n";
-        try {
-            int count = 0;
-            for (const auto& entry : fs::directory_iterator(repoPath)) {
-                std::string name = entry.path().filename().string();
-                if (name[0] == '.' || name == ".git") continue;
-                
-                std::string line = "  " + name;
-                if (entry.is_directory()) {
-                    line += "/";
-                }
-                result += line + "\n";
-                count++;
-            }
-            if (count == 0) {
-                result += "  (目录为空)";
-            }
-        } catch (const std::exception& e) {
-            result += std::string("  错误: ") + e.what();
-        }
-    }
-    else if (args[0] == "touch") {
-        if (args.size() < 2) {
-            result = "错误: touch 需要文件名";
-        } else {
-            std::string filename = args[1];
-            if (git->CreateFile(filename, "Created from console\n")) {
-                splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
-                result = "成功: 创建文件 " + filename;
-            } else {
-                result = "错误: 无法创建文件";
             }
         }
     }
-    else {
-        result = "未识别的命令: " + args[0] + "\n支持的命令: git, ls, touch";
+    
+    if (result.empty()) {
+        result = (exitCode == 0) ? "命令执行成功" : "命令执行失败 (exit code: " + std::to_string(exitCode) + ")";
     }
     
     return result;

@@ -45,6 +45,7 @@ void Level01_GUI::Initialize() {
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
+    splitView->SetRepoPath(repoPath);
     
     // Init GUI
     gui = std::make_unique<GUIManager>();

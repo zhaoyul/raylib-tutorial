@@ -3,6 +3,7 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <set>
 
 namespace fs = std::filesystem;
 
@@ -42,6 +43,7 @@ void Level04_Remote::Initialize() {
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
+    splitView->SetRepoPath(repoPath);
     
     CreateLocalRepo();
     
@@ -90,16 +92,45 @@ void Level04_Remote::SyncGraphWithRepo() {
         node.position = {200, 100};
         node.targetPos = {200, 100};
         node.position = {200, 100};
+        // Copy branch info from git
+        for (const auto& branch : c.branches) {
+            node.branches.push_back(branch);
+        }
         commitPanel->AddCommit(node);
+    }
+    
+    // Add all branches to visualization
+    std::set<std::string> addedBranches;
+    Color branchColors[] = {
+        {100, 200, 255, 255},   // Blue - main
+        {255, 200, 100, 255},   // Orange - feature
+        {100, 255, 150, 255},   // Green
+        {255, 100, 200, 255},   // Pink
+        {200, 255, 100, 255},   // Yellow-green
+        {255, 150, 100, 255},   // Coral - origin/main
+        {150, 100, 255, 255},   // Purple
+    };
+    int colorIndex = 0;
+    
+    for (const auto& c : commits) {
+        for (const auto& branchName : c.branches) {
+            if (addedBranches.insert(branchName).second) {
+                Color color = branchColors[colorIndex % 7];
+                commitPanel->AddBranch(branchName, c.hash, color);
+                colorIndex++;
+            }
+        }
     }
     
     std::string head = git->GetHEAD();
     if (!head.empty()) {
-        commitPanel->AddBranch("main", head, {100, 200, 255, 255});
-        if (pushed) {
-            commitPanel->AddBranch("origin/main", head, {255, 150, 100, 255});
-        }
         commitPanel->SetHEAD(head);
+    }
+    
+    // Set current branch name
+    std::string currentBranch = git->GetCurrentBranch();
+    if (!currentBranch.empty()) {
+        commitPanel->SetCurrentBranch(currentBranch);
     }
     
     commitPanel->RecalculateLayout();

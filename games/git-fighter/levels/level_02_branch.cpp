@@ -3,6 +3,7 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <set>
 
 namespace fs = std::filesystem;
 
@@ -47,6 +48,7 @@ void Level02_Branch::Initialize() {
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
+    splitView->SetRepoPath(repoPath);
     
     // 创建初始仓库
     CreateInitialRepo();
@@ -99,13 +101,45 @@ void Level02_Branch::SyncGraphWithRepo() {
         node.position = {200, 100};
         node.targetPos = {200, 100};
         node.position = {200, 100};
+        // Copy branch info from git
+        for (const auto& branch : c.branches) {
+            node.branches.push_back(branch);
+        }
         commitPanel->AddCommit(node);
+    }
+    
+    // Add all branches to visualization
+    std::set<std::string> addedBranches;
+    Color branchColors[] = {
+        {100, 200, 255, 255},   // Blue
+        {255, 200, 100, 255},   // Orange
+        {100, 255, 150, 255},   // Green
+        {255, 100, 200, 255},   // Pink
+        {200, 255, 100, 255},   // Yellow-green
+        {255, 150, 100, 255},   // Coral
+        {150, 100, 255, 255},   // Purple
+    };
+    int colorIndex = 0;
+    
+    for (const auto& c : commits) {
+        for (const auto& branchName : c.branches) {
+            if (addedBranches.insert(branchName).second) {
+                Color color = branchColors[colorIndex % 7];
+                commitPanel->AddBranch(branchName, c.hash, color);
+                colorIndex++;
+            }
+        }
     }
     
     std::string head = git->GetHEAD();
     if (!head.empty()) {
-        commitPanel->AddBranch(currentBranch, head, {100, 200, 255, 255});
         commitPanel->SetHEAD(head);
+    }
+    
+    // Set current branch name
+    std::string currentBranch = git->GetCurrentBranch();
+    if (!currentBranch.empty()) {
+        commitPanel->SetCurrentBranch(currentBranch);
     }
     
     commitPanel->RecalculateLayout();

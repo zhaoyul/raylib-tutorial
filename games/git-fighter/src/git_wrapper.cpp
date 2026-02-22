@@ -5,6 +5,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <filesystem>
+#include <set>
+#include <map>
 
 GitWrapper::GitWrapper() : repo(nullptr) {
     git_libgit2_init();
@@ -440,38 +442,84 @@ std::vector<CommitNode> GitWrapper::GetCommitGraph(int maxCommits) {
         return result;
     }
     
-    std::string head = GetHEAD();
+    std::set<std::string> seenHashes;
+    std::map<std::string, std::vector<std::string>> commitBranches;
     
-    if (head.empty()) {
-        return result;
+    // First, collect all branch references
+    git_reference_iterator* iter = nullptr;
+    git_reference_iterator_new(&iter, repo);
+    
+    const char* refname = nullptr;
+    git_reference* ref = nullptr;
+    
+    std::vector<std::string> allRefNames;
+    while (git_reference_next_name(&refname, iter) == 0) {
+        allRefNames.push_back(refname);
     }
+    git_reference_iterator_free(iter);
     
-    // Walk commit history
+    // Walk from all branches
     git_revwalk* walker = nullptr;
     git_revwalk_new(&walker, repo);
-    git_revwalk_push_head(walker);
     git_revwalk_sorting(walker, GIT_SORT_TIME);
+    
+    // Push all branch heads
+    for (const auto& name : allRefNames) {
+        if (git_reference_lookup(&ref, repo, name.c_str()) == 0) {
+            if (git_reference_type(ref) == GIT_REFERENCE_DIRECT) {
+                const git_oid* oid = git_reference_target(ref);
+                git_revwalk_push(walker, oid);
+                
+                // Record which branch points to which commit
+                char oid_str[GIT_OID_HEXSZ + 1];
+                git_oid_tostr(oid_str, sizeof(oid_str), oid);
+                
+                std::string branchName = name;
+                // Strip refs/heads/ or refs/tags/ prefix
+                if (branchName.find("refs/heads/") == 0) {
+                    branchName = branchName.substr(11);
+                } else if (branchName.find("refs/tags/") == 0) {
+                    branchName = branchName.substr(10);
+                }
+                
+                commitBranches[oid_str].push_back(branchName);
+            }
+            git_reference_free(ref);
+        }
+    }
+    
+    // Also push HEAD
+    git_revwalk_push_head(walker);
     
     git_oid oid;
     int count = 0;
     while (git_revwalk_next(&oid, walker) == 0 && count < maxCommits) {
+        char oid_str[GIT_OID_HEXSZ + 1];
+        git_oid_tostr(oid_str, sizeof(oid_str), &oid);
+        
+        if (seenHashes.count(oid_str)) continue;
+        seenHashes.insert(oid_str);
+        
         git_commit* commit = nullptr;
         if (git_commit_lookup(&commit, repo, &oid) != 0) {
             continue;
         }
         
         CommitNode node;
-        char oid_str[GIT_OID_HEXSZ + 1];
-        git_oid_tostr(oid_str, sizeof(oid_str), &oid);
         node.hash = oid_str;
         node.message = git_commit_message(commit) ? git_commit_message(commit) : "";
         
         const git_signature* author = git_commit_author(commit);
         if (author) {
             node.author = author->name ? author->name : "";
-            node.timestamp = author->when.time;  // Get commit timestamp
+            node.timestamp = author->when.time;
         } else {
             node.timestamp = 0;
+        }
+        
+        // Add branches pointing to this commit
+        if (commitBranches.count(oid_str)) {
+            node.branches = commitBranches[oid_str];
         }
         
         // Get parents
@@ -507,6 +555,20 @@ std::string GitWrapper::GetHEAD() const {
     return std::string(oid_str);
 }
 
+std::string GitWrapper::GetCurrentBranch() const {
+    if (!repo) return "";
+    
+    git_reference* head_ref = nullptr;
+    if (git_repository_head(&head_ref, repo) != 0) {
+        return "";
+    }
+    
+    const char* branch_name = git_reference_shorthand(head_ref);
+    std::string result = branch_name ? branch_name : "";
+    git_reference_free(head_ref);
+    return result;
+}
+
 void GitWrapper::UpdateHEAD() {
     headHash = GetHEAD();
 }
@@ -537,6 +599,9 @@ std::vector<GitWrapper::GitObjectData> GitWrapper::GetCommitObjects(const std::s
         return result;
     }
     
+    // Set to track already processed objects (avoid duplicates)
+    std::set<std::string> processed;
+    
     // Add commit object
     {
         GitObjectData commitObj;
@@ -557,70 +622,9 @@ std::vector<GitWrapper::GitObjectData> GitWrapper::GetCommitObjects(const std::s
             git_oid_tostr(tree_oid_str, sizeof(tree_oid_str), git_tree_id(tree));
             commitObj.children.push_back(tree_oid_str);
             
-            // Process tree
-            GitObjectData treeObj;
-            treeObj.hash = tree_oid_str;
-            treeObj.type = "tree";
-            treeObj.content = "tree " + std::string(tree_oid_str).substr(0, 7);
+            // Recursively process tree
+            ProcessTree(tree_oid_str, tree, "", result, processed);
             
-            // Walk tree entries
-            size_t entryCount = git_tree_entrycount(tree);
-            for (size_t i = 0; i < entryCount; i++) {
-                const git_tree_entry* entry = git_tree_entry_byindex(tree, i);
-                if (!entry) continue;
-                
-                const char* entryName = git_tree_entry_name(entry);
-                const git_oid* entryOid = git_tree_entry_id(entry);
-                git_object_t entryType = git_tree_entry_type(entry);
-                
-                char entry_oid_str[GIT_OID_HEXSZ + 1];
-                git_oid_tostr(entry_oid_str, sizeof(entry_oid_str), entryOid);
-                
-                treeObj.content += "\n" + std::string(entry_oid_str).substr(0, 7) + "  " + entryName;
-                
-                // Add child
-                treeObj.children.push_back(entry_oid_str);
-                
-                if (entryType == GIT_OBJECT_TREE) {
-                    // Subdirectory - recursively process
-                    GitObjectData subTreeObj;
-                    subTreeObj.hash = entry_oid_str;
-                    subTreeObj.type = "tree";
-                    subTreeObj.content = "tree " + std::string(entry_oid_str).substr(0, 7) + "\n" + entryName + "/";
-                    // Note: recursive processing would go here for nested dirs
-                    result.push_back(subTreeObj);
-                } else {
-                    // Blob (file)
-                    GitObjectData blobObj;
-                    blobObj.hash = entry_oid_str;
-                    blobObj.type = "blob";
-                    
-                    // Try to read blob content
-                    git_blob* blob = nullptr;
-                    if (git_blob_lookup(&blob, repo, entryOid) == 0) {
-                        size_t blobSize = git_blob_rawsize(blob);
-                        const void* blobData = git_blob_rawcontent(blob);
-                        
-                        // Store first 200 chars or size info
-                        if (blobData && blobSize > 0) {
-                            size_t previewSize = blobSize > 200 ? 200 : blobSize;
-                            blobObj.content = std::string((const char*)blobData, previewSize);
-                            if (blobSize > 200) blobObj.content += "...";
-                        } else {
-                            blobObj.content = "<empty file>";
-                        }
-                        
-                        git_blob_free(blob);
-                    } else {
-                        blobObj.content = "<binary or unreadable>";
-                    }
-                    
-                    blobObj.content = "blob " + std::string(entry_oid_str).substr(0, 7) + "\n" + entryName + "\n\n" + blobObj.content;
-                    result.push_back(blobObj);
-                }
-            }
-            
-            result.push_back(treeObj);
             git_tree_free(tree);
         }
         
@@ -628,5 +632,193 @@ std::vector<GitWrapper::GitObjectData> GitWrapper::GetCommitObjects(const std::s
     }
     
     git_commit_free(commit);
+    return result;
+}
+
+void GitWrapper::ProcessTree(const std::string& treeHash, git_tree* tree, 
+                             const std::string& path,
+                             std::vector<GitObjectData>& result,
+                             std::set<std::string>& processed) {
+    if (processed.count(treeHash)) return;
+    processed.insert(treeHash);
+    
+    GitObjectData treeObj;
+    treeObj.hash = treeHash;
+    treeObj.type = "tree";
+    treeObj.content = "tree " + treeHash.substr(0, 7);
+    if (!path.empty()) {
+        treeObj.content += "\n" + path + "/";
+    }
+    
+    // Walk tree entries
+    size_t entryCount = git_tree_entrycount(tree);
+    for (size_t i = 0; i < entryCount; i++) {
+        const git_tree_entry* entry = git_tree_entry_byindex(tree, i);
+        if (!entry) continue;
+        
+        const char* entryName = git_tree_entry_name(entry);
+        const git_oid* entryOid = git_tree_entry_id(entry);
+        git_object_t entryType = git_tree_entry_type(entry);
+        
+        char entry_oid_str[GIT_OID_HEXSZ + 1];
+        git_oid_tostr(entry_oid_str, sizeof(entry_oid_str), entryOid);
+        
+        std::string entryPath = path.empty() ? entryName : path + "/" + entryName;
+        treeObj.content += "\n" + std::string(entry_oid_str).substr(0, 7) + "  " + entryName;
+        
+        // Add child
+        treeObj.children.push_back(entry_oid_str);
+        
+        if (entryType == GIT_OBJECT_TREE) {
+            // Subdirectory - recursively process
+            git_tree* subTree = nullptr;
+            if (git_tree_lookup(&subTree, repo, entryOid) == 0) {
+                ProcessTree(entry_oid_str, subTree, entryPath, result, processed);
+                git_tree_free(subTree);
+            }
+        } else {
+            // Blob (file) - avoid duplicates
+            if (!processed.count(entry_oid_str)) {
+                processed.insert(entry_oid_str);
+                
+                GitObjectData blobObj;
+                blobObj.hash = entry_oid_str;
+                blobObj.type = "blob";
+                
+                // Try to read blob content
+                git_blob* blob = nullptr;
+                if (git_blob_lookup(&blob, repo, entryOid) == 0) {
+                    size_t blobSize = git_blob_rawsize(blob);
+                    const void* blobData = git_blob_rawcontent(blob);
+                    
+                    // Store first 200 chars or size info
+                    if (blobData && blobSize > 0) {
+                        size_t previewSize = blobSize > 200 ? 200 : blobSize;
+                        blobObj.content = std::string((const char*)blobData, previewSize);
+                        if (blobSize > 200) blobObj.content += "...";
+                    } else {
+                        blobObj.content = "<empty file>";
+                    }
+                    
+                    git_blob_free(blob);
+                } else {
+                    blobObj.content = "<binary or unreadable>";
+                }
+                
+                blobObj.content = "blob " + std::string(entry_oid_str).substr(0, 7) + "\n" + entryPath + "\n\n" + blobObj.content;
+                result.push_back(blobObj);
+            }
+        }
+    }
+    
+    result.push_back(treeObj);
+}
+
+std::vector<GitWrapper::GitObjectData> GitWrapper::GetAllGitObjects(int maxObjects) {
+    std::vector<GitObjectData> result;
+    if (!repo) return result;
+    
+    std::set<std::string> processed;
+    int count = 0;
+    
+    // 1. Add all refs (branches, tags, HEAD)
+    git_reference_iterator* iter = nullptr;
+    git_reference_iterator_new(&iter, repo);
+    
+    const char* refname = nullptr;
+    while (git_reference_next_name(&refname, iter) == 0 && count < maxObjects) {
+        git_reference* ref = nullptr;
+        if (git_reference_lookup(&ref, repo, refname) != 0) continue;
+        
+        if (git_reference_type(ref) == GIT_REFERENCE_DIRECT) {
+            const git_oid* oid = git_reference_target(ref);
+            char oid_str[GIT_OID_HEXSZ + 1];
+            git_oid_tostr(oid_str, sizeof(oid_str), oid);
+            
+            GitObjectData refObj;
+            refObj.hash = std::string("ref:") + refname;
+            refObj.type = "ref";
+            refObj.content = std::string(refname) + "\n-> " + std::string(oid_str).substr(0, 7);
+            refObj.children.push_back(oid_str);
+            result.push_back(refObj);
+            
+            // Mark the target for processing
+            processed.insert(oid_str);
+        }
+        git_reference_free(ref);
+        count++;
+    }
+    git_reference_iterator_free(iter);
+    
+    // 2. Walk all commits from HEAD and all refs
+    git_revwalk* walker = nullptr;
+    git_revwalk_new(&walker, repo);
+    git_revwalk_push_head(walker);
+    
+    // Also push all refs
+    git_reference_iterator_new(&iter, repo);
+    while (git_reference_next_name(&refname, iter) == 0) {
+        git_reference* ref = nullptr;
+        if (git_reference_lookup(&ref, repo, refname) == 0) {
+            if (git_reference_type(ref) == GIT_REFERENCE_DIRECT) {
+                git_revwalk_push(walker, git_reference_target(ref));
+            }
+            git_reference_free(ref);
+        }
+    }
+    git_reference_iterator_free(iter);
+    
+    git_oid oid;
+    while (git_revwalk_next(&oid, walker) == 0 && count < maxObjects) {
+        char oid_str[GIT_OID_HEXSZ + 1];
+        git_oid_tostr(oid_str, sizeof(oid_str), &oid);
+        
+        if (processed.count(oid_str)) continue;
+        processed.insert(oid_str);
+        
+        git_commit* commit = nullptr;
+        if (git_commit_lookup(&commit, repo, &oid) != 0) continue;
+        
+        GitObjectData commitObj;
+        commitObj.hash = oid_str;
+        commitObj.type = "commit";
+        
+        const char* message = git_commit_message(commit);
+        const git_signature* author = git_commit_author(commit);
+        commitObj.content = std::string("commit ") + oid_str + "\n" +
+                           "Author: " + (author ? author->name : "Unknown") + "\n" +
+                           "\n" + (message ? message : "");
+        
+        // Add tree as child
+        git_tree* tree = nullptr;
+        if (git_commit_tree(&tree, commit) == 0) {
+            char tree_oid[GIT_OID_HEXSZ + 1];
+            git_oid_tostr(tree_oid, sizeof(tree_oid), git_tree_id(tree));
+            commitObj.children.push_back(tree_oid);
+            
+            // Process tree if not already done
+            if (!processed.count(tree_oid) && count < maxObjects) {
+                ProcessTree(tree_oid, tree, "", result, processed);
+                count = result.size();
+            }
+            git_tree_free(tree);
+        }
+        
+        // Add parents
+        unsigned int parentCount = git_commit_parentcount(commit);
+        for (unsigned int i = 0; i < parentCount; i++) {
+            const git_oid* parentOid = git_commit_parent_id(commit, i);
+            if (parentOid) {
+                char parent_oid[GIT_OID_HEXSZ + 1];
+                git_oid_tostr(parent_oid, sizeof(parent_oid), parentOid);
+                // Parents are not "children" in the tree sense, but we track them
+            }
+        }
+        
+        result.push_back(commitObj);
+        count++;
+    }
+    
+    git_revwalk_free(walker);
     return result;
 }

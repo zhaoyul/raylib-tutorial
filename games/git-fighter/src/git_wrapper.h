@@ -3,9 +3,11 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <set>
 
 // git2.h forward declarations to avoid including in header
 typedef struct git_repository git_repository;
+typedef struct git_tree git_tree;
 
 // Command result
 struct GitResult {
@@ -75,6 +77,7 @@ public:
     std::vector<FileStatus> GetWorkingDirectoryStatus();
     std::vector<CommitNode> GetCommitGraph(int maxCommits = 50);
     std::string GetHEAD() const;
+    std::string GetCurrentBranch() const;
     
     // Callbacks for real-time updates
     void SetStatusCallback(std::function<void(const std::vector<FileStatus>&)> cb);
@@ -88,7 +91,15 @@ public:
     };
     std::vector<GitObjectData> GetCommitObjects(const std::string& commitHash);
     
+    // Get all objects in the git database (for showing complete git internals)
+    std::vector<GitObjectData> GetAllGitObjects(int maxObjects = 100);
+    
 private:
+    // Helper method to recursively process tree objects
+    void ProcessTree(const std::string& treeHash, git_tree* tree,
+                     const std::string& path,
+                     std::vector<GitObjectData>& result,
+                     std::set<std::string>& processed);
     git_repository* repo;
     std::string repoPath;
     std::string headHash;

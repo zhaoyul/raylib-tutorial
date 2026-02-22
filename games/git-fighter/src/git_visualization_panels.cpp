@@ -72,6 +72,9 @@ void InternalStructurePanel::LoadCommitObjects(const std::string& commitHash) {
                 obj.children.push_back(childHash);
             }
             
+            std::cout << "LoadCommitObjects: " << objData.type << " " << obj.shortHash 
+                      << " children=" << obj.children.size() << std::endl;
+            
             objects[objData.hash] = obj;
         }
         
@@ -293,6 +296,90 @@ void InternalStructurePanel::ScanWorkingDirectory(const std::string& repoPath) {
     LayoutObjects();
 }
 
+void InternalStructurePanel::LoadGitDatabase() {
+    Clear();
+    
+    std::cout << "LoadGitDatabase: Loading entire git database" << std::endl;
+    
+    if (!git) {
+        std::cout << "LoadGitDatabase: No git wrapper, using sample data" << std::endl;
+        LoadWorkingDirectory();  // Fallback
+        return;
+    }
+    
+    // Create virtual root for refs
+    GitObject virtualRoot;
+    virtualRoot.hash = "VIRTUAL_ROOT";
+    virtualRoot.shortHash = "Git DB";
+    virtualRoot.type = GitObjectType::TREE;
+    virtualRoot.content = "Git Database\nAll objects and refs";
+    virtualRoot.position = {100, 50};
+    virtualRoot.targetPos = {100, 50};
+    virtualRoot.scale = 1;
+    virtualRoot.alpha = 1;
+    virtualRoot.expanded = true;
+    objects["VIRTUAL_ROOT"] = virtualRoot;
+    rootCommit = "VIRTUAL_ROOT";
+    
+    // Load all git objects
+    auto gitObjects = git->GetAllGitObjects(100);
+    std::cout << "LoadGitDatabase: Got " << gitObjects.size() << " objects" << std::endl;
+    
+    // Track refs separately for organization
+    std::vector<std::string> refHashes;
+    
+    for (const auto& objData : gitObjects) {
+        GitObject obj;
+        obj.hash = objData.hash;
+        obj.shortHash = objData.hash.substr(0, 7);
+        obj.content = objData.content;
+        obj.position = {100, 100};
+        obj.targetPos = {100, 100};
+        obj.scale = 1;
+        obj.alpha = 1;
+        obj.expanded = true;
+        
+        // Map type string to enum
+        if (objData.type == "commit") obj.type = GitObjectType::COMMIT;
+        else if (objData.type == "tree") obj.type = GitObjectType::TREE;
+        else if (objData.type == "blob") obj.type = GitObjectType::BLOB;
+        else if (objData.type == "ref") {
+            obj.type = GitObjectType::BRANCH;
+            obj.shortHash = objData.hash.substr(4);  // Remove "ref:" prefix
+            refHashes.push_back(objData.hash);
+        }
+        
+        // Add children
+        for (const auto& childHash : objData.children) {
+            obj.children.push_back(childHash);
+        }
+        
+        objects[objData.hash] = obj;
+        
+        // Link refs to virtual root
+        if (objData.type == "ref") {
+            virtualRoot.children.push_back(objData.hash);
+        }
+    }
+    
+    // Set up parent-child relationships
+    for (auto& pair : objects) {
+        auto& obj = pair.second;
+        for (const auto& childHash : obj.children) {
+            if (objects.count(childHash)) {
+                objects[childHash].parents.push_back(obj.hash);
+            }
+        }
+    }
+    
+    // Update virtual root
+    objects["VIRTUAL_ROOT"] = virtualRoot;
+    
+    std::cout << "LoadGitDatabase: Total objects " << objects.size() << std::endl;
+    
+    LayoutObjects();
+}
+
 void InternalStructurePanel::LayoutObjects() {
     // Determine starting node - prefer VIRTUAL_ROOT if exists (for commit view with refs)
     std::string startNode = rootCommit;
@@ -367,11 +454,15 @@ void InternalStructurePanel::LayoutObjects() {
     std::cout << "LayoutObjects: " << nodesAtDepth.size() << " levels, " << nodeDepth.size() << " visible nodes" << std::endl;
 }
 void InternalStructurePanel::ToggleNode(const std::string& hash) {
-    if (!objects.count(hash)) return;
+    if (!objects.count(hash)) {
+        std::cout << "ToggleNode: hash not found! " << hash << std::endl;
+        return;
+    }
     
     auto& obj = objects[hash];
     obj.expanded = !obj.expanded;
-    std::cout << "ToggleNode: " << hash << " expanded=" << obj.expanded << std::endl;
+    std::cout << "ToggleNode: " << hash << " type=" << (int)obj.type 
+              << " children=" << obj.children.size() << " expanded=" << obj.expanded << std::endl;
     LayoutObjects();
 }
 
@@ -426,7 +517,8 @@ void InternalStructurePanel::Update(float deltaTime) {
                     
                     // +/- button rect - match the drawn button exactly (fixed size)
                     float btnSize = 20.0f;
-                    float btnY = screenPos.y - r - 30;
+                    // Match DrawObject: indicator is drawn at y - 25 - r
+                    float btnY = screenPos.y - 25 - r;
                     Rectangle toggleRect = {
                         screenPos.x - btnSize/2 - 2,
                         btnY - 2,
@@ -435,6 +527,7 @@ void InternalStructurePanel::Update(float deltaTime) {
                     };
                     
                     if (CheckCollisionPointRec(mousePos, toggleRect)) {
+                        std::cout << "Click toggle: " << obj.shortHash << " type=" << (int)obj.type << std::endl;
                         ToggleNode(obj.hash);
                         clickedToggle = true;
                         break;
@@ -760,8 +853,14 @@ void SplitGitView::Draw() {
 }
 
 void SplitGitView::OnCommitSelected(const std::string& hash) {
-    std::cout << "SplitGitView::OnCommitSelected: hash=" << hash.substr(0, 7) << std::endl;
-    structurePanel.LoadCommitObjects(hash);
+    if (hash.empty()) {
+        std::cout << "SplitGitView::OnCommitSelected: deselected, showing git database" << std::endl;
+        // Show entire git database when deselected
+        structurePanel.LoadGitDatabase();
+    } else {
+        std::cout << "SplitGitView::OnCommitSelected: hash=" << hash.substr(0, 7) << std::endl;
+        structurePanel.LoadCommitObjects(hash);
+    }
 }
 
 void SplitGitView::SetSplitRatio(float ratio) {
