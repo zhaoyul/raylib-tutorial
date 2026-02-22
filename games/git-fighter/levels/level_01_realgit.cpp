@@ -495,7 +495,7 @@ void Level01_RealGit::DrawCommandInput() {
         DrawChinese("按 [C] 执行: git commit -m \"Initial commit\"", x, textY, 24, {100, 200, 100, 255});
     }
     else if (currentStage == Stage::COMPLETE) {
-        DrawChinese("✓ 关卡完成! 按 [ENTER] 继续", x, textY, 24, GREEN);
+        DrawChinese("[完成] 关卡完成! 按 [ENTER] 继续", x, textY, 24, GREEN);
     }
     else {
         DrawChinese("按 [空格] 开始", x, textY, 24, WHITE);

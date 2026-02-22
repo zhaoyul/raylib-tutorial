@@ -53,7 +53,7 @@ void GitVisualizer::DrawFileStatus(int x, int y, const std::string& filename, in
             break;
         case 3: // Committed
             statusColor = DARKGREEN;
-            statusIcon = "✓";
+            statusIcon = "[OK]";
             break;
         default:
             statusColor = GRAY;

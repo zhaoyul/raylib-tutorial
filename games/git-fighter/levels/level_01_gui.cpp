@@ -370,7 +370,7 @@ void Level01_GUI::DrawBottomBar() {
         DrawChinese("创建一个新的提交", x, 690, 14, theme.textSecondary);
     }
     else if (currentStage == Stage::COMPLETE) {
-        DrawChinese("✓ 关卡完成！", x, 665, 20, theme.success);
+        DrawChinese("[完成] 关卡完成！", x, 665, 20, theme.success);
     }
     
     // Keyboard hints

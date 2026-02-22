@@ -201,7 +201,12 @@ void Level02_Branch::CheckGitStatus() {
 void Level02_Branch::Update(float deltaTime) {
     timer += deltaTime;
     
+    // 自适应布局 - 参考 Level 1
     if (splitView) {
+        int screenWidth = GetScreenWidth();
+        int screenHeight = GetScreenHeight();
+        // Right panel: x=320, y=100, width=screenWidth-320, height=screenHeight-170
+        splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
     

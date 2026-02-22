@@ -190,7 +190,7 @@ void Level01_Init::DrawWorkspace() {
                 case FileStatus::UNTRACKED: statusText = "??"; statusColor = RED; break;
                 case FileStatus::MODIFIED: statusText = "M"; statusColor = ORANGE; break;
                 case FileStatus::STAGED: statusText = "A"; statusColor = GREEN; break;
-                case FileStatus::COMMITTED: statusText = "✓"; statusColor = DARKGREEN; break;
+                case FileStatus::COMMITTED: statusText = "[OK]"; statusColor = DARKGREEN; break;
             }
             DrawChinese(TextFormat("%s %s", statusText, file.path.c_str()), 40, y, 18, statusColor);
             y += 28;
@@ -213,7 +213,7 @@ void Level01_Init::DrawCommandHint() {
         DrawChinese("[I] git init", 960, y, 22, cmdColor);
     } else {
         cmdColor = DARKGREEN;
-        DrawChinese("git init ✓", 960, y, 22, cmdColor);
+        DrawChinese("git init [OK]", 960, y, 22, cmdColor);
     }
     y += 45;
     
@@ -221,7 +221,7 @@ void Level01_Init::DrawCommandHint() {
         cmdColor = BLUE;
         DrawChinese("[A] git add .", 960, y, 22, cmdColor);
     } else if (currentStage > Stage::WAIT_ADD) {
-        DrawChinese("git add . ✓", 960, y, 22, DARKGREEN);
+        DrawChinese("git add . [OK]", 960, y, 22, DARKGREEN);
     } else {
         DrawChinese("git add .", 960, y, 22, LIGHTGRAY);
     }
@@ -233,7 +233,7 @@ void Level01_Init::DrawCommandHint() {
         y += 32;
         DrawChinese("-m \"Initial commit\"", 980, y, 18, cmdColor);
     } else if (currentStage > Stage::WAIT_COMMIT) {
-        DrawChinese("git commit ✓", 960, y, 22, DARKGREEN);
+        DrawChinese("git commit [OK]", 960, y, 22, DARKGREEN);
     } else {
         DrawChinese("git commit", 960, y, 22, LIGHTGRAY);
     }

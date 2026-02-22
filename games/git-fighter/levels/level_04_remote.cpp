@@ -170,7 +170,11 @@ void Level04_Remote::ProcessGitCommand(const std::string& cmd) {
 void Level04_Remote::Update(float deltaTime) {
     timer += deltaTime;
     
+    // 自适应布局
     if (splitView) {
+        int screenWidth = GetScreenWidth();
+        int screenHeight = GetScreenHeight();
+        splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
     

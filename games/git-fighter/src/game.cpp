@@ -271,7 +271,7 @@ void GitGame::Draw() {
                 // Semi-transparent overlay at top
                 DrawRectangle(windowWidth/2 - 150, 10, 300, 50, {0, 100, 0, 200});
                 DrawRectangleLines(windowWidth/2 - 150, 10, 300, 50, {0, 255, 0, 255});
-                DrawChineseText("✓ 关卡完成! 点击此处进入下一关", windowWidth/2 - 130, 22, 20, WHITE);
+                DrawChineseText("[完成] 关卡完成! 点击此处进入下一关", windowWidth/2 - 140, 22, 20, WHITE);
             }
             break;
 

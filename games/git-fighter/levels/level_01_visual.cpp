@@ -221,14 +221,14 @@ void Level01_Visual::DrawCommandPanel() {
     y += 30;
     
     if (repoInitialized) {
-        DrawText("✓ 仓库已初始化", 20, y, 16, GREEN);
+        DrawText("[OK] 仓库已初始化", 20, y, 16, GREEN);
     } else {
         DrawText("○ 未初始化", 20, y, 16, GRAY);
     }
     y += 25;
     
     if (firstCommitDone) {
-        DrawText("✓ 首次提交完成", 20, y, 16, GREEN);
+        DrawText("[OK] 首次提交完成", 20, y, 16, GREEN);
     } else if (repoInitialized) {
         DrawText("○ 等待提交", 20, y, 16, ORANGE);
     }
