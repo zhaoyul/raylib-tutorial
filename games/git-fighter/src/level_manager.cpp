@@ -4,6 +4,12 @@
 #include "../levels/level_02_branch.h"
 #include "../levels/level_03_merge.h"
 #include "../levels/level_04_remote.h"
+#include "../levels/level_05_rebase.h"
+#include "../levels/level_06_cherrypick.h"
+#include "../levels/level_07_bisect.h"
+#include "../levels/level_08_reflog.h"
+#include "../levels/level_09_interactive.h"
+#include "../levels/level_10_stash.h"
 #include <iostream>
 #include <algorithm>
 
@@ -39,7 +45,29 @@ bool LevelManager::Initialize() {
     auto level4 = std::make_unique<Level04_Remote>();
     levels.push_back(std::move(level4));
     
-    // TODO: Register more levels
+    // Level 5: Rebase 变基危机
+    auto level5 = std::make_unique<Level05_Rebase>();
+    levels.push_back(std::move(level5));
+    
+    // Level 6: Cherry-pick 紧急修复
+    auto level6 = std::make_unique<Level06_CherryPick>();
+    levels.push_back(std::move(level6));
+    
+    // Level 7: Bisect 故障定位
+    auto level7 = std::make_unique<Level07_Bisect>();
+    levels.push_back(std::move(level7));
+    
+    // Level 8: Reflog 时光回溯
+    auto level8 = std::make_unique<Level08_Reflog>();
+    levels.push_back(std::move(level8));
+    
+    // Level 9: Interactive Rebase 历史重写
+    auto level9 = std::make_unique<Level09_Interactive>();
+    levels.push_back(std::move(level9));
+    
+    // Level 10: Stash 战场
+    auto level10 = std::make_unique<Level10_Stash>();
+    levels.push_back(std::move(level10));
     
     return true;
 }

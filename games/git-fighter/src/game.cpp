@@ -344,12 +344,12 @@ void GitGame::DrawHUD() {
     int windowWidth = GetScreenWidth();
     int windowHeight = GetScreenHeight();
     
-    // Level info at top left
-    if (auto* level = levelManager->GetCurrentLevel()) {
-        DrawRectangle(0, 0, 400, 50, (Color){30, 30, 40, 200});
-        DrawChineseText(TextFormat("Level %d: %s", level->GetId(), level->GetName().c_str()),
-                 20, 12, 26, WHITE);
-    }
+    // Level info at top left - REMOVED: Levels draw their own titles in DrawStatusPanel()
+    // if (auto* level = levelManager->GetCurrentLevel()) {
+    //     DrawRectangle(0, 0, 400, 50, (Color){30, 30, 40, 200});
+    //     DrawChineseText(TextFormat("Level %d: %s", level->GetId(), level->GetName().c_str()),
+    //              20, 12, 26, WHITE);
+    // }
 
     // Help at bottom - fixed to window bottom
     DrawRectangle(0, windowHeight - 40, windowWidth, 40, (Color){30, 30, 40, 200});

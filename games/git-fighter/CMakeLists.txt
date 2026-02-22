@@ -41,6 +41,12 @@ add_executable(git-fighter
     levels/level_03_merge.cpp
     levels/level_04_remote.cpp
     levels/level_01_gui.cpp
+    levels/level_05_rebase.cpp
+    levels/level_06_cherrypick.cpp
+    levels/level_07_bisect.cpp
+    levels/level_08_reflog.cpp
+    levels/level_09_interactive.cpp
+    levels/level_10_stash.cpp
 )
 
 # Demo executables

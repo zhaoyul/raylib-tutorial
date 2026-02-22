@@ -822,3 +822,135 @@ std::vector<GitWrapper::GitObjectData> GitWrapper::GetAllGitObjects(int maxObjec
     git_revwalk_free(walker);
     return result;
 }
+
+// ===== Reflog Operations (Level 8) =====
+
+std::vector<GitWrapper::ReflogEntry> GitWrapper::GetReflog(const std::string& ref) {
+    std::vector<ReflogEntry> result;
+    if (!repo) return result;
+    
+    git_reflog* reflog = nullptr;
+    if (git_reflog_read(&reflog, repo, ref.c_str()) != 0) {
+        return result;
+    }
+    
+    size_t count = git_reflog_entrycount(reflog);
+    for (size_t i = 0; i < count; i++) {
+        const git_reflog_entry* entry = git_reflog_entry_byindex(reflog, i);
+        if (!entry) continue;
+        
+        ReflogEntry re;
+        re.index = static_cast<int>(i);
+        
+        // Current hash (after action)
+        const git_oid* oid = git_reflog_entry_id_new(entry);
+        if (oid) {
+            char oid_str[GIT_OID_HEXSZ + 1];
+            git_oid_tostr(oid_str, sizeof(oid_str), oid);
+            re.hash = oid_str;
+        }
+        
+        // Old hash (before action)
+        const git_oid* old_oid = git_reflog_entry_id_old(entry);
+        if (old_oid) {
+            char old_oid_str[GIT_OID_HEXSZ + 1];
+            git_oid_tostr(old_oid_str, sizeof(old_oid_str), old_oid);
+            re.oldHash = old_oid_str;
+        }
+        
+        // Action message
+        const char* msg = git_reflog_entry_message(entry);
+        re.message = msg ? msg : "";
+        
+        // Parse action from message (e.g., "commit:", "reset:", "checkout:")
+        size_t colonPos = re.message.find(':');
+        if (colonPos != std::string::npos) {
+            re.action = re.message.substr(0, colonPos);
+            re.message = re.message.substr(colonPos + 1);
+        } else {
+            re.action = "unknown";
+        }
+        
+        // Author and timestamp
+        const git_signature* sig = git_reflog_entry_committer(entry);
+        if (sig) {
+            re.author = sig->name ? sig->name : "";
+            re.timestamp = sig->when.time;
+        }
+        
+        result.push_back(re);
+    }
+    
+    git_reflog_free(reflog);
+    return result;
+}
+
+GitResult GitWrapper::ResetHard(const std::string& target) {
+    if (!repo) return {false, "", "Not a git repository"};
+    
+    // Parse target (can be hash, branch name, or reflog entry like HEAD@{1})
+    git_object* targetObj = nullptr;
+    if (git_revparse_single(&targetObj, repo, target.c_str()) != 0) {
+        return {false, "", "Invalid target: " + target};
+    }
+    
+    git_checkout_options opts = GIT_CHECKOUT_OPTIONS_INIT;
+    opts.checkout_strategy = GIT_CHECKOUT_FORCE;
+    
+    int error = git_reset(repo, targetObj, GIT_RESET_HARD, &opts);
+    git_object_free(targetObj);
+    
+    if (error != 0) {
+        const git_error* e = git_error_last();
+        return {false, "", e ? e->message : "Reset failed"};
+    }
+    
+    UpdateHEAD();
+    NotifyStatusChange();
+    return {true, "HEAD is now at " + GetHEAD().substr(0, 7), ""};
+}
+
+GitResult GitWrapper::CherryPick(const std::string& commitHash) {
+    if (!repo) return {false, "", "Not a git repository"};
+    
+    // For simplicity in this game, we'll use git command
+    std::string cmd = "cd " + repoPath + " && git cherry-pick " + commitHash;
+    int result = std::system(cmd.c_str());
+    
+    if (result != 0) {
+        // Abort cherry-pick on failure
+        std::string abortCmd = "cd " + repoPath + " && git cherry-pick --abort";
+        std::system(abortCmd.c_str());
+        return {false, "", "Cherry-pick failed (conflicts may exist)"};
+    }
+    
+    UpdateHEAD();
+    NotifyStatusChange();
+    return {true, "Cherry-picked " + commitHash.substr(0, 7), ""};
+}
+
+GitResult GitWrapper::CreateBranchAt(const std::string& branchName, const std::string& target) {
+    if (!repo) return {false, "", "Not a git repository"};
+    
+    // Parse target
+    git_object* targetObj = nullptr;
+    if (git_revparse_single(&targetObj, repo, target.c_str()) != 0) {
+        return {false, "", "Invalid target: " + target};
+    }
+    
+    const git_oid* targetOid = git_object_id(targetObj);
+    
+    // Create branch
+    git_reference* branchRef = nullptr;
+    int error = git_branch_create(&branchRef, repo, branchName.c_str(), 
+                                   (git_commit*)targetObj, 0);
+    git_object_free(targetObj);
+    
+    if (error != 0) {
+        const git_error* e = git_error_last();
+        return {false, "", e ? e->message : "Failed to create branch"};
+    }
+    
+    git_reference_free(branchRef);
+    return {true, "Created branch '" + branchName + "' at " + target, ""};
+}

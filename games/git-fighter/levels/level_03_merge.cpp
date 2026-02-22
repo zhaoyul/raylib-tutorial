@@ -242,7 +242,7 @@ void Level03_Merge::DrawStatusPanel() {
     DrawChinese("Level 3: 合并危机", 20, 20, 28, WHITE);
     DrawChinese("学习处理合并冲突", 20, 55, 18, LIGHTGRAY);
     
-    DrawChinese("当前阶段:", 20, 100, 20, {100, 200, 255, 255});
+    DrawChinese("当前步骤:", 20, 100, 20, {100, 200, 255, 255});
     
     const char* stageText = "";
     switch (currentStage) {
@@ -274,7 +274,7 @@ void Level03_Merge::DrawDialogueIfNeeded() {
     if (currentStage == Stage::INTRO) {
         DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
         DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: main 和 feature 分支都修改了 config.txt！", 120, 520, 24, WHITE);
+        DrawChinese("CTO: main 与 feature 分支一起修改了 config.txt！", 120, 520, 24, WHITE);
         DrawChinese("尝试合并时会产生冲突，需要手动解决。", 120, 550, 22, LIGHTGRAY);
         DrawChinese("按 [空格] 开始合并挑战", 120, 600, 20, YELLOW);
     }

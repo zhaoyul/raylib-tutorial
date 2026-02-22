@@ -94,6 +94,21 @@ public:
     // Get all objects in the git database (for showing complete git internals)
     std::vector<GitObjectData> GetAllGitObjects(int maxObjects = 100);
     
+    // Reflog operations (Level 8)
+    struct ReflogEntry {
+        std::string hash;           // Current commit hash after action
+        std::string oldHash;        // Commit hash before action
+        std::string action;         // Action type: commit, reset, checkout, merge, etc.
+        std::string message;        // Commit message or action details
+        std::string author;
+        int64_t timestamp;
+        int index;                  // Reflog index (0 = most recent)
+    };
+    std::vector<ReflogEntry> GetReflog(const std::string& ref = "HEAD");
+    GitResult ResetHard(const std::string& target);
+    GitResult CherryPick(const std::string& commitHash);
+    GitResult CreateBranchAt(const std::string& branchName, const std::string& target);
+    
 private:
     // Helper method to recursively process tree objects
     void ProcessTree(const std::string& treeHash, git_tree* tree,
