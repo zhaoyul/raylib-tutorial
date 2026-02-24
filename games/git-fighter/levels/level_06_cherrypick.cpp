@@ -287,6 +287,7 @@ void Level06_CherryPick::DrawStatusPanel() {
     
     DrawChinese("Level 6: 紧急修复", 20, 20, 28, WHITE);
     DrawChinese("cherry-pick 精准修复", 20, 55, 18, LIGHTGRAY);
+    DrawText("6 / 10", 250, 30, 16, {100, 200, 255, 255});
     
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
     

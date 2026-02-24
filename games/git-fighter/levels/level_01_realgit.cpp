@@ -325,7 +325,7 @@ void Level01_RealGit::Update(float deltaTime) {
 }
 
 void Level01_RealGit::Draw() {
-    ClearBackground((Color){245, 247, 250, 255});
+    ClearBackground({30, 35, 45, 255});
     
     // 左侧状态面板
     DrawStatusPanel();
@@ -347,14 +347,23 @@ void Level01_RealGit::Draw() {
 void Level01_RealGit::DrawStatusPanel() {
     int screenHeight = GetScreenHeight();
     
-    // 左侧面板背景 - fill full height
-    DrawRectangle(0, 0, 320, screenHeight, WHITE);
-    DrawRectangleLines(0, 0, 320, screenHeight, (Color){200, 200, 200, 255});
+    // 左侧面板背景 - 统一深色风格
+    DrawRectangle(0, 0, 320, screenHeight, {40, 44, 52, 255});
+    DrawRectangleLines(0, 0, 320, screenHeight, {100, 150, 200, 255});
     
     int y = 20;
     
+    // 关卡信息（统一格式）
+    DrawChinese("Level 1: Git 入门", 20, y, 28, WHITE);
+    DrawChinese("学习 init/add/commit", 20, y + 35, 18, LIGHTGRAY);
+    
+    // 关卡进度（1/10）
+    DrawText("1 / 10", 250, y + 10, 16, {100, 200, 255, 255});
+    
+    y += 80;
+    
     // 标题
-    DrawChinese("任务目标", 20, y, 26, DARKGRAY);
+    DrawChinese("任务目标", 20, y, 24, {100, 200, 255, 255});
     y += 45;
     
     // 阶段指示
@@ -377,11 +386,11 @@ void Level01_RealGit::DrawStatusPanel() {
     }
     
     y += 30;
-    DrawLine(20, y, 300, y, (Color){200, 200, 200, 255});
+    DrawLine(20, y, 300, y, {100, 100, 120, 255});
     y += 20;
     
     // 文件状态 - 动态扫描目录
-    DrawChinese("工作区文件", 20, y, 24, DARKGRAY);
+    DrawChinese("工作区文件", 20, y, 24, {100, 200, 255, 255});
     y += 40;
     
     // Scan directory dynamically
@@ -409,7 +418,13 @@ void Level01_RealGit::DrawStatusPanel() {
                     }
                 }
                 
-                DrawChinese(displayName.c_str(), 40, y, 18, fileColor);
+                // 统一颜色：未跟踪=红，已修改=黄，已暂存=绿，其他=浅灰
+                Color displayColor = LIGHTGRAY;
+                if (fileColor.r == RED.r && fileColor.g == RED.g && fileColor.b == RED.b) displayColor = RED;
+                else if (fileColor.g == GREEN.g) displayColor = GREEN;
+                else if (fileColor.r == ORANGE.r) displayColor = YELLOW;
+                
+                DrawChinese(displayName.c_str(), 40, y, 18, displayColor);
                 y += 28;
                 fileCount++;
                 
@@ -421,7 +436,7 @@ void Level01_RealGit::DrawStatusPanel() {
                 }
             }
             if (fileCount == 0) {
-                DrawChinese("(空目录)", 40, y, 16, GRAY);
+                DrawChinese("(空目录)", 40, y, 16, {150, 150, 150, 255});
                 y += 28;
             }
         } catch (...) {

@@ -270,6 +270,7 @@ void Level02_Branch::DrawStatusPanel() {
     
     DrawChinese("Level 2: 分支探险", 20, 20, 28, WHITE);
     DrawChinese("学习 branch 和 checkout", 20, 55, 18, LIGHTGRAY);
+    DrawText("2 / 10", 250, 30, 16, {100, 200, 255, 255});
     
     // 当前阶段
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});

@@ -258,6 +258,7 @@ void Level10_Stash::DrawStatusPanel() {
     
     DrawChinese("Level 10: Stash 战场", 20, 20, 28, WHITE);
     DrawChinese("暂存未完成的更改", 20, 55, 18, LIGHTGRAY);
+    DrawText("10 / 10", 250, 30, 16, {100, 200, 255, 255});
     
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
     

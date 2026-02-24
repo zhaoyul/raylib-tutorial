@@ -228,6 +228,7 @@ void Level04_Remote::DrawStatusPanel() {
     
     DrawChinese("Level 4: 远程协作", 20, 20, 28, WHITE);
     DrawChinese("学习 remote/push/pull", 20, 55, 18, LIGHTGRAY);
+    DrawText("4 / 10", 250, 30, 16, {100, 200, 255, 255});
     
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
     

@@ -269,6 +269,7 @@ void Level07_Bisect::DrawStatusPanel() {
     
     DrawChinese("Level 7: 故障定位", 20, 20, 28, WHITE);
     DrawChinese("bisect 二分查找", 20, 55, 18, LIGHTGRAY);
+    DrawText("7 / 10", 250, 30, 16, {100, 200, 255, 255});
     
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
     

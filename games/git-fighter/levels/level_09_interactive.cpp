@@ -290,6 +290,7 @@ void Level09_Interactive::DrawStatusPanel() {
     
     DrawChinese("Level 9: 历史重写", 20, 20, 28, WHITE);
     DrawChinese("交互式 rebase", 20, 55, 18, LIGHTGRAY);
+    DrawText("9 / 10", 250, 30, 16, {100, 200, 255, 255});
     
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
     
