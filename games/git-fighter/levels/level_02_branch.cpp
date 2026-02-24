@@ -197,7 +197,8 @@ std::string Level02_Branch::ProcessLevelCommand(const std::string& cmd) {
             return "Committed: Add login module";
         }
     }
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level02_Branch::CheckGitStatus() {
@@ -245,6 +246,9 @@ void Level02_Branch::Update(float deltaTime) {
                 break;
         }
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level02_Branch::Draw() {
@@ -315,6 +319,12 @@ void Level02_Branch::DrawCommandInput() {
     DrawRectangle(0, 650, 1280, 70, {35, 35, 45, 255});
     DrawRectangleLines(0, 650, 1280, 70, {100, 150, 200, 255});
     DrawChinese("命令输入区 - 按 ENTER 执行当前阶段命令", 20, 675, 20, WHITE);
+}
+
+void Level02_Branch::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
+    }
 }
 
 void Level02_Branch::Shutdown() {

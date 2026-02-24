@@ -68,6 +68,13 @@ public:
     const std::string& GetName() const { return levelName; }
     const std::string& GetDescription() const { return description; }
     
+    // Common dev tools (call in Update() to enable 1/2/3 keys)
+    // 1=create random file, 2=create random dir, 3=append to random file
+    void HandleDevToolKeys();
+    
+    // Refresh working directory view (override in subclasses)
+    virtual void RefreshWorkingDirectory() {}
+    
 protected:
     void DrawChinese(const char* text, int x, int y, int fontSize, Color color) const {
         if (font) font->DrawChinese(text, x, y, fontSize, color);
@@ -85,6 +92,9 @@ protected:
     std::string dialogueCTO;
     std::string dialoguePlayer;
     const LevelFont* font = nullptr;
+    
+    // Dev tool support
+    std::string repoPath;  // Set by subclasses in Initialize()
 };
 
 // Level Manager

@@ -189,7 +189,8 @@ std::string Level10_Stash::ProcessLevelCommand(const std::string& cmd) {
         stageComplete = true;
         return "Restored stashed changes";
     }
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level10_Stash::Update(float deltaTime) {
@@ -237,6 +238,9 @@ void Level10_Stash::Update(float deltaTime) {
     if (IsKeyPressed(KEY_P) && currentStage == Stage::POP_STASH) {
         ProcessLevelCommand("stash pop");
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level10_Stash::Draw() {
@@ -366,6 +370,12 @@ void Level10_Stash::DrawDialogueIfNeeded() {
         DrawRectangleLines(100, dialogY, 1080, 100, GREEN);
         DrawChinese("CTO: 完美！你学会了 git stash save/pop/list 的完整工作流。", 120, dialogY + 20, 24, GREEN);
         DrawChinese("记住：临时切换分支时，stash 是最安全的做法！", 120, dialogY + 50, 20, WHITE);
+    }
+}
+
+void Level10_Stash::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
 }
 

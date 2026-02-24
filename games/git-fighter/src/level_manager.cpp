@@ -16,6 +16,49 @@
 Level::Level(int id, const std::string& name, const std::string& desc)
     : levelId(id), levelName(name), description(desc) {}
 
+// Common dev tool keys (1/2/3) for all levels
+void Level::HandleDevToolKeys() {
+    GitWrapper* git = GetGitWrapper();
+    if (!git || !git->IsRepoOpen() || repoPath.empty()) return;
+    
+    bool fileChanged = false;
+    
+    if (IsKeyPressed(KEY_ONE)) {
+        // 1: 创建随机文件
+        std::string filename = git->GenerateRandomFilename();
+        std::cout << "[KEY_ONE] Creating random file: " << filename << std::endl;
+        if (git->CreateRandomFile()) {
+            std::cout << "[KEY_ONE] Created: " << filename << std::endl;
+            fileChanged = true;
+        }
+    }
+    if (IsKeyPressed(KEY_TWO)) {
+        // 2: 创建随机目录
+        std::string dirname = git->GenerateRandomDirname();
+        std::cout << "[KEY_TWO] Creating random directory: " << dirname << std::endl;
+        if (git->CreateRandomDirectory()) {
+            std::cout << "[KEY_TWO] Created: " << dirname << std::endl;
+            fileChanged = true;
+        }
+    }
+    if (IsKeyPressed(KEY_THREE)) {
+        // 3: 追加随机内容到现有文件
+        auto files = git->GetWorkingDirectoryStatus();
+        if (!files.empty()) {
+            std::string targetFile = files[rand() % files.size()].path;
+            std::cout << "[KEY_THREE] Appending to: " << targetFile << std::endl;
+            if (git->AppendRandomContent(targetFile)) {
+                fileChanged = true;
+            }
+        }
+    }
+    
+    // Refresh view if files changed
+    if (fileChanged) {
+        RefreshWorkingDirectory();
+    }
+}
+
 // Shared implementation of ExecuteGitCommand for all levels
 std::string Level::ExecuteGitCommand(const std::string& cmd) {
     RecordGitCommand(cmd);

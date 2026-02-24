@@ -170,7 +170,8 @@ std::string Level04_Remote::ProcessLevelCommand(const std::string& cmd) {
         SyncGraphWithRepo();
         return "Pulled from origin";
     }
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level04_Remote::Update(float deltaTime) {
@@ -209,6 +210,9 @@ void Level04_Remote::Update(float deltaTime) {
                 break;
         }
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level04_Remote::Draw() {
@@ -266,6 +270,12 @@ void Level04_Remote::DrawDialogueIfNeeded() {
         DrawChinese("CTO: 项目需要团队协作，需要连接远程仓库。", 120, dialogY + 20, 24, WHITE);
         DrawChinese("学会 push 分享你的代码，pull 获取他人更新。", 120, dialogY + 50, 22, LIGHTGRAY);
         DrawChinese("按 [空格] 开始学习远程协作", 120, dialogY + 100, 20, YELLOW);
+    }
+}
+
+void Level04_Remote::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
 }
 

@@ -257,7 +257,8 @@ std::string Level08_Reflog::ProcessLevelCommand(const std::string& cmd) {
             return "Recovered to HEAD@{2}";
         }
     }
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level08_Reflog::Update(float deltaTime) {
@@ -312,6 +313,9 @@ void Level08_Reflog::Update(float deltaTime) {
     if (IsKeyPressed(KEY_R) && currentStage == Stage::SHOW_HISTORY) {
         currentStage = Stage::ACCIDENT_HAPPENS;
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level08_Reflog::Draw() {
@@ -507,6 +511,12 @@ void Level08_Reflog::DrawReflogPanel() {
     DrawChinese("Reflog 原理:", panelX + 15, panelY + panelH - 50, 14, {200, 200, 100, 255});
     DrawChinese("Git 会记录每次 HEAD 移动", panelX + 15, panelY + panelH - 32, 13, LIGHTGRAY);
     DrawChinese("即使 reset --hard 也能找回", panelX + 15, panelY + panelH - 15, 13, LIGHTGRAY);
+}
+
+void Level08_Reflog::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
+    }
 }
 
 void Level08_Reflog::Shutdown() {

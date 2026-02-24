@@ -218,7 +218,8 @@ std::string Level06_CherryPick::ProcessLevelCommand(const std::string& cmd) {
         currentStage = Stage::VERIFY_FIX;
         return "Done picking";
     }
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level06_CherryPick::Update(float deltaTime) {
@@ -269,6 +270,9 @@ void Level06_CherryPick::Update(float deltaTime) {
     if (IsKeyPressed(KEY_ENTER) && currentStage == Stage::PICKING) {
         ProcessLevelCommand("done");
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level06_CherryPick::Draw() {
@@ -386,6 +390,12 @@ void Level06_CherryPick::DrawDialogueIfNeeded() {
         DrawRectangleLines(100, dialogY, 1080, 100, GREEN);
         DrawChinese("CTO: 完美！cherry-pick 让我们只应用了必要的修复。", 120, dialogY + 20, 24, GREEN);
         DrawChinese("生产环境已修复，新功能还在 dev 分支等待发布。", 120, dialogY + 50, 20, WHITE);
+    }
+}
+
+void Level06_CherryPick::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
 }
 

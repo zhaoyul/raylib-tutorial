@@ -20,6 +20,7 @@ public:
     
     GitWrapper* GetGitWrapper() override { return git.get(); }
     std::string ProcessLevelCommand(const std::string& cmd) override;
+    void RefreshWorkingDirectory() override;
     
 private:
     enum class Stage {
@@ -39,7 +40,6 @@ private:
     
     // Git
     std::unique_ptr<GitWrapper> git;
-    std::string repoPath;
     
     // 可视化
     std::unique_ptr<GitVis::SplitGitView> splitView;

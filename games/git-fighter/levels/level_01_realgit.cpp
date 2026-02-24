@@ -284,44 +284,16 @@ void Level01_RealGit::Update(float deltaTime) {
         currentStage = Stage::WAIT_INIT;
     }
     
-    // 随机生成内容按键 - 用于测试内部结构可视化
-    // 使用数字键 1/2/3 避免 F 键被系统占用
+    // Dev tools (1/2/3 keys) - use base class implementation
+    HandleDevToolKeys();
+    
+    // Also update working directory view if files changed
     if (git && git->IsRepoOpen()) {
-        if (IsKeyPressed(KEY_ONE)) {
-            // 1: 创建随机文件
-            std::string filename = git->GenerateRandomFilename();
-            std::cout << "[KEY_ONE] Attempting to create random file..." << std::endl;
-            if (git->CreateRandomFile()) {
-                std::cout << "[KEY_ONE] Created random file: " << filename << std::endl;
-                std::cout << "[KEY_ONE] Scanning working directory: " << repoPath << std::endl;
-                splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
-                std::cout << "[KEY_ONE] Scan complete." << std::endl;
-            } else {
-                std::cout << "[KEY_ONE] Failed to create random file!" << std::endl;
-            }
-        }
-        if (IsKeyPressed(KEY_TWO)) {
-            // 2: 创建随机目录
-            std::string dirname = git->GenerateRandomDirname();
-            std::cout << "[KEY_TWO] Attempting to create random directory..." << std::endl;
-            if (git->CreateRandomDirectory()) {
-                std::cout << "[KEY_TWO] Created random directory: " << dirname << std::endl;
-                splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
-            } else {
-                std::cout << "[KEY_TWO] Failed to create random directory!" << std::endl;
-            }
-        }
-        if (IsKeyPressed(KEY_THREE)) {
-            // 3: 追加随机内容到现有文件
-            auto files = git->GetWorkingDirectoryStatus();
-            if (!files.empty()) {
-                std::string targetFile = files[rand() % files.size()].path;
-                std::cout << "[KEY_THREE] Appending to: " << targetFile << std::endl;
-                if (git->AppendRandomContent(targetFile)) {
-                    std::cout << "[KEY_THREE] Appended random content." << std::endl;
-                    splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
-                }
-            }
+        static float scanTimer = 0;
+        scanTimer += deltaTime;
+        if (scanTimer > 0.5f) {
+            scanTimer = 0;
+            splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
         }
     }
     
@@ -558,6 +530,12 @@ void Level01_RealGit::DrawDialogueIfNeeded() {
     // 继续提示 - right aligned
     if (timer > 1.0f) {
         DrawChinese("按 [空格] 继续...", screenWidth - 200, panelY + 105, 20, LIGHTGRAY);
+    }
+}
+
+void Level01_RealGit::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
 }
 

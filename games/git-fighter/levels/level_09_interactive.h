@@ -21,6 +21,7 @@ public:
     
     GitWrapper* GetGitWrapper() override { return git.get(); }
     std::string ProcessLevelCommand(const std::string& cmd) override;
+    void RefreshWorkingDirectory() override;
     
 private:
     enum class Action {
@@ -51,7 +52,6 @@ private:
     bool stageComplete;
     
     std::unique_ptr<GitWrapper> git;
-    std::string repoPath;
     std::unique_ptr<GitVis::SplitGitView> splitView;
     
     // 提交计划

@@ -191,7 +191,8 @@ std::string Level03_Merge::ProcessLevelCommand(const std::string& cmd) {
             return "Committed merge resolution";
         }
     }
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level03_Merge::Update(float deltaTime) {
@@ -227,6 +228,9 @@ void Level03_Merge::Update(float deltaTime) {
                 break;
         }
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level03_Merge::Draw() {
@@ -285,6 +289,12 @@ void Level03_Merge::DrawDialogueIfNeeded() {
         DrawChinese("CTO: main 与 feature 分支一起修改了 config.txt！", 120, dialogY + 20, 24, WHITE);
         DrawChinese("尝试合并时会产生冲突，需要手动解决。", 120, dialogY + 50, 22, LIGHTGRAY);
         DrawChinese("按 [空格] 开始合并挑战", 120, dialogY + 100, 20, YELLOW);
+    }
+}
+
+void Level03_Merge::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
 }
 

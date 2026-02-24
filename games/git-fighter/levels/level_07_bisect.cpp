@@ -203,7 +203,8 @@ void Level07_Bisect::NextBisectStep() {
 
 std::string Level07_Bisect::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level07_Bisect::Update(float deltaTime) {
@@ -248,6 +249,9 @@ void Level07_Bisect::Update(float deltaTime) {
     if (IsKeyPressed(KEY_X) && currentStage == Stage::MARK_BAD) {
         MarkBad();
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level07_Bisect::Draw() {
@@ -423,6 +427,12 @@ void Level07_Bisect::DrawDialogueIfNeeded() {
         DrawChinese("CTO: 找到了！二分查找只用了几步就定位到了罪魁祸首！", 120, dialogY + 20, 26, {255, 100, 255, 255});
         DrawChinese(("Bug 是在 commit #" + std::to_string(badIndex + 1) + " 引入的").c_str(), 120, dialogY + 60, 22, WHITE);
         DrawChinese("现在可以针对性地修复这个提交了。按 [空格] 完成。", 120, dialogY + 90, 18, YELLOW);
+    }
+}
+
+void Level07_Bisect::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
 }
 

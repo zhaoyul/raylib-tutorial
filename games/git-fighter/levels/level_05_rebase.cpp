@@ -202,7 +202,8 @@ std::string Level05_Rebase::ProcessLevelCommand(const std::string& cmd) {
         ContinueRebase();
         return "Continued rebase";
     }
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level05_Rebase::Update(float deltaTime) {
@@ -248,6 +249,9 @@ void Level05_Rebase::Update(float deltaTime) {
     if (IsKeyPressed(KEY_ENTER) && currentStage == Stage::CONTINUE_REBASE) {
         ProcessLevelCommand("rebase --continue");
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level05_Rebase::Draw() {
@@ -334,6 +338,12 @@ void Level05_Rebase::DrawDialogueIfNeeded() {
         DrawRectangleLines(100, dialogY, 1080, 100, GREEN);
         DrawChinese("CTO: rebase 完成！现在 feature 有了线性的历史。", 120, dialogY + 20, 24, GREEN);
         DrawChinese("注意：rebase 会改写 commit hash，不要在共享分支上使用！", 120, dialogY + 50, 20, YELLOW);
+    }
+}
+
+void Level05_Rebase::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
 }
 

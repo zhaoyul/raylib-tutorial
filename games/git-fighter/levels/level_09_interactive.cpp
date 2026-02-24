@@ -214,7 +214,8 @@ Color Level09_Interactive::ActionToColor(Action a) {
 
 std::string Level09_Interactive::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
-    return "Command executed: " + cmd;
+    // Return empty for unknown commands to let base class handle them
+    return "";
 }
 
 void Level09_Interactive::Update(float deltaTime) {
@@ -268,6 +269,9 @@ void Level09_Interactive::Update(float deltaTime) {
             ExecuteRebase();
         }
     }
+    
+    // Dev tools (1/2/3 keys)
+    HandleDevToolKeys();
 }
 
 void Level09_Interactive::Draw() {
@@ -417,6 +421,12 @@ void Level09_Interactive::DrawDialogueIfNeeded() {
         DrawChinese(("Squash 合并了 " + std::to_string(squashedCount) + " 个，删除了 " + std::to_string(droppedCount) + " 个临时提交。").c_str(),
                     120, dialogY + 55, 20, WHITE);
         DrawChinese("现在可以干净地 merge 到 main 了。按 [空格] 完成。", 120, dialogY + 90, 18, YELLOW);
+    }
+}
+
+void Level09_Interactive::RefreshWorkingDirectory() {
+    if (splitView && !repoPath.empty()) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
 }
 

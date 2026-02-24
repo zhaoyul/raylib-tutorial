@@ -18,6 +18,7 @@ public:
     
     bool IsComplete() const override;
     std::string ExecuteGitCommand(const std::string& cmd) override;
+    void RefreshWorkingDirectory() override;
     
 private:
     enum class Stage {
