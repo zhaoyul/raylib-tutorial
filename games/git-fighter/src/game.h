@@ -4,6 +4,7 @@
 #include "git_console.h"
 #include <memory>
 #include <string>
+#include <deque>
 
 class LevelManager;
 
@@ -52,6 +53,12 @@ private:
 
     void DrawChineseText(const char* text, int x, int y, int fontSize, Color color);
     
+    // Git command history
+    void AddGitCommand(const std::string& cmd);
+    void DrawGitCommandLog();
+    std::deque<std::string> commandHistory;
+    static constexpr int MAX_COMMAND_HISTORY = 8;
+    
     // Get mouse offset for game area centering
     Vector2 GetGameMouseOffset() const;
     Vector2 ScreenToGameMouse(Vector2 screenPos) const;
@@ -64,6 +71,9 @@ private:
     std::unique_ptr<LevelManager> levelManager;
     std::unique_ptr<UIManager> uiManager;
     GitConsole gitConsole;
+    
+    // Command log display area
+    bool showCommandLog = true;
     GameFont gameFont;
 
     // Render target for scaling (disabled)

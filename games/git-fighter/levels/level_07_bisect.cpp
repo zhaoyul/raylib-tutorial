@@ -201,6 +201,10 @@ void Level07_Bisect::NextBisectStep() {
     currentStage = Stage::TESTING_COMMIT;
 }
 
+void Level07_Bisect::ProcessGitCommand(const std::string& cmd) {
+    RecordGitCommand(cmd);
+}
+
 void Level07_Bisect::Update(float deltaTime) {
     timer += deltaTime;
     
@@ -390,31 +394,33 @@ void Level07_Bisect::DrawCommitRange() {
 }
 
 void Level07_Bisect::DrawDialogueIfNeeded() {
+    int screenHeight = GetScreenHeight();
+    int dialogY = screenHeight - 180;
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: 用户报告了一个严重 bug，但我们不知道是哪个 commit 引入的！", 120, 520, 24, RED);
-        DrawChinese("有 10 个 commit，手动检查太慢了。用 bisect 二分查找吧！", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始故障定位", 120, 600, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: 用户报告了一个严重 bug，但我们不知道是哪个 commit 引入的！", 120, dialogY + 20, 24, RED);
+        DrawChinese("有 10 个 commit，手动检查太慢了。用 bisect 二分查找吧！", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始故障定位", 120, dialogY + 100, 20, YELLOW);
     }
     else if (currentStage == Stage::START_BISECT) {
-        DrawRectangle(100, 500, 1080, 100, {40, 40, 60, 240});
-        DrawRectangleLines(100, 500, 1080, 100, {100, 150, 200, 255});
-        DrawChinese("最新版本有 bug（Bad），最旧版本正常（Good）。", 120, 530, 22, WHITE);
-        DrawChinese("按 [B] 开始 bisect，Git 会自动选择中间的 commit 让你测试。", 120, 560, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 40, 60, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {100, 150, 200, 255});
+        DrawChinese("最新版本有 bug（Bad），最旧版本正常（Good）。", 120, dialogY + 30, 22, WHITE);
+        DrawChinese("按 [B] 开始 bisect，Git 会自动选择中间的 commit 让你测试。", 120, dialogY + 60, 20, YELLOW);
     }
     else if (currentStage == Stage::TESTING_COMMIT) {
-        DrawRectangle(100, 500, 1080, 100, {60, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, {200, 200, 100, 255});
-        DrawChinese(("正在测试 commit #" + std::to_string(currentTestIndex + 1)).c_str(), 120, 530, 24, YELLOW);
-        DrawChinese("按 [T] 运行测试程序，检查这个版本是否有 bug。", 120, 560, 20, WHITE);
+        DrawRectangle(100, dialogY, 1080, 100, {60, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {200, 200, 100, 255});
+        DrawChinese(("正在测试 commit #" + std::to_string(currentTestIndex + 1)).c_str(), 120, dialogY + 30, 24, YELLOW);
+        DrawChinese("按 [T] 运行测试程序，检查这个版本是否有 bug。", 120, dialogY + 60, 20, WHITE);
     }
     else if (currentStage == Stage::FOUND_CULPRIT) {
-        DrawRectangle(100, 500, 1080, 120, {60, 30, 60, 240});
-        DrawRectangleLines(100, 500, 1080, 120, {255, 100, 255, 255});
-        DrawChinese("CTO: 找到了！二分查找只用了几步就定位到了罪魁祸首！", 120, 520, 26, {255, 100, 255, 255});
-        DrawChinese(("Bug 是在 commit #" + std::to_string(badIndex + 1) + " 引入的").c_str(), 120, 560, 22, WHITE);
-        DrawChinese("现在可以针对性地修复这个提交了。按 [空格] 完成。", 120, 590, 18, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 120, {60, 30, 60, 240});
+        DrawRectangleLines(100, dialogY, 1080, 120, {255, 100, 255, 255});
+        DrawChinese("CTO: 找到了！二分查找只用了几步就定位到了罪魁祸首！", 120, dialogY + 20, 26, {255, 100, 255, 255});
+        DrawChinese(("Bug 是在 commit #" + std::to_string(badIndex + 1) + " 引入的").c_str(), 120, dialogY + 60, 22, WHITE);
+        DrawChinese("现在可以针对性地修复这个提交了。按 [空格] 完成。", 120, dialogY + 90, 18, YELLOW);
     }
 }
 

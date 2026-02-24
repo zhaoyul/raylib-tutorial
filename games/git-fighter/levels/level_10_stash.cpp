@@ -160,6 +160,7 @@ void Level10_Stash::ApplyEmergencyFix() {
 }
 
 void Level10_Stash::ProcessGitCommand(const std::string& cmd) {
+    RecordGitCommand(cmd);
     if (cmd == "stash" && currentStage == Stage::EMERGENCY_CALL) {
         CreateStash();
         currentStage = Stage::STASH_CHANGES;
@@ -325,37 +326,39 @@ void Level10_Stash::DrawStashPanel() {
 }
 
 void Level10_Stash::DrawDialogueIfNeeded() {
+    int screenHeight = GetScreenHeight();
+    int dialogY = screenHeight - 180;
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: 今天要学习一个超实用的技能 - git stash！", 120, 520, 24, WHITE);
-        DrawChinese("当你开发到一半，突然需要切换分支修复紧急 bug 时，stash 就是你的救星。", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始场景演示", 120, 600, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: 今天要学习一个超实用的技能 - git stash！", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("当你开发到一半，突然需要切换分支修复紧急 bug 时，stash 就是你的救星。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始场景演示", 120, dialogY + 100, 20, YELLOW);
     }
     else if (currentStage == Stage::DEVELOPING) {
-        DrawRectangle(100, 500, 1080, 100, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, {100, 200, 100, 255});
-        DrawChinese("你正在 feature-login 分支开发登录功能，代码写了一半还没提交。", 120, 530, 22, WHITE);
-        DrawChinese("突然！生产环境出现安全漏洞，需要立即修复！", 120, 560, 20, RED);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {100, 200, 100, 255});
+        DrawChinese("你正在 feature-login 分支开发登录功能，代码写了一半还没提交。", 120, dialogY + 30, 22, WHITE);
+        DrawChinese("突然！生产环境出现安全漏洞，需要立即修复！", 120, dialogY + 60, 20, RED);
     }
     else if (currentStage == Stage::EMERGENCY_CALL) {
-        DrawRectangle(100, 500, 1080, 120, {60, 40, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 120, RED);
-        DrawChinese("CTO: 你不能直接切换分支！未提交的更改会被破坏！", 120, 520, 26, RED);
-        DrawChinese("需要先用 git stash 暂存当前工作，然后再切换分支。", 120, 560, 22, WHITE);
-        DrawChinese("按 [S] 执行 stash", 120, 590, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 120, {60, 40, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 120, RED);
+        DrawChinese("CTO: 你不能直接切换分支！未提交的更改会被破坏！", 120, dialogY + 20, 26, RED);
+        DrawChinese("需要先用 git stash 暂存当前工作，然后再切换分支。", 120, dialogY + 60, 22, WHITE);
+        DrawChinese("按 [S] 执行 stash", 120, dialogY + 90, 20, YELLOW);
     }
     else if (currentStage == Stage::POP_STASH) {
-        DrawRectangle(100, 500, 1080, 120, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 120, GREEN);
-        DrawChinese("CTO: 安全修复完成！现在回到 feature-login 分支恢复之前的工作。", 120, 520, 24, GREEN);
-        DrawChinese("按 [P] 执行 stash pop 恢复暂存的更改。", 120, 560, 22, WHITE);
+        DrawRectangle(100, dialogY, 1080, 120, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 120, GREEN);
+        DrawChinese("CTO: 安全修复完成！现在回到 feature-login 分支恢复之前的工作。", 120, dialogY + 20, 24, GREEN);
+        DrawChinese("按 [P] 执行 stash pop 恢复暂存的更改。", 120, dialogY + 60, 22, WHITE);
     }
     else if (currentStage == Stage::COMPLETE) {
-        DrawRectangle(100, 500, 1080, 100, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, GREEN);
-        DrawChinese("CTO: 完美！你学会了 git stash save/pop/list 的完整工作流。", 120, 520, 24, GREEN);
-        DrawChinese("记住：临时切换分支时，stash 是最安全的做法！", 120, 550, 20, WHITE);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, GREEN);
+        DrawChinese("CTO: 完美！你学会了 git stash save/pop/list 的完整工作流。", 120, dialogY + 20, 24, GREEN);
+        DrawChinese("记住：临时切换分支时，stash 是最安全的做法！", 120, dialogY + 50, 20, WHITE);
     }
 }
 

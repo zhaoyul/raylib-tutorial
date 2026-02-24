@@ -108,6 +108,9 @@ bool GitGame::Initialize() {
     
     // Setup command callback to forward to current level
     gitConsole.SetCommandCallback([this](const std::string& cmd) {
+        // Record command in history
+        AddGitCommand(cmd);
+        
         if (auto* level = levelManager->GetCurrentLevel()) {
             // Execute command through level and get result
             std::string result = level->ExecuteGitCommand(cmd);
@@ -139,6 +142,11 @@ bool GitGame::Initialize() {
         std::cerr << "Failed to initialize level manager" << std::endl;
         return false;
     }
+    
+    // Setup command history callback from level manager to game
+    levelManager->SetCommandHistoryCallback([this](const std::string& cmd) {
+        this->AddGitCommand(cmd);
+    });
 
     return true;
 }
@@ -344,15 +352,57 @@ void GitGame::DrawHUD() {
     int windowWidth = GetScreenWidth();
     int windowHeight = GetScreenHeight();
     
-    // Level info at top left - REMOVED: Levels draw their own titles in DrawStatusPanel()
-    // if (auto* level = levelManager->GetCurrentLevel()) {
-    //     DrawRectangle(0, 0, 400, 50, (Color){30, 30, 40, 200});
-    //     DrawChineseText(TextFormat("Level %d: %s", level->GetId(), level->GetName().c_str()),
-    //              20, 12, 26, WHITE);
-    // }
+    // Draw Git command log on the right side
+    if (showCommandLog) {
+        DrawGitCommandLog();
+    }
 
     // Help at bottom - fixed to window bottom
     DrawRectangle(0, windowHeight - 40, windowWidth, 40, (Color){30, 30, 40, 200});
     DrawChineseText("[ESC] 暂停  |  [I] git init  |  [A] git add  |  [C] git commit",
              250, windowHeight - 32, 22, LIGHTGRAY);
+}
+
+void GitGame::AddGitCommand(const std::string& cmd) {
+    if (cmd.empty()) return;
+    
+    // Add timestamp and format
+    std::string formatted = "$ git " + cmd;
+    commandHistory.push_front(formatted);
+    
+    // Keep only the last N commands
+    while (commandHistory.size() > MAX_COMMAND_HISTORY) {
+        commandHistory.pop_back();
+    }
+}
+
+void GitGame::DrawGitCommandLog() {
+    int windowWidth = GetScreenWidth();
+    int logX = windowWidth - 320;
+    int logY = 150;
+    int logW = 300;
+    int logH = 200;
+    
+    // Background
+    DrawRectangle(logX, logY, logW, logH, (Color){25, 30, 40, 220});
+    DrawRectangleLines(logX, logY, logW, logH, (Color){80, 120, 160, 255});
+    
+    // Title
+    DrawText("Git Command History", logX + 10, logY + 8, 16, (Color){100, 200, 255, 255});
+    
+    // Commands
+    int y = logY + 35;
+    for (const auto& cmd : commandHistory) {
+        // Truncate if too long
+        std::string display = cmd;
+        if (display.length() > 35) {
+            display = display.substr(0, 32) + "...";
+        }
+        DrawText(display.c_str(), logX + 10, y, 13, (Color){200, 200, 200, 255});
+        y += 20;
+    }
+    
+    if (commandHistory.empty()) {
+        DrawText("No commands yet...", logX + 10, y + 20, 13, (Color){100, 100, 120, 255});
+    }
 }

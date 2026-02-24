@@ -190,6 +190,7 @@ void Level06_CherryPick::SyncGraphWithRepo() {
 }
 
 void Level06_CherryPick::ProcessGitCommand(const std::string& cmd) {
+    RecordGitCommand(cmd);
     if (cmd.rfind("cherry-pick", 0) == 0 && currentStage == Stage::SELECT_COMMITS) {
         std::string hash = cmd.substr(12);
         if (!hash.empty()) {
@@ -353,30 +354,32 @@ void Level06_CherryPick::DrawCommitSelector() {
 }
 
 void Level06_CherryPick::DrawDialogueIfNeeded() {
+    int screenHeight = GetScreenHeight();
+    int dialogY = screenHeight - 180;
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: 生产环境服务器崩溃了！需要紧急修复！", 120, 520, 24, RED);
-        DrawChinese("dev 分支上有修复，但也有未完成的新功能。", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始紧急修复", 120, 600, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: 生产环境服务器崩溃了！需要紧急修复！", 120, dialogY + 20, 24, RED);
+        DrawChinese("dev 分支上有修复，但也有未完成的新功能。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始紧急修复", 120, dialogY + 100, 20, YELLOW);
     }
     else if (currentStage == Stage::SHOW_COMMITS) {
-        DrawRectangle(100, 500, 1080, 100, {40, 40, 60, 240});
-        DrawRectangleLines(100, 500, 1080, 100, {100, 150, 200, 255});
-        DrawChinese("main 分支是稳定的生产版本，dev 分支上有新功能和修复。", 120, 530, 22, WHITE);
-        DrawChinese("我们需要用 cherry-pick 只把修复应用到 main。", 120, 560, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 40, 60, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {100, 150, 200, 255});
+        DrawChinese("main 分支是稳定的生产版本，dev 分支上有新功能和修复。", 120, dialogY + 30, 22, WHITE);
+        DrawChinese("我们需要用 cherry-pick 只把修复应用到 main。", 120, dialogY + 60, 20, YELLOW);
     }
     else if (currentStage == Stage::SELECT_COMMITS) {
-        DrawRectangle(100, 500, 1080, 100, {60, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, {200, 200, 100, 255});
-        DrawChinese("选择标记为 CRITICAL 的修复提交，不要选新功能！", 120, 530, 24, YELLOW);
-        DrawChinese("按 [1] 或 [2] 应用对应的修复", 120, 560, 20, WHITE);
+        DrawRectangle(100, dialogY, 1080, 100, {60, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {200, 200, 100, 255});
+        DrawChinese("选择标记为 CRITICAL 的修复提交，不要选新功能！", 120, dialogY + 30, 24, YELLOW);
+        DrawChinese("按 [1] 或 [2] 应用对应的修复", 120, dialogY + 60, 20, WHITE);
     }
     else if (currentStage == Stage::VERIFY_FIX) {
-        DrawRectangle(100, 500, 1080, 100, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, GREEN);
-        DrawChinese("CTO: 完美！cherry-pick 让我们只应用了必要的修复。", 120, 520, 24, GREEN);
-        DrawChinese("生产环境已修复，新功能还在 dev 分支等待发布。", 120, 550, 20, WHITE);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, GREEN);
+        DrawChinese("CTO: 完美！cherry-pick 让我们只应用了必要的修复。", 120, dialogY + 20, 24, GREEN);
+        DrawChinese("生产环境已修复，新功能还在 dev 分支等待发布。", 120, dialogY + 50, 20, WHITE);
     }
 }
 

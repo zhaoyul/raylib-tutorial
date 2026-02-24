@@ -138,6 +138,7 @@ void Level04_Remote::SyncGraphWithRepo() {
 
 void Level04_Remote::ProcessGitCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
+    RecordGitCommand(cmd);
     
     if (cmd.rfind("remote add", 0) == 0 && currentStage == Stage::ADD_REMOTE) {
         // 模拟添加远程仓库
@@ -252,11 +253,13 @@ void Level04_Remote::DrawStatusPanel() {
 
 void Level04_Remote::DrawDialogueIfNeeded() {
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: 项目需要团队协作，需要连接远程仓库。", 120, 520, 24, WHITE);
-        DrawChinese("学会 push 分享你的代码，pull 获取他人更新。", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始学习远程协作", 120, 600, 20, YELLOW);
+        int screenHeight = GetScreenHeight();
+        int dialogY = screenHeight - 180;
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: 项目需要团队协作，需要连接远程仓库。", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("学会 push 分享你的代码，pull 获取他人更新。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始学习远程协作", 120, dialogY + 100, 20, YELLOW);
     }
 }
 

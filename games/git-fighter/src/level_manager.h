@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <functional>
 
 // Forward declarations
 class GitWrapper;
@@ -35,6 +36,14 @@ public:
     
     // Execute a git command from console
     virtual std::string ExecuteGitCommand(const std::string& cmd) { return "当前关卡不支持命令执行"; }
+    
+    // Record git command for history
+    void RecordGitCommand(const std::string& cmd) {
+        if (onGitCommand) onGitCommand(cmd);
+    }
+    
+    // Callback for git command recording
+    std::function<void(const std::string&)> onGitCommand;
     
     // Font setter
     void SetFont(const LevelFont* f) { font = f; }
@@ -87,7 +96,19 @@ public:
     // Font access for levels
     const LevelFont& GetFont() const { return font; }
     
+    // Git command history callback
+    void SetCommandHistoryCallback(std::function<void(const std::string&)> callback) {
+        commandHistoryCallback = callback;
+    }
+    
+    void RecordCommand(const std::string& cmd) {
+        if (commandHistoryCallback) {
+            commandHistoryCallback(cmd);
+        }
+    }
+    
 private:
+    std::function<void(const std::string&)> commandHistoryCallback;
     std::vector<std::unique_ptr<Level>> levels;
     std::unique_ptr<Level> currentLevel;
     std::unique_ptr<GitWrapper> git;

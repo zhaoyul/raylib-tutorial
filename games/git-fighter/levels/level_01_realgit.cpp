@@ -191,6 +191,7 @@ void Level01_RealGit::CheckGitStatus() {
 
 void Level01_RealGit::ProcessGitCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
+    RecordGitCommand(cmd);
     
     if (cmd == "init" && currentStage == Stage::WAIT_INIT) {
         auto result = git->Init(repoPath);

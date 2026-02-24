@@ -69,6 +69,7 @@ private:
     void DrawStatusPanel();
     void DrawDialogueIfNeeded();
     void DrawInteractivePanel();
+    void ProcessGitCommand(const std::string& cmd);
     
     const char* ActionToString(Action a);
     Color ActionToColor(Action a);

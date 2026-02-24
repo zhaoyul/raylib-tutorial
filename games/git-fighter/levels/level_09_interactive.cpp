@@ -212,6 +212,10 @@ Color Level09_Interactive::ActionToColor(Action a) {
     return WHITE;
 }
 
+void Level09_Interactive::ProcessGitCommand(const std::string& cmd) {
+    RecordGitCommand(cmd);
+}
+
 void Level09_Interactive::Update(float deltaTime) {
     timer += deltaTime;
     
@@ -389,26 +393,28 @@ void Level09_Interactive::DrawInteractivePanel() {
 }
 
 void Level09_Interactive::DrawDialogueIfNeeded() {
+    int screenHeight = GetScreenHeight();
+    int dialogY = screenHeight - 180;
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: 功能开发完成了，但提交历史太乱了！", 120, 520, 24, WHITE);
-        DrawChinese("有 'WIP', 'fix typo', 'oops' 这样的临时提交，不能这样提交到 main。", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始整理历史", 120, 600, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: 功能开发完成了，但提交历史太乱了！", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("有 'WIP', 'fix typo', 'oops' 这样的临时提交，不能这样提交到 main。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始整理历史", 120, dialogY + 100, 20, YELLOW);
     }
     else if (currentStage == Stage::SHOW_HISTORY) {
-        DrawRectangle(100, 500, 1080, 100, {40, 40, 60, 240});
-        DrawRectangleLines(100, 500, 1080, 100, {100, 150, 200, 255});
-        DrawChinese("看看这些提交：WIP、debug、oops... 这些不应该出现在正式历史中。", 120, 530, 22, WHITE);
-        DrawChinese("用 git rebase -i 来 squash 合并、drop 删除、reword 修改消息。", 120, 560, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 40, 60, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {100, 150, 200, 255});
+        DrawChinese("看看这些提交：WIP、debug、oops... 这些不应该出现在正式历史中。", 120, dialogY + 30, 22, WHITE);
+        DrawChinese("用 git rebase -i 来 squash 合并、drop 删除、reword 修改消息。", 120, dialogY + 60, 20, YELLOW);
     }
     else if (currentStage == Stage::VERIFY_RESULT) {
-        DrawRectangle(100, 500, 1080, 120, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 120, GREEN);
-        DrawChinese("CTO: 完美！从 10 个杂乱的提交整理成了干净的历史。", 120, 520, 24, GREEN);
+        DrawRectangle(100, dialogY, 1080, 120, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 120, GREEN);
+        DrawChinese("CTO: 完美！从 10 个杂乱的提交整理成了干净的历史。", 120, dialogY + 20, 24, GREEN);
         DrawChinese(("Squash 合并了 " + std::to_string(squashedCount) + " 个，删除了 " + std::to_string(droppedCount) + " 个临时提交。").c_str(),
-                    120, 555, 20, WHITE);
-        DrawChinese("现在可以干净地 merge 到 main 了。按 [空格] 完成。", 120, 590, 18, YELLOW);
+                    120, dialogY + 55, 20, WHITE);
+        DrawChinese("现在可以干净地 merge 到 main 了。按 [空格] 完成。", 120, dialogY + 90, 18, YELLOW);
     }
 }
 

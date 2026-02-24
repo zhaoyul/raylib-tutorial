@@ -185,6 +185,7 @@ void Level05_Rebase::ContinueRebase() {
 }
 
 void Level05_Rebase::ProcessGitCommand(const std::string& cmd) {
+    RecordGitCommand(cmd);
     if (cmd == "rebase main" && currentStage == Stage::SHOW_BRANCHES) {
         StartRebase();
         currentStage = Stage::REBASE_CONFLICT;
@@ -301,31 +302,33 @@ void Level05_Rebase::DrawStatusPanel() {
 }
 
 void Level05_Rebase::DrawDialogueIfNeeded() {
+    int screenHeight = GetScreenHeight();
+    int dialogY = screenHeight - 180;
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: feature 分支已经落后 main 很久了。", 120, 520, 24, WHITE);
-        DrawChinese("我们需要用 rebase 来保持线性历史，但可能会遇到冲突。", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始挑战", 120, 600, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: feature 分支已经落后 main 很久了。", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("我们需要用 rebase 来保持线性历史，但可能会遇到冲突。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始挑战", 120, dialogY + 100, 20, YELLOW);
     }
     else if (currentStage == Stage::SHOW_BRANCHES) {
-        DrawRectangle(100, 500, 1080, 100, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, {100, 200, 100, 255});
-        DrawChinese("main 和 feature 都修改了 config.cpp，rebase 会产生冲突。", 120, 530, 22, WHITE);
-        DrawChinese("按 [R] 开始 rebase feature 到 main", 120, 560, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {100, 200, 100, 255});
+        DrawChinese("main 和 feature 都修改了 config.cpp，rebase 会产生冲突。", 120, dialogY + 30, 22, WHITE);
+        DrawChinese("按 [R] 开始 rebase feature 到 main", 120, dialogY + 60, 20, YELLOW);
     }
     else if (currentStage == Stage::REBASE_CONFLICT) {
-        DrawRectangle(100, 500, 1080, 120, {60, 30, 30, 240});
-        DrawRectangleLines(100, 500, 1080, 120, RED);
-        DrawChinese("CTO: 冲突了！config.cpp 需要手动解决。", 120, 520, 26, RED);
-        DrawChinese("rebase 比 merge 更容易冲突，因为逐个应用提交。", 120, 555, 22, WHITE);
-        DrawChinese("按 [F] 解决冲突", 120, 590, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 120, {60, 30, 30, 240});
+        DrawRectangleLines(100, dialogY, 1080, 120, RED);
+        DrawChinese("CTO: 冲突了！config.cpp 需要手动解决。", 120, dialogY + 20, 26, RED);
+        DrawChinese("rebase 比 merge 更容易冲突，因为逐个应用提交。", 120, dialogY + 55, 22, WHITE);
+        DrawChinese("按 [F] 解决冲突", 120, dialogY + 90, 20, YELLOW);
     }
     else if (currentStage == Stage::REBASE_COMPLETE) {
-        DrawRectangle(100, 500, 1080, 100, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, GREEN);
-        DrawChinese("CTO: rebase 完成！现在 feature 有了线性的历史。", 120, 520, 24, GREEN);
-        DrawChinese("注意：rebase 会改写 commit hash，不要在共享分支上使用！", 120, 550, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, GREEN);
+        DrawChinese("CTO: rebase 完成！现在 feature 有了线性的历史。", 120, dialogY + 20, 24, GREEN);
+        DrawChinese("注意：rebase 会改写 commit hash，不要在共享分支上使用！", 120, dialogY + 50, 20, YELLOW);
     }
 }
 

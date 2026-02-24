@@ -166,6 +166,7 @@ void Level03_Merge::SyncGraphWithRepo() {
 
 void Level03_Merge::ProcessGitCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
+    RecordGitCommand(cmd);
     
     if (cmd == "merge feature" && currentStage == Stage::ATTEMPT_MERGE) {
         auto result = git->Merge("feature");
@@ -272,11 +273,13 @@ void Level03_Merge::DrawStatusPanel() {
 
 void Level03_Merge::DrawDialogueIfNeeded() {
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: main 与 feature 分支一起修改了 config.txt！", 120, 520, 24, WHITE);
-        DrawChinese("尝试合并时会产生冲突，需要手动解决。", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始合并挑战", 120, 600, 20, YELLOW);
+        int screenHeight = GetScreenHeight();
+        int dialogY = screenHeight - 180;
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: main 与 feature 分支一起修改了 config.txt！", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("尝试合并时会产生冲突，需要手动解决。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始合并挑战", 120, dialogY + 100, 20, YELLOW);
     }
 }
 

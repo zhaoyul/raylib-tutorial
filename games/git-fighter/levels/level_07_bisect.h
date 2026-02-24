@@ -62,6 +62,7 @@ private:
     void DrawDialogueIfNeeded();
     void DrawBisectPanel();
     void DrawCommitRange();
+    void ProcessGitCommand(const std::string& cmd);
     
     int CalculateNextIndex();
 };

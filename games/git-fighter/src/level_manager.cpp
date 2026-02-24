@@ -91,6 +91,11 @@ void LevelManager::LoadLevel(int levelId) {
         // Set font for level
         currentLevel->SetFont(&font);
         
+        // Set command history callback
+        currentLevel->onGitCommand = [this](const std::string& cmd) {
+            this->RecordCommand(cmd);
+        };
+        
         currentLevel->Initialize();
         std::cout << "Loaded Level " << levelId << ": " << currentLevel->GetName() << std::endl;
     }

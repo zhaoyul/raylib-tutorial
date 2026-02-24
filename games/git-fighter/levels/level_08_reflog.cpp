@@ -218,6 +218,7 @@ void Level08_Reflog::SyncGraphWithRepo() {
 
 void Level08_Reflog::ProcessGitCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
+    RecordGitCommand(cmd);
     
     if (cmd == "reset --hard HEAD~3" && currentStage == Stage::SHOW_HISTORY) {
         TriggerAccident();
@@ -388,34 +389,36 @@ void Level08_Reflog::DrawStatusPanel() {
 }
 
 void Level08_Reflog::DrawDialogueIfNeeded() {
+    int screenHeight = GetScreenHeight();
+    int dialogY = screenHeight - 180;
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: 今天教你们 Git 的救命神器 - reflog！", 120, 520, 24, WHITE);
-        DrawChinese("即使执行了 reset --hard，代码也能找回来。", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始演示", 120, 600, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: 今天教你们 Git 的救命神器 - reflog！", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("即使执行了 reset --hard，代码也能找回来。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始演示", 120, dialogY + 100, 20, YELLOW);
     }
     else if (currentStage == Stage::SHOW_HISTORY) {
-        DrawRectangle(100, 500, 1080, 100, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, {100, 200, 100, 255});
-        DrawChinese("这是一个正常开发的仓库，有 5 个 commit，包含数据库、认证、API 等重要功能。", 120, 530, 22, WHITE);
-        DrawChinese("按 [R] 键模拟误执行 git reset --hard HEAD~3（危险操作！）", 120, 560, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {100, 200, 100, 255});
+        DrawChinese("这是一个正常开发的仓库，有 5 个 commit，包含数据库、认证、API 等重要功能。", 120, dialogY + 30, 22, WHITE);
+        DrawChinese("按 [R] 键模拟误执行 git reset --hard HEAD~3（危险操作！）", 120, dialogY + 60, 20, YELLOW);
     }
     else if (currentStage == Stage::PANIC_MODE) {
         float pulse = (sinf(panicPulse) + 1.0f) * 0.5f;
         Color alertColor = ColorLerp(RED, WHITE, pulse);
-        DrawRectangle(100, 500, 1080, 150, {60, 20, 20, 240});
-        DrawRectangleLines(100, 500, 1080, 150, alertColor);
-        DrawChinese("CTO: 糟糕！3 个重要的 commit 不见了！", 120, 520, 26, RED);
-        DrawChinese("Database、Auth、API 代码全丢了！怎么办？！", 120, 555, 24, WHITE);
-        DrawChinese("按 [空格] 查看 reflog", 120, 600, 22, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 150, {60, 20, 20, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, alertColor);
+        DrawChinese("CTO: 糟糕！3 个重要的 commit 不见了！", 120, dialogY + 20, 26, RED);
+        DrawChinese("Database、Auth、API 代码全丢了！怎么办？！", 120, dialogY + 55, 24, WHITE);
+        DrawChinese("按 [空格] 查看 reflog", 120, dialogY + 100, 22, YELLOW);
     }
     else if (currentStage == Stage::VERIFY_RECOVERY) {
-        DrawRectangle(100, 500, 1080, 100, {40, 60, 40, 240});
-        DrawRectangleLines(100, 500, 1080, 100, GREEN);
-        DrawChinese("CTO: 看到了吗？reflog 记录了 Git 的所有操作历史！", 120, 520, 24, GREEN);
-        DrawChinese("只要找到事故前的 reflog 条目，用 reset --hard 就能恢复！", 120, 550, 22, WHITE);
-        DrawChinese("按 [空格] 完成关卡", 120, 580, 20, YELLOW);
+        DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, GREEN);
+        DrawChinese("CTO: 看到了吗？reflog 记录了 Git 的所有操作历史！", 120, dialogY + 20, 24, GREEN);
+        DrawChinese("只要找到事故前的 reflog 条目，用 reset --hard 就能恢复！", 120, dialogY + 50, 22, WHITE);
+        DrawChinese("按 [空格] 完成关卡", 120, dialogY + 80, 20, YELLOW);
     }
 }
 

@@ -147,6 +147,7 @@ void Level02_Branch::SyncGraphWithRepo() {
 
 void Level02_Branch::ProcessGitCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
+    RecordGitCommand(cmd);
     
     if (cmd.rfind("branch", 0) == 0 && currentStage == Stage::CREATE_BRANCH) {
         // Parse: branch feature/login
@@ -292,11 +293,14 @@ void Level02_Branch::DrawStatusPanel() {
 
 void Level02_Branch::DrawDialogueIfNeeded() {
     if (currentStage == Stage::INTRO) {
-        DrawRectangle(100, 500, 1080, 150, {40, 44, 52, 240});
-        DrawRectangleLines(100, 500, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: 我们需要开发一个新功能，但不想影响主分支。", 120, 520, 24, WHITE);
-        DrawChinese("使用 git branch 创建新分支，然后用 git checkout 切换过去。", 120, 550, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始", 120, 600, 20, YELLOW);
+        // 对话框移到底部，避免遮挡提交图
+        int screenHeight = GetScreenHeight();
+        int dialogY = screenHeight - 180;
+        DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
+        DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
+        DrawChinese("CTO: 我们需要开发一个新功能，但不想影响主分支。", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("使用 git branch 创建新分支，然后用 git checkout 切换过去。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始", 120, dialogY + 100, 20, YELLOW);
     }
 }
 
