@@ -19,6 +19,9 @@ public:
     
     bool IsComplete() const override;
     
+    GitWrapper* GetGitWrapper() override { return git.get(); }
+    std::string ProcessLevelCommand(const std::string& cmd) override;
+    
 private:
     enum class Stage {
         INTRO,              // 介绍剧情：误操作警告
@@ -63,7 +66,7 @@ private:
     void TriggerAccident();         // 执行 reset --hard
     void LoadReflog();
     void SyncGraphWithRepo();
-    void ProcessGitCommand(const std::string& cmd);
+
     void DrawStatusPanel();
     void DrawDialogueIfNeeded();
     void DrawReflogPanel();         // 专门绘制 reflog 界面

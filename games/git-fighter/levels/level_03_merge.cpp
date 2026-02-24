@@ -164,7 +164,7 @@ void Level03_Merge::SyncGraphWithRepo() {
     commitPanel->RecalculateLayout();
 }
 
-void Level03_Merge::ProcessGitCommand(const std::string& cmd) {
+std::string Level03_Merge::ProcessLevelCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
     RecordGitCommand(cmd);
     
@@ -173,12 +173,14 @@ void Level03_Merge::ProcessGitCommand(const std::string& cmd) {
         mergeAttempted = true;
         currentStage = Stage::RESOLVE_CONFLICT;
         SyncGraphWithRepo();
+        return "Merging feature...";
     }
     else if (cmd == "add" && currentStage == Stage::RESOLVE_CONFLICT) {
         // 模拟冲突已解决，添加文件
         git->Add(".");
         conflictResolved = true;
         currentStage = Stage::COMMIT_RESOLUTION;
+        return "Added files to staging";
     }
     else if (cmd.rfind("commit", 0) == 0 && currentStage == Stage::COMMIT_RESOLUTION) {
         auto result = git->Commit("Merge branch 'feature' - resolved conflicts");
@@ -186,8 +188,10 @@ void Level03_Merge::ProcessGitCommand(const std::string& cmd) {
             currentStage = Stage::COMPLETE;
             stageComplete = true;
             SyncGraphWithRepo();
+            return "Committed merge resolution";
         }
     }
+    return "Command executed: " + cmd;
 }
 
 void Level03_Merge::Update(float deltaTime) {
@@ -208,13 +212,13 @@ void Level03_Merge::Update(float deltaTime) {
     if (IsKeyPressed(KEY_ENTER)) {
         switch (currentStage) {
             case Stage::ATTEMPT_MERGE:
-                ProcessGitCommand("merge feature");
+                ProcessLevelCommand("merge feature");
                 break;
             case Stage::RESOLVE_CONFLICT:
-                ProcessGitCommand("add");
+                ProcessLevelCommand("add");
                 break;
             case Stage::COMMIT_RESOLUTION:
-                ProcessGitCommand("commit");
+                ProcessLevelCommand("commit");
                 break;
             case Stage::COMPLETE:
                 stageComplete = true;
@@ -295,3 +299,5 @@ void Level03_Merge::Shutdown() {
 bool Level03_Merge::IsComplete() const {
     return stageComplete;
 }
+
+

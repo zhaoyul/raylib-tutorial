@@ -19,6 +19,9 @@ public:
     
     bool IsComplete() const override;
     
+    GitWrapper* GetGitWrapper() override { return git.get(); }
+    std::string ProcessLevelCommand(const std::string& cmd) override;
+    
 private:
     enum class Action {
         PICK,       // 保留
@@ -69,7 +72,7 @@ private:
     void DrawStatusPanel();
     void DrawDialogueIfNeeded();
     void DrawInteractivePanel();
-    void ProcessGitCommand(const std::string& cmd);
+
     
     const char* ActionToString(Action a);
     Color ActionToColor(Action a);

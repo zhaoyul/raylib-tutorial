@@ -18,6 +18,9 @@ public:
     
     bool IsComplete() const override;
     
+    GitWrapper* GetGitWrapper() override { return git.get(); }
+    std::string ProcessLevelCommand(const std::string& cmd) override;
+    
 private:
     enum class Stage {
         INTRO,              // 介绍远程仓库
@@ -48,7 +51,7 @@ private:
     // 方法
     void CreateLocalRepo();
     void SyncGraphWithRepo();
-    void ProcessGitCommand(const std::string& cmd);
+
     void DrawStatusPanel();
     void DrawDialogueIfNeeded();
 };

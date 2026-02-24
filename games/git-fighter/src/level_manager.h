@@ -19,6 +19,9 @@ struct LevelFont {
     int MeasureChineseWidth(const char* text, int fontSize) const;
 };
 
+// Forward declaration
+class GitWrapper;
+
 // Base class for all levels
 class Level {
 public:
@@ -34,8 +37,16 @@ public:
     // Check if level objectives are complete
     virtual bool IsComplete() const = 0;
     
-    // Execute a git command from console
-    virtual std::string ExecuteGitCommand(const std::string& cmd) { return "当前关卡不支持命令执行"; }
+    // Execute a git command from console - shared implementation
+    virtual std::string ExecuteGitCommand(const std::string& cmd);
+    
+    // Process level-specific commands (override in subclasses)
+    virtual std::string ProcessLevelCommand(const std::string& cmd) { 
+        return "Unknown command: " + cmd; 
+    }
+    
+    // Sync graph after command execution (override in subclasses)
+    virtual void SyncGraphWithRepo() {}
     
     // Record git command for history
     void RecordGitCommand(const std::string& cmd) {
@@ -44,6 +55,9 @@ public:
     
     // Callback for git command recording
     std::function<void(const std::string&)> onGitCommand;
+    
+    // Get GitWrapper (must be implemented by subclasses that use git)
+    virtual GitWrapper* GetGitWrapper() { return nullptr; }
     
     // Font setter
     void SetFont(const LevelFont* f) { font = f; }

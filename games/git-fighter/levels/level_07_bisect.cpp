@@ -201,8 +201,9 @@ void Level07_Bisect::NextBisectStep() {
     currentStage = Stage::TESTING_COMMIT;
 }
 
-void Level07_Bisect::ProcessGitCommand(const std::string& cmd) {
+std::string Level07_Bisect::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
+    return "Command executed: " + cmd;
 }
 
 void Level07_Bisect::Update(float deltaTime) {
@@ -433,3 +434,5 @@ void Level07_Bisect::Shutdown() {
 bool Level07_Bisect::IsComplete() const {
     return stageComplete;
 }
+
+

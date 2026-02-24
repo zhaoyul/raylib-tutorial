@@ -189,7 +189,7 @@ void Level06_CherryPick::SyncGraphWithRepo() {
     commitPanel->RecalculateLayout();
 }
 
-void Level06_CherryPick::ProcessGitCommand(const std::string& cmd) {
+std::string Level06_CherryPick::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
     if (cmd.rfind("cherry-pick", 0) == 0 && currentStage == Stage::SELECT_COMMITS) {
         std::string hash = cmd.substr(12);
@@ -201,19 +201,24 @@ void Level06_CherryPick::ProcessGitCommand(const std::string& cmd) {
             if (result.success) {
                 pickedFixes.push_back(hash);
                 SyncGraphWithRepo();
+                return "Cherry-picked " + hash.substr(0, 7);
             } else {
                 hasConflict = true;
                 currentStage = Stage::HANDLE_CONFLICT;
+                return "Cherry-pick conflict";
             }
         }
     }
     else if (cmd == "resolve" && currentStage == Stage::HANDLE_CONFLICT) {
         hasConflict = false;
         currentStage = Stage::PICKING;
+        return "Resolved conflict";
     }
     else if (cmd == "done" && currentStage == Stage::PICKING) {
         currentStage = Stage::VERIFY_FIX;
+        return "Done picking";
     }
+    return "Command executed: " + cmd;
 }
 
 void Level06_CherryPick::Update(float deltaTime) {
@@ -250,19 +255,19 @@ void Level06_CherryPick::Update(float deltaTime) {
     // 数字键选择 commits
     if (currentStage == Stage::SELECT_COMMITS) {
         if (IsKeyPressed(KEY_ONE) && availableFixes.size() > 0) {
-            ProcessGitCommand("cherry-pick " + availableFixes[0]);
+            ProcessLevelCommand("cherry-pick " + availableFixes[0]);
         }
         if (IsKeyPressed(KEY_TWO) && availableFixes.size() > 1) {
-            ProcessGitCommand("cherry-pick " + availableFixes[1]);
+            ProcessLevelCommand("cherry-pick " + availableFixes[1]);
         }
     }
     
     if (IsKeyPressed(KEY_F) && currentStage == Stage::HANDLE_CONFLICT) {
-        ProcessGitCommand("resolve");
+        ProcessLevelCommand("resolve");
     }
     
     if (IsKeyPressed(KEY_ENTER) && currentStage == Stage::PICKING) {
-        ProcessGitCommand("done");
+        ProcessLevelCommand("done");
     }
 }
 
@@ -392,3 +397,5 @@ void Level06_CherryPick::Shutdown() {
 bool Level06_CherryPick::IsComplete() const {
     return stageComplete;
 }
+
+

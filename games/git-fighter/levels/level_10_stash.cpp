@@ -159,31 +159,37 @@ void Level10_Stash::ApplyEmergencyFix() {
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
 }
 
-void Level10_Stash::ProcessGitCommand(const std::string& cmd) {
+std::string Level10_Stash::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
     if (cmd == "stash" && currentStage == Stage::EMERGENCY_CALL) {
         CreateStash();
         currentStage = Stage::STASH_CHANGES;
+        return "Stashed changes";
     }
     else if (cmd == "checkout hotfix-security" && currentStage == Stage::STASH_CHANGES) {
         SwitchToEmergency();
         currentStage = Stage::SWITCH_BRANCH;
+        return "Switched to hotfix-security";
     }
     else if (cmd == "fix" && currentStage == Stage::SWITCH_BRANCH) {
         ApplyEmergencyFix();
         currentStage = Stage::FIX_EMERGENCY;
+        return "Applied emergency fix";
     }
     else if (cmd == "checkout feature-login" && currentStage == Stage::FIX_EMERGENCY) {
         git->Checkout("feature-login");
         SyncGraphWithRepo();
         splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
         currentStage = Stage::POP_STASH;
+        return "Switched to feature-login";
     }
     else if (cmd == "stash pop" && currentStage == Stage::POP_STASH) {
         PopStash();
         currentStage = Stage::COMPLETE;
         stageComplete = true;
+        return "Restored stashed changes";
     }
+    return "Command executed: " + cmd;
 }
 
 void Level10_Stash::Update(float deltaTime) {
@@ -213,23 +219,23 @@ void Level10_Stash::Update(float deltaTime) {
     }
     
     if (IsKeyPressed(KEY_S) && currentStage == Stage::EMERGENCY_CALL) {
-        ProcessGitCommand("stash");
+        ProcessLevelCommand("stash");
     }
     
     if (IsKeyPressed(KEY_C) && currentStage == Stage::STASH_CHANGES) {
-        ProcessGitCommand("checkout hotfix-security");
+        ProcessLevelCommand("checkout hotfix-security");
     }
     
     if (IsKeyPressed(KEY_F) && currentStage == Stage::SWITCH_BRANCH) {
-        ProcessGitCommand("fix");
+        ProcessLevelCommand("fix");
     }
     
     if (IsKeyPressed(KEY_R) && currentStage == Stage::FIX_EMERGENCY) {
-        ProcessGitCommand("checkout feature-login");
+        ProcessLevelCommand("checkout feature-login");
     }
     
     if (IsKeyPressed(KEY_P) && currentStage == Stage::POP_STASH) {
-        ProcessGitCommand("stash pop");
+        ProcessLevelCommand("stash pop");
     }
 }
 
@@ -371,3 +377,5 @@ void Level10_Stash::Shutdown() {
 bool Level10_Stash::IsComplete() const {
     return stageComplete;
 }
+
+

@@ -216,7 +216,7 @@ void Level08_Reflog::SyncGraphWithRepo() {
     commitPanel->RecalculateLayout();
 }
 
-void Level08_Reflog::ProcessGitCommand(const std::string& cmd) {
+std::string Level08_Reflog::ProcessLevelCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
     RecordGitCommand(cmd);
     
@@ -224,10 +224,12 @@ void Level08_Reflog::ProcessGitCommand(const std::string& cmd) {
         TriggerAccident();
         currentStage = Stage::PANIC_MODE;
         LoadReflog();
+        return "Executed reset --hard HEAD~3";
     }
     else if (cmd.rfind("reflog", 0) == 0 && currentStage == Stage::PANIC_MODE) {
         reflogVisible = true;
         currentStage = Stage::SHOW_REFLOG;
+        return "Showing reflog";
     }
     else if (cmd.rfind("reset --hard HEAD@{1}", 0) == 0 && 
              (currentStage == Stage::SHOW_REFLOG || currentStage == Stage::RECOVERY_DECISION)) {
@@ -239,6 +241,7 @@ void Level08_Reflog::ProcessGitCommand(const std::string& cmd) {
             currentStage = Stage::VERIFY_RECOVERY;
             SyncGraphWithRepo();
             splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
+            return "Recovered to HEAD@{1}";
         }
     }
     else if (cmd.rfind("reset --hard HEAD@{2}", 0) == 0 && 
@@ -251,8 +254,10 @@ void Level08_Reflog::ProcessGitCommand(const std::string& cmd) {
             currentStage = Stage::VERIFY_RECOVERY;
             SyncGraphWithRepo();
             splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
+            return "Recovered to HEAD@{2}";
         }
     }
+    return "Command executed: " + cmd;
 }
 
 void Level08_Reflog::Update(float deltaTime) {
@@ -274,10 +279,10 @@ void Level08_Reflog::Update(float deltaTime) {
                 currentStage = Stage::SHOW_HISTORY;
                 break;
             case Stage::ACCIDENT_HAPPENS:
-                ProcessGitCommand("reset --hard HEAD~3");
+                ProcessLevelCommand("reset --hard HEAD~3");
                 break;
             case Stage::PANIC_MODE:
-                ProcessGitCommand("reflog");
+                ProcessLevelCommand("reflog");
                 break;
             case Stage::VERIFY_RECOVERY:
                 currentStage = Stage::COMPLETE;
@@ -295,11 +300,11 @@ void Level08_Reflog::Update(float deltaTime) {
     if (currentStage == Stage::SHOW_REFLOG || currentStage == Stage::RECOVERY_DECISION) {
         if (IsKeyPressed(KEY_ONE) || IsKeyPressed(KEY_KP_1)) {
             // HEAD@{1} - 回到 reset 之前
-            ProcessGitCommand("reset --hard HEAD@{1}");
+            ProcessLevelCommand("reset --hard HEAD@{1}");
         }
         else if (IsKeyPressed(KEY_TWO) || IsKeyPressed(KEY_KP_2)) {
             // HEAD@{2} - 回到最新 commit
-            ProcessGitCommand("reset --hard HEAD@{2}");
+            ProcessLevelCommand("reset --hard HEAD@{2}");
         }
     }
     
@@ -515,3 +520,5 @@ void Level08_Reflog::Shutdown() {
 bool Level08_Reflog::IsComplete() const {
     return stageComplete;
 }
+
+

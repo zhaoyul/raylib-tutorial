@@ -212,8 +212,9 @@ Color Level09_Interactive::ActionToColor(Action a) {
     return WHITE;
 }
 
-void Level09_Interactive::ProcessGitCommand(const std::string& cmd) {
+std::string Level09_Interactive::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
+    return "Command executed: " + cmd;
 }
 
 void Level09_Interactive::Update(float deltaTime) {
@@ -427,3 +428,5 @@ void Level09_Interactive::Shutdown() {
 bool Level09_Interactive::IsComplete() const {
     return stageComplete;
 }
+
+

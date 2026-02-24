@@ -145,7 +145,7 @@ void Level02_Branch::SyncGraphWithRepo() {
     commitPanel->RecalculateLayout();
 }
 
-void Level02_Branch::ProcessGitCommand(const std::string& cmd) {
+std::string Level02_Branch::ProcessLevelCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
     RecordGitCommand(cmd);
     
@@ -160,6 +160,7 @@ void Level02_Branch::ProcessGitCommand(const std::string& cmd) {
                 featureBranchCreated = true;
                 currentStage = Stage::SWITCH_BRANCH;
                 SyncGraphWithRepo();
+                return "Created branch " + branchName;
             }
         }
     }
@@ -178,12 +179,14 @@ void Level02_Branch::ProcessGitCommand(const std::string& cmd) {
                 }
                 SyncGraphWithRepo();
                 splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
+                return "Switched to " + branchName;
             }
         }
     }
     else if (cmd == "add" && currentStage == Stage::MAKE_CHANGES) {
         git->Add(".");
         currentStage = Stage::COMMIT_FEATURE;
+        return "Added files to staging";
     }
     else if (cmd.rfind("commit", 0) == 0 && currentStage == Stage::COMMIT_FEATURE) {
         auto result = git->Commit("Add login module");
@@ -191,8 +194,10 @@ void Level02_Branch::ProcessGitCommand(const std::string& cmd) {
             changesCommitted = true;
             currentStage = Stage::MERGE_BRANCH;
             SyncGraphWithRepo();
+            return "Committed: Add login module";
         }
     }
+    return "Command executed: " + cmd;
 }
 
 void Level02_Branch::CheckGitStatus() {
@@ -221,16 +226,16 @@ void Level02_Branch::Update(float deltaTime) {
         // 模拟命令输入（实际应该有输入框）
         switch (currentStage) {
             case Stage::CREATE_BRANCH:
-                ProcessGitCommand("branch feature/login");
+                ProcessLevelCommand("branch feature/login");
                 break;
             case Stage::SWITCH_BRANCH:
-                ProcessGitCommand("checkout feature/login");
+                ProcessLevelCommand("checkout feature/login");
                 break;
             case Stage::MAKE_CHANGES:
-                ProcessGitCommand("add");
+                ProcessLevelCommand("add");
                 break;
             case Stage::COMMIT_FEATURE:
-                ProcessGitCommand("commit");
+                ProcessLevelCommand("commit");
                 break;
             case Stage::MERGE_BRANCH:
                 stageComplete = true;
@@ -324,3 +329,5 @@ void Level02_Branch::Shutdown() {
 bool Level02_Branch::IsComplete() const {
     return stageComplete;
 }
+
+

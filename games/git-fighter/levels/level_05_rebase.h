@@ -18,6 +18,9 @@ public:
     
     bool IsComplete() const override;
     
+    GitWrapper* GetGitWrapper() override { return git.get(); }
+    std::string ProcessLevelCommand(const std::string& cmd) override;
+    
 private:
     enum class Stage {
         INTRO,              // 介绍场景：feature 分支落后 main
@@ -56,7 +59,7 @@ private:
     void ResolveConflict();
     void ContinueRebase();
     void SyncGraphWithRepo();
-    void ProcessGitCommand(const std::string& cmd);
+
     void DrawStatusPanel();
     void DrawDialogueIfNeeded();
 };

@@ -16,6 +16,73 @@
 Level::Level(int id, const std::string& name, const std::string& desc)
     : levelId(id), levelName(name), description(desc) {}
 
+// Shared implementation of ExecuteGitCommand for all levels
+std::string Level::ExecuteGitCommand(const std::string& cmd) {
+    RecordGitCommand(cmd);
+    
+    GitWrapper* git = GetGitWrapper();
+    if (!git) {
+        return "Error: Git not initialized";
+    }
+    
+    // Parse and execute basic git commands
+    if (cmd == "init") {
+        auto result = git->Init(".");
+        SyncGraphWithRepo();
+        return result.success ? "Initialized empty Git repository" : result.error;
+    }
+    else if (cmd.rfind("add", 0) == 0) {
+        std::string file = cmd.length() > 4 ? cmd.substr(4) : ".";
+        auto result = git->Add(file);
+        return result.success ? "Added " + file : result.error;
+    }
+    else if (cmd.rfind("commit", 0) == 0) {
+        size_t spacePos = cmd.find(' ');
+        std::string msg = (spacePos != std::string::npos) ? cmd.substr(spacePos + 1) : "commit";
+        auto result = git->Commit(msg);
+        if (result.success) {
+            SyncGraphWithRepo();
+            return "Committed: " + msg;
+        }
+        return result.error;
+    }
+    else if (cmd == "status") {
+        auto result = git->Status();
+        return result.success ? result.output : result.error;
+    }
+    else if (cmd.rfind("branch", 0) == 0) {
+        if (cmd.length() > 7) {
+            std::string branchName = cmd.substr(7);
+            auto result = git->CreateBranch(branchName);
+            SyncGraphWithRepo();
+            return result.success ? "Created branch " + branchName : result.error;
+        } else {
+            auto branches = git->GetBranches();
+            std::string result = "Branches:\n";
+            for (const auto& b : branches) result += "  " + b + "\n";
+            return result;
+        }
+    }
+    else if (cmd.rfind("checkout", 0) == 0) {
+        std::string branch = cmd.length() > 9 ? cmd.substr(9) : "main";
+        auto result = git->Checkout(branch);
+        SyncGraphWithRepo();
+        return result.success ? "Switched to " + branch : result.error;
+    }
+    else if (cmd.rfind("merge", 0) == 0) {
+        std::string branch = cmd.length() > 6 ? cmd.substr(6) : "";
+        if (!branch.empty()) {
+            auto result = git->Merge(branch);
+            SyncGraphWithRepo();
+            return result.success ? "Merged " + branch : result.error;
+        }
+        return "Usage: merge <branch>";
+    }
+    
+    // Pass to level-specific handler
+    return ProcessLevelCommand(cmd);
+}
+
 LevelManager::LevelManager() = default;
 
 LevelManager::~LevelManager() {

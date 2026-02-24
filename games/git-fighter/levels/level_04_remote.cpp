@@ -136,7 +136,7 @@ void Level04_Remote::SyncGraphWithRepo() {
     commitPanel->RecalculateLayout();
 }
 
-void Level04_Remote::ProcessGitCommand(const std::string& cmd) {
+std::string Level04_Remote::ProcessLevelCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
     RecordGitCommand(cmd);
     
@@ -145,15 +145,18 @@ void Level04_Remote::ProcessGitCommand(const std::string& cmd) {
         remoteAdded = true;
         currentStage = Stage::PUSH_MAIN;
         SyncGraphWithRepo();
+        return "Added remote origin";
     }
     else if (cmd.rfind("push", 0) == 0 && currentStage == Stage::PUSH_MAIN) {
         pushed = true;
         currentStage = Stage::FETCH_REMOTE;
         SyncGraphWithRepo();
+        return "Pushed to origin main";
     }
     else if (cmd == "fetch" && currentStage == Stage::FETCH_REMOTE) {
         fetched = true;
         currentStage = Stage::PULL_CHANGES;
+        return "Fetched from origin";
     }
     else if (cmd == "pull" && currentStage == Stage::PULL_CHANGES) {
         pulled = true;
@@ -165,7 +168,9 @@ void Level04_Remote::ProcessGitCommand(const std::string& cmd) {
             file << "# 远程更新\n来自 origin/main\n";
         }
         SyncGraphWithRepo();
+        return "Pulled from origin";
     }
+    return "Command executed: " + cmd;
 }
 
 void Level04_Remote::Update(float deltaTime) {
@@ -186,16 +191,16 @@ void Level04_Remote::Update(float deltaTime) {
     if (IsKeyPressed(KEY_ENTER)) {
         switch (currentStage) {
             case Stage::ADD_REMOTE:
-                ProcessGitCommand("remote add origin https://github.com/company/project.git");
+                ProcessLevelCommand("remote add origin https://github.com/company/project.git");
                 break;
             case Stage::PUSH_MAIN:
-                ProcessGitCommand("push origin main");
+                ProcessLevelCommand("push origin main");
                 break;
             case Stage::FETCH_REMOTE:
-                ProcessGitCommand("fetch");
+                ProcessLevelCommand("fetch");
                 break;
             case Stage::PULL_CHANGES:
-                ProcessGitCommand("pull");
+                ProcessLevelCommand("pull");
                 break;
             case Stage::COMPLETE:
                 stageComplete = true;
@@ -275,3 +280,5 @@ void Level04_Remote::Shutdown() {
 bool Level04_Remote::IsComplete() const {
     return stageComplete;
 }
+
+

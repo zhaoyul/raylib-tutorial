@@ -184,21 +184,25 @@ void Level05_Rebase::ContinueRebase() {
     }
 }
 
-void Level05_Rebase::ProcessGitCommand(const std::string& cmd) {
+std::string Level05_Rebase::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
     if (cmd == "rebase main" && currentStage == Stage::SHOW_BRANCHES) {
         StartRebase();
         currentStage = Stage::REBASE_CONFLICT;
+        return "Started rebase onto main";
     }
     else if (cmd == "resolve" && currentStage == Stage::REBASE_CONFLICT) {
         ResolveConflict();
         if (conflictResolved) {
             currentStage = Stage::CONTINUE_REBASE;
         }
+        return "Resolved conflict";
     }
     else if (cmd == "rebase --continue" && currentStage == Stage::CONTINUE_REBASE) {
         ContinueRebase();
+        return "Continued rebase";
     }
+    return "Command executed: " + cmd;
 }
 
 void Level05_Rebase::Update(float deltaTime) {
@@ -229,7 +233,7 @@ void Level05_Rebase::Update(float deltaTime) {
     }
     
     if (IsKeyPressed(KEY_R) && currentStage == Stage::SHOW_BRANCHES) {
-        ProcessGitCommand("rebase main");
+        ProcessLevelCommand("rebase main");
         currentStage = Stage::START_REBASE;
     }
     
@@ -238,11 +242,11 @@ void Level05_Rebase::Update(float deltaTime) {
     }
     
     if (IsKeyPressed(KEY_F) && currentStage == Stage::REBASE_CONFLICT) {
-        ProcessGitCommand("resolve");
+        ProcessLevelCommand("resolve");
     }
     
     if (IsKeyPressed(KEY_ENTER) && currentStage == Stage::CONTINUE_REBASE) {
-        ProcessGitCommand("rebase --continue");
+        ProcessLevelCommand("rebase --continue");
     }
 }
 
@@ -341,3 +345,5 @@ void Level05_Rebase::Shutdown() {
 bool Level05_Rebase::IsComplete() const {
     return stageComplete;
 }
+
+
