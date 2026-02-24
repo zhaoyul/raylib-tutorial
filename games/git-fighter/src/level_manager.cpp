@@ -25,7 +25,14 @@ std::string Level::ExecuteGitCommand(const std::string& cmd) {
         return "Error: Git not initialized";
     }
     
-    // Parse and execute basic git commands
+    // First, try level-specific command handling (for game progression)
+    // This allows commands like "init", "add", "commit" to drive game state
+    std::string levelResult = ProcessLevelCommand(cmd);
+    if (!levelResult.empty()) {
+        return levelResult;
+    }
+    
+    // If level didn't handle it, parse and execute basic git commands
     if (cmd == "init") {
         auto result = git->Init(".");
         SyncGraphWithRepo();

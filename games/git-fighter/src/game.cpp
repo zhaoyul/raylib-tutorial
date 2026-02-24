@@ -108,8 +108,8 @@ bool GitGame::Initialize() {
     
     // Setup command callback to forward to current level
     gitConsole.SetCommandCallback([this](const std::string& cmd) {
-        // Record command in history
-        AddGitCommand(cmd);
+        // Command history is recorded via levelManager callback below
+        // to avoid duplication (ExecuteGitCommand also calls RecordGitCommand)
         
         if (auto* level = levelManager->GetCurrentLevel()) {
             // Execute command through level and get result
@@ -366,8 +366,13 @@ void GitGame::DrawHUD() {
 void GitGame::AddGitCommand(const std::string& cmd) {
     if (cmd.empty()) return;
     
-    // Add timestamp and format
-    std::string formatted = "$ git " + cmd;
+    // Avoid duplicate "git" prefix
+    std::string formatted;
+    if (cmd.rfind("git ", 0) == 0) {
+        formatted = "$ " + cmd;
+    } else {
+        formatted = "$ git " + cmd;
+    }
     commandHistory.push_front(formatted);
     
     // Keep only the last N commands

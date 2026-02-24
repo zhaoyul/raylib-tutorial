@@ -189,9 +189,8 @@ void Level01_RealGit::CheckGitStatus() {
     }
 }
 
-void Level01_RealGit::ProcessGitCommand(const std::string& cmd) {
-    std::cout << "Processing command: " << cmd << std::endl;
-    RecordGitCommand(cmd);
+std::string Level01_RealGit::ProcessLevelCommand(const std::string& cmd) {
+    std::cout << "Processing level command: " << cmd << std::endl;
     
     if (cmd == "init" && currentStage == Stage::WAIT_INIT) {
         auto result = git->Init(repoPath);
@@ -222,14 +221,20 @@ void Level01_RealGit::ProcessGitCommand(const std::string& cmd) {
                 splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
                 std::cout << "[INIT] Initial scan complete." << std::endl;
             }
+            return "Initialized Git repository";
         }
+        return "Failed to init: " + result.error;
     }
     else if (cmd == "add" && currentStage == Stage::WAIT_ADD) {
         auto result = git->Add(".");
         if (result.success) {
             std::cout << "Git add successful" << std::endl;
             CheckGitStatus();
+            // 推进到下一个阶段
+            currentStage = Stage::WAIT_COMMIT;
+            return "Added files to staging area";
         }
+        return "Failed to add: " + result.error;
     }
     else if (cmd == "commit" && currentStage == Stage::WAIT_COMMIT) {
         auto result = git->Commit("Initial commit: 项目初始化");
@@ -244,8 +249,13 @@ void Level01_RealGit::ProcessGitCommand(const std::string& cmd) {
                 currentStage = Stage::COMPLETE;
                 stageComplete = true;
             }
+            return "Committed: 项目初始化";
         }
+        return "Failed to commit: " + result.error;
     }
+    
+    // 调用基类处理通用命令
+    return "";
 }
 
 void Level01_RealGit::Update(float deltaTime) {
@@ -260,15 +270,15 @@ void Level01_RealGit::Update(float deltaTime) {
         splitView->Update(deltaTime);
     }
     
-    // 键盘快捷键 - 游戏流程
+    // 键盘快捷键 - 游戏流程（通过 ExecuteGitCommand 以记录到历史日志）
     if (IsKeyPressed(KEY_I) && currentStage == Stage::WAIT_INIT) {
-        ProcessGitCommand("init");
+        ExecuteGitCommand("init");
     }
     if (IsKeyPressed(KEY_A) && currentStage == Stage::WAIT_ADD) {
-        ProcessGitCommand("add");
+        ExecuteGitCommand("add");
     }
     if (IsKeyPressed(KEY_C) && currentStage == Stage::WAIT_COMMIT) {
-        ProcessGitCommand("commit");
+        ExecuteGitCommand("commit");
     }
     if (IsKeyPressed(KEY_SPACE) && currentStage == Stage::INTRO) {
         currentStage = Stage::WAIT_INIT;
@@ -564,6 +574,15 @@ bool Level01_RealGit::IsComplete() const {
 }
 
 std::string Level01_RealGit::ExecuteGitCommand(const std::string& cmd) {
+    // First record the command
+    RecordGitCommand(cmd);
+    
+    // Try level-specific command handling first (for game progression)
+    std::string levelResult = ProcessLevelCommand(cmd);
+    if (!levelResult.empty()) {
+        return levelResult;
+    }
+    
     if (!git || !git->IsRepoOpen()) {
         return "错误: Git 仓库未初始化";
     }

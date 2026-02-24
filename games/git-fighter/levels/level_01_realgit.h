@@ -48,8 +48,9 @@ private:
     
     // 方法
     void CreateSampleFiles();
-    void SyncGraphWithRepo();
-    void ProcessGitCommand(const std::string& cmd);
+    void SyncGraphWithRepo() override;
+    std::string ProcessLevelCommand(const std::string& cmd) override;
+    GitWrapper* GetGitWrapper() override { return git.get(); }
     void DrawCommandInput();
     void DrawStatusPanel();
     void DrawDialogueIfNeeded();
