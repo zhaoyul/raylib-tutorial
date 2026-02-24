@@ -272,7 +272,7 @@ void Level02_Branch::DrawStatusPanel() {
     DrawChinese("学习 branch 和 checkout", 20, 55, 18, LIGHTGRAY);
     
     // 当前阶段
-    DrawChinese("当前步骤:", 20, 100, 20, {100, 200, 255, 255});
+    DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
     
     const char* stageText = "";
     switch (currentStage) {

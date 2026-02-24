@@ -264,7 +264,7 @@ void Level05_Rebase::DrawStatusPanel() {
     DrawChinese("Level 5: 变基危机", 20, 20, 28, WHITE);
     DrawChinese("学习 rebase", 20, 55, 18, LIGHTGRAY);
     
-    DrawChinese("当前步骤:", 20, 100, 20, {100, 200, 255, 255});
+    DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
     
     const char* stageText = "";
     Color stageColor = YELLOW;
