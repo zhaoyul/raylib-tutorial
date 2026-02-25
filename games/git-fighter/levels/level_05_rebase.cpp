@@ -71,7 +71,7 @@ void Level05_Rebase::CreateRebaseScenario() {
     git->Add(".");
     git->Commit("Add config module");
     
-    // Main 分支提交 3: 配置更新（会导致冲突）
+    // Main 分支提交 3: 配置更新（分叉点）
     {
         std::ofstream f(repoPath + "/config.cpp");
         f << "// 配置模块 v2.0\n" << "int timeout = 60;\n" << "int retries = 3;\n";
@@ -79,11 +79,19 @@ void Level05_Rebase::CreateRebaseScenario() {
     git->Add(".");
     git->Commit("Update config with retries");
     
-    // 创建 feature 分支
+    // 关键：在分叉点前，main 先做一个提交
+    {
+        std::ofstream f(repoPath + "/main.cpp");
+        f << "// 主程序\n" << "int main() { init(); }\n";
+    }
+    git->Add(".");
+    git->Commit("Add main.cpp");
+    
+    // 现在创建 feature 分支（从分叉点）
     git->CreateBranch("feature");
     git->Checkout("feature");
     
-    // Feature 提交 1: 修改同一文件（制造冲突）
+    // Feature 提交 1: 修改 config（制造冲突）
     {
         std::ofstream f(repoPath + "/config.cpp");
         f << "// 配置模块 feature版\n" << "int timeout = 45;\n" << "bool debug = true;\n";
@@ -91,7 +99,7 @@ void Level05_Rebase::CreateRebaseScenario() {
     git->Add(".");
     git->Commit("Feature: adjust timeout and add debug");
     
-    // Feature 提交 2: 另一个文件
+    // Feature 提交 2: 添加新功能
     {
         std::ofstream f(repoPath + "/feature.cpp");
         f << "// 新功能\n" << "void newFeature() {}\n";
@@ -99,14 +107,14 @@ void Level05_Rebase::CreateRebaseScenario() {
     git->Add(".");
     git->Commit("Add new feature module");
     
-    // 回到 main 继续开发
-    git->Checkout("main");
+    // 回到 master 继续开发（形成分叉）
+    git->Checkout("master");
     {
-        std::ofstream f(repoPath + "/main.cpp");
-        f << "// 主程序\n" << "int main() { run(); }\n";
+        std::ofstream f(repoPath + "/utils.cpp");
+        f << "// 工具函数\n" << "void helper() {}\n";
     }
     git->Add(".");
-    git->Commit("Update main program");
+    git->Commit("Add utils on master");
     
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);

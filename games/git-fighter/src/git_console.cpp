@@ -24,9 +24,11 @@ void GitConsole::Initialize(int x, int y, int width, int height) {
     scrollOffset = 0;
     
     // Add welcome message
-    AddOutput("Git Console - 输入 git 命令直接操作", {100, 200, 255, 255});
-    AddOutput("例如: git init, git add ., git commit -m \"message\"", {150, 150, 150, 255});
-    AddOutput("按 TAB 或点击按钮打开/关闭控制台", {150, 150, 150, 255});
+    AddOutput("Git Console - 输入命令直接操作", {100, 200, 255, 255});
+    AddOutput("Git: init, add, commit, status, branch, checkout, merge", {150, 150, 150, 255});
+    AddOutput("Shell: ls, cat, pwd, echo, mkdir, touch, rm", {150, 150, 150, 255});
+    AddOutput("复合: git add . && git commit -m 'msg'", {150, 150, 150, 255});
+    AddOutput("按 TAB 打开/关闭, 回车执行", {150, 150, 150, 255});
     AddOutput("---", GRAY);
 }
 

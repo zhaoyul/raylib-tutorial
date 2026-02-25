@@ -40,6 +40,10 @@ public:
     // Execute a git command from console - shared implementation
     virtual std::string ExecuteGitCommand(const std::string& cmd);
     
+    // Execute shell command (for compound commands with &&, |, ; and pure shell commands)
+    // All levels support this through system() call
+    virtual std::string ExecuteShellCommand(const std::string& cmd);
+    
     // Process level-specific commands (override in subclasses)
     virtual std::string ProcessLevelCommand(const std::string& cmd) { 
         return "Unknown command: " + cmd; 
@@ -74,6 +78,9 @@ public:
     
     // Refresh working directory view (override in subclasses)
     virtual void RefreshWorkingDirectory() {}
+    
+    // Get repo path for shell command execution
+    virtual std::string GetRepoPath() const { return repoPath; }
     
 protected:
     void DrawChinese(const char* text, int x, int y, int fontSize, Color color) const {

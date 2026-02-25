@@ -109,12 +109,35 @@ bool GitGame::Initialize() {
     // Setup command callback to forward to current level
     gitConsole.SetCommandCallback([this](const std::string& cmd) {
         if (auto* level = levelManager->GetCurrentLevel()) {
-            // Execute command through level and get result
-            std::string result = level->ExecuteGitCommand(cmd);
+            std::string result;
+            
+            // Check if it's a compound command (contains && or ;)
+            bool isCompoundCommand = (cmd.find("&&") != std::string::npos || 
+                                     cmd.find(";") != std::string::npos ||
+                                     cmd.find("|") != std::string::npos);
+            
+            // Check if it's a pure shell command (no git prefix, common shell commands)
+            bool isPureShellCommand = (cmd.rfind("git ", 0) != 0) && 
+                                      (cmd.find("ls") == 0 || cmd.find("cat") == 0 || 
+                                       cmd.find("echo") == 0 || cmd.find("pwd") == 0 ||
+                                       cmd.find("mkdir") == 0 || cmd.find("touch") == 0 ||
+                                       cmd.find("rm") == 0 || cmd.find("cd") == 0);
+            
+            if (isCompoundCommand || isPureShellCommand) {
+                // Compound commands (&&, |, ;) and pure shell commands: execute through level's shell fallback
+                // This ensures all levels can use compound commands and pipes
+                result = level->ExecuteShellCommand(cmd);
+            } else {
+                // Single git command - strip "git " prefix if present and execute through level
+                std::string actualCmd = cmd;
+                if (actualCmd.rfind("git ", 0) == 0) {
+                    actualCmd = actualCmd.substr(4);
+                }
+                result = level->ExecuteGitCommand(actualCmd);
+            }
             
             // Add result to console output
             if (!result.empty()) {
-                // Split result by lines and add each line
                 std::string line;
                 for (char c : result) {
                     if (c == '\n') {

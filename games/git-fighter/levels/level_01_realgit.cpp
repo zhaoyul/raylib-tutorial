@@ -284,17 +284,41 @@ void Level01_RealGit::Update(float deltaTime) {
         currentStage = Stage::WAIT_INIT;
     }
     
-    // Dev tools (1/2/3 keys) - use base class implementation
-    HandleDevToolKeys();
-    
-    // Also update working directory view if files changed
-    if (git && git->IsRepoOpen()) {
-        static float scanTimer = 0;
-        scanTimer += deltaTime;
-        if (scanTimer > 0.5f) {
-            scanTimer = 0;
-            splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
+    // Dev tools (1/2/3 keys) - Level 1 special handling
+    // Allow file creation even before git init
+    bool fileChanged = false;
+    if (!repoPath.empty()) {
+        if (IsKeyPressed(KEY_ONE)) {
+            std::string filename = git->GenerateRandomFilename();
+            std::cout << "[KEY_ONE] Creating random file: " << filename << std::endl;
+            if (git->CreateRandomFile()) {
+                std::cout << "[KEY_ONE] Created: " << filename << std::endl;
+                fileChanged = true;
+            }
         }
+        if (IsKeyPressed(KEY_TWO)) {
+            std::string dirname = git->GenerateRandomDirname();
+            std::cout << "[KEY_TWO] Creating random directory: " << dirname << std::endl;
+            if (git->CreateRandomDirectory()) {
+                std::cout << "[KEY_TWO] Created: " << dirname << std::endl;
+                fileChanged = true;
+            }
+        }
+        if (IsKeyPressed(KEY_THREE)) {
+            auto files = git->GetWorkingDirectoryStatus();
+            if (!files.empty()) {
+                std::string targetFile = files[rand() % files.size()].path;
+                std::cout << "[KEY_THREE] Appending to: " << targetFile << std::endl;
+                if (git->AppendRandomContent(targetFile)) {
+                    fileChanged = true;
+                }
+            }
+        }
+    }
+    
+    // Refresh view if files changed
+    if (fileChanged && splitView) {
+        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
     }
     
     // 定期检查 Git 状态
@@ -566,7 +590,18 @@ std::string Level01_RealGit::ExecuteGitCommand(const std::string& cmd) {
     }
     
     // Execute command in the repo directory using system()
-    std::string fullCmd = "cd " + repoPath + " && " + cmd + " 2>&1";
+    // Add "git " prefix for simple commands (add, commit, status, etc.)
+    std::string fullCmd;
+    if (cmd.find(" ") == std::string::npos || 
+        cmd.find("init") == 0 || cmd.find("add") == 0 || cmd.find("commit") == 0 ||
+        cmd.find("status") == 0 || cmd.find("branch") == 0 || cmd.find("checkout") == 0 ||
+        cmd.find("merge") == 0 || cmd.find("log") == 0 || cmd.find("reset") == 0) {
+        // Simple git command - add git prefix
+        fullCmd = "cd " + repoPath + " && git " + cmd + " 2>&1";
+    } else {
+        // Complex command - execute as is
+        fullCmd = "cd " + repoPath + " && " + cmd + " 2>&1";
+    }
     
     std::string result;
     char buffer[4096];
@@ -588,19 +623,17 @@ std::string Level01_RealGit::ExecuteGitCommand(const std::string& cmd) {
     }
     
     // Update visualization after git commands
-    if (cmd.find("git") == 0) {
-        SyncGraphWithRepo();
-        splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
-        
-        // Check for commit
-        if (cmd.find("git commit") == 0 && exitCode == 0) {
-            std::string head = git->GetHEAD();
-            if (!head.empty() && head != lastCommitHash) {
-                lastCommitHash = head;
-                if (currentStage == Stage::WAIT_COMMIT) {
-                    currentStage = Stage::COMPLETE;
-                    stageComplete = true;
-                }
+    SyncGraphWithRepo();
+    splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
+    
+    // Check for commit
+    if ((cmd.find("commit") == 0) && exitCode == 0) {
+        std::string head = git->GetHEAD();
+        if (!head.empty() && head != lastCommitHash) {
+            lastCommitHash = head;
+            if (currentStage == Stage::WAIT_COMMIT) {
+                currentStage = Stage::COMPLETE;
+                stageComplete = true;
             }
         }
     }
