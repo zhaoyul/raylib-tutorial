@@ -27,42 +27,42 @@ void Level01_GUI::Initialize() {
     mainCppCreated = false;
     filesAdded = false;
     lastCommitHash.clear();
-    
+
     // Create temp directory
     repoPath = "/tmp/gitfighter_level1_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
-    
+
     // Init Git
     git = std::make_unique<GitWrapper>();
-    
+
     // Init visualization
     splitView = std::make_unique<GitVis::SplitGitView>();
     splitView->Initialize(320, 100, 940, 520);
     splitView->SetSplitRatio(0.5f);
     splitView->SetGitWrapper(git.get());
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
     splitView->SetRepoPath(repoPath);
-    
+
     // Init GUI
     gui = std::make_unique<GUIManager>();
     gui->Initialize();
-    
+
     // Set Chinese font if available
     if (font && font->hasChineseFont) {
         gui->SetChineseFont(const_cast<Font*>(&font->chineseFont));
     }
-    
+
     // Step indicator
     stepIndicator = std::make_unique<StepIndicator>(50, 80, 250);
     stepIndicator->SetSteps({"初始化", "暂存", "提交", "完成"});
-    
+
     // Info card for selected object
     infoCard = std::make_unique<InfoCard>(Rectangle{20, 400, 260, 200}, "对象详情");
-    
+
     std::cout << "Level 1 (GUI) initialized at: " << repoPath << std::endl;
 }
 
@@ -78,7 +78,7 @@ void Level01_GUI::CreateSampleFiles() {
         readme << "- 996 福报模式\n";
     }
     readmeCreated = true;
-    
+
     // Create main.cpp
     {
         std::ofstream mainCpp(repoPath + "/main.cpp");
@@ -89,22 +89,22 @@ void Level01_GUI::CreateSampleFiles() {
         mainCpp << "}\n";
     }
     mainCppCreated = true;
-    
+
     std::cout << "Sample files created" << std::endl;
 }
 
 void Level01_GUI::SyncGraphWithRepo() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     std::string head = git->GetHEAD();
     std::cout << "SyncGraphWithRepo: HEAD = " << head << std::endl;
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->Clear();
-    
+
     auto commits = git->GetCommitGraph(50);
     std::cout << "SyncGraphWithRepo: Found " << commits.size() << " commits" << std::endl;
-    
+
     for (const auto& c : commits) {
         GitVis::CommitNode node;
         node.hash = c.hash;
@@ -120,20 +120,20 @@ void Level01_GUI::SyncGraphWithRepo() {
         node.position = {200, 100};
         commitPanel->AddCommit(node);
     }
-    
+
     if (!head.empty()) {
         commitPanel->AddBranch("main", head, {100, 200, 255, 255});
         commitPanel->SetHEAD(head);
         splitView->OnCommitSelected(head);
     }
-    
+
     commitPanel->RecalculateLayout();
     std::cout << "SyncGraphWithRepo: Layout recalculated" << std::endl;
 }
 
 void Level01_GUI::ProcessGitCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
-    
+
     if (cmd == "init" && currentStage == Stage::WAIT_INIT) {
         auto result = git->Init(repoPath);
         if (result.success) {
@@ -145,7 +145,7 @@ void Level01_GUI::ProcessGitCommand(const std::string& cmd) {
             CreateSampleFiles();
             SyncGraphWithRepo();
             splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
-            
+
             // Create initial random files for better visualization
             git->CreateRandomFile();
             git->CreateRandomFile();
@@ -177,12 +177,12 @@ void Level01_GUI::ProcessGitCommand(const std::string& cmd) {
 
 void Level01_GUI::CheckGitStatus() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     auto status = git->GetWorkingDirectoryStatus();
-    
+
     bool hasStaged = false;
     bool hasUntracked = false;
-    
+
     for (const auto& file : status) {
         if (file.status == FileStatus::STAGED) {
             hasStaged = true;
@@ -191,7 +191,7 @@ void Level01_GUI::CheckGitStatus() {
             hasUntracked = true;
         }
     }
-    
+
     if (currentStage == Stage::WAIT_ADD && hasStaged) {
         std::cout << "Files staged, moving to WAIT_COMMIT" << std::endl;
         currentStage = Stage::WAIT_COMMIT;
@@ -201,17 +201,17 @@ void Level01_GUI::CheckGitStatus() {
 
 void Level01_GUI::Update(float deltaTime) {
     timer += deltaTime;
-    
+
     // Update visualization
     if (splitView) {
         splitView->Update(deltaTime);
     }
-    
+
     // Update GUI
     if (gui) {
         gui->Update(deltaTime);
     }
-    
+
     // Update step indicator
     switch (currentStage) {
         case Stage::INTRO: stepIndicator->currentStep = 0; break;
@@ -220,12 +220,12 @@ void Level01_GUI::Update(float deltaTime) {
         case Stage::WAIT_COMMIT: stepIndicator->currentStep = 2; break;
         case Stage::COMPLETE: stepIndicator->currentStep = 3; break;
     }
-    
+
     // Keyboard shortcuts
     if (IsKeyPressed(KEY_SPACE) && currentStage == Stage::INTRO) {
         currentStage = Stage::WAIT_INIT;
     }
-    
+
     // GUI buttons
     if (currentStage == Stage::WAIT_INIT) {
         if (gui->Button("初始化仓库 (git init)", 50, 450, 250, 50)) {
@@ -242,7 +242,7 @@ void Level01_GUI::Update(float deltaTime) {
             ProcessGitCommand("commit");
         }
     }
-    
+
     // Debug keys
     if (git && git->IsRepoOpen()) {
         if (IsKeyPressed(KEY_ONE)) {
@@ -260,7 +260,7 @@ void Level01_GUI::Update(float deltaTime) {
             }
         }
     }
-    
+
     // Check status periodically
     static float checkTimer = 0;
     checkTimer += deltaTime;
@@ -272,37 +272,37 @@ void Level01_GUI::Update(float deltaTime) {
 
 void Level01_GUI::Draw() {
     ClearBackground(gui->GetTheme().background);
-    
+
     // Left panel - Controls and info
     DrawLeftPanel();
-    
+
     // Right panel - Visualization
     DrawRightPanel();
-    
+
     // Bottom bar - Commands
     DrawBottomBar();
 }
 
 void Level01_GUI::DrawLeftPanel() {
     const Theme& theme = gui->GetTheme();
-    
+
     // Panel background
     DrawRectangle(0, 0, 320, 720, theme.panelBg);
     DrawLine(320, 0, 320, 720, theme.panelBorder);
-    
+
     // Title
     gui->Title("Level 1: 周末加班", 20, 20);
     gui->Subtitle("学习 git init/add/commit", 20, 55);
-    
+
     // Step indicator
     stepIndicator->Draw(theme);
-    
+
     // Current stage info
     int y = 180;
     Color panelBgLight = {static_cast<unsigned char>(theme.panelBg.r + 10), static_cast<unsigned char>(theme.panelBg.g + 10), static_cast<unsigned char>(theme.panelBg.b + 10), 255};
     DrawRectangle(20, y, 280, 100, panelBgLight);
     DrawRectangleLines(20, y, 280, 100, theme.panelBorder);
-    
+
     const char* stageDesc = "";
     switch (currentStage) {
         case Stage::INTRO: stageDesc = "准备开始\n按空格键开始游戏"; break;
@@ -312,16 +312,16 @@ void Level01_GUI::DrawLeftPanel() {
         case Stage::COMPLETE: stageDesc = "恭喜！\n关卡完成！"; break;
     }
     DrawChinese(stageDesc, 30, y + 15, 16, theme.textPrimary);
-    
+
     // Action button area (buttons drawn in Update, just draw background here)
     Color panelBgDark = {static_cast<unsigned char>(theme.panelBg.r - 10), static_cast<unsigned char>(theme.panelBg.g - 10), static_cast<unsigned char>(theme.panelBg.b - 10), 255};
     DrawRectangle(20, 440, 280, 70, panelBgDark);
-    
+
     // File status list
     y = 520;
     DrawChinese("工作区文件:", 20, y, 16, theme.textSecondary);
     y += 25;
-    
+
     if (git && git->IsRepoOpen()) {
         auto files = git->GetWorkingDirectoryStatus();
         for (const auto& file : files) {
@@ -333,7 +333,7 @@ void Level01_GUI::DrawLeftPanel() {
                 case FileStatus::STAGED: statusStr = "A"; statusColor = theme.success; break;
                 default: statusStr = ""; statusColor = theme.textSecondary;
             }
-            
+
             DrawText(file.path.c_str(), 30, y, 14, theme.textPrimary);
             DrawText(statusStr, 280, y, 14, statusColor);
             y += 20;
@@ -350,11 +350,11 @@ void Level01_GUI::DrawRightPanel() {
 
 void Level01_GUI::DrawBottomBar() {
     const Theme& theme = gui->GetTheme();
-    
+
     // Bottom bar background
     DrawRectangle(0, 650, 1280, 70, theme.panelBg);
     DrawLine(0, 650, 1280, 650, theme.panelBorder);
-    
+
     // Current command info
     int x = 340;
     if (currentStage == Stage::WAIT_INIT) {
@@ -372,7 +372,7 @@ void Level01_GUI::DrawBottomBar() {
     else if (currentStage == Stage::COMPLETE) {
         DrawChinese("[完成] 关卡完成！", x, 665, 20, theme.success);
     }
-    
+
     // Keyboard hints
     DrawChinese("[1] 随机文件  [2] 随机目录  [ESC] 暂停", 900, 675, 14, theme.textSecondary);
 }
@@ -383,7 +383,7 @@ void Level01_GUI::Shutdown() {
     gui.reset();
     stepIndicator.reset();
     infoCard.reset();
-    
+
     try {
         fs::remove_all(repoPath);
     } catch (...) {}

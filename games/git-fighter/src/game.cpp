@@ -87,7 +87,7 @@ GitGame::~GitGame() = default;
 bool GitGame::Initialize() {
     // Clean up any leftover temp directories from previous runs
     CleanupTempDirectories();
-    
+
     // Create resizable window
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE);
@@ -102,27 +102,27 @@ bool GitGame::Initialize() {
 
     // Initialize Git Console
     gitConsole.Initialize(100, 100, 800, 300);
-    
+
     // Set font for Chinese text rendering
     gitConsole.SetFont(&levelManager->GetFont());
-    
+
     // Setup command callback to forward to current level
     gitConsole.SetCommandCallback([this](const std::string& cmd) {
         if (auto* level = levelManager->GetCurrentLevel()) {
             std::string result;
-            
+
             // Check if it's a compound command (contains && or ;)
-            bool isCompoundCommand = (cmd.find("&&") != std::string::npos || 
+            bool isCompoundCommand = (cmd.find("&&") != std::string::npos ||
                                      cmd.find(";") != std::string::npos ||
                                      cmd.find("|") != std::string::npos);
-            
+
             // Check if it's a pure shell command (no git prefix, common shell commands)
-            bool isPureShellCommand = (cmd.rfind("git ", 0) != 0) && 
-                                      (cmd.find("ls") == 0 || cmd.find("cat") == 0 || 
+            bool isPureShellCommand = (cmd.rfind("git ", 0) != 0) &&
+                                      (cmd.find("ls") == 0 || cmd.find("cat") == 0 ||
                                        cmd.find("echo") == 0 || cmd.find("pwd") == 0 ||
                                        cmd.find("mkdir") == 0 || cmd.find("touch") == 0 ||
                                        cmd.find("rm") == 0 || cmd.find("cd") == 0);
-            
+
             if (isCompoundCommand || isPureShellCommand) {
                 // Compound commands (&&, |, ;) and pure shell commands: execute through level's shell fallback
                 // This ensures all levels can use compound commands and pipes
@@ -135,7 +135,7 @@ bool GitGame::Initialize() {
                 }
                 result = level->ExecuteGitCommand(actualCmd);
             }
-            
+
             // Add result to console output
             if (!result.empty()) {
                 std::string line;
@@ -162,7 +162,7 @@ bool GitGame::Initialize() {
         std::cerr << "Failed to initialize level manager" << std::endl;
         return false;
     }
-    
+
     // Setup command history callback from level manager to game
     levelManager->SetCommandHistoryCallback([this](const std::string& cmd) {
         this->AddGitCommand(cmd);
@@ -218,7 +218,7 @@ void GitGame::Update(float deltaTime) {
         case GameState::PLAYING:
             // Update git console first (handles TAB toggle)
             gitConsole.Update(deltaTime);
-            
+
             // Only update level if console is not visible (to avoid interference)
             if (!gitConsole.IsVisible()) {
                 levelManager->Update(deltaTime);
@@ -229,19 +229,19 @@ void GitGame::Update(float deltaTime) {
                 levelCompleteShown = true;
                 std::cout << "Level " << currentLevel << " complete! Click NEXT to continue." << std::endl;
             }
-            
+
             // Handle Next button click
             if (levelCompleteShown && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 Vector2 mousePos = GetMousePosition();
                 int windowWidth = GetScreenWidth();
-                
+
                 Rectangle nextButton = {
                     (float)(windowWidth/2 - 150),
                     10,
                     300,
                     50
                 };
-                
+
                 if (CheckCollisionPointRec(mousePos, nextButton)) {
                     levelCompleteShown = false;
                     LoadLevel(currentLevel + 1);
@@ -274,11 +274,11 @@ void GitGame::Update(float deltaTime) {
 
 void GitGame::Draw() {
     BeginDrawing();
-    
+
     // Get actual window size
     int windowWidth = GetScreenWidth();
     int windowHeight = GetScreenHeight();
-    
+
     // Fill entire window with background color
     ClearBackground((Color){30, 30, 40, 255});
 
@@ -290,10 +290,10 @@ void GitGame::Draw() {
         case GameState::PLAYING:
             levelManager->Draw();
             DrawHUD();
-            
+
             // Draw Git Console
             gitConsole.Draw();
-            
+
             // Draw Next button when level is complete
             if (levelCompleteShown) {
                 // Semi-transparent overlay at top
@@ -371,7 +371,7 @@ void GitGame::DrawMenu() {
 void GitGame::DrawHUD() {
     int windowWidth = GetScreenWidth();
     int windowHeight = GetScreenHeight();
-    
+
     // Draw Git command log on the right side
     if (showCommandLog) {
         DrawGitCommandLog();
@@ -385,7 +385,7 @@ void GitGame::DrawHUD() {
 
 void GitGame::AddGitCommand(const std::string& cmd) {
     if (cmd.empty()) return;
-    
+
     // Avoid duplicate "git" prefix
     std::string formatted;
     if (cmd.rfind("git ", 0) == 0) {
@@ -394,7 +394,7 @@ void GitGame::AddGitCommand(const std::string& cmd) {
         formatted = "$ git " + cmd;
     }
     commandHistory.push_front(formatted);
-    
+
     // Keep only the last N commands
     while (commandHistory.size() > MAX_COMMAND_HISTORY) {
         commandHistory.pop_back();
@@ -407,14 +407,14 @@ void GitGame::DrawGitCommandLog() {
     int logY = 150;
     int logW = 300;
     int logH = 200;
-    
+
     // Background
     DrawRectangle(logX, logY, logW, logH, (Color){25, 30, 40, 220});
     DrawRectangleLines(logX, logY, logW, logH, (Color){80, 120, 160, 255});
-    
+
     // Title
     DrawText("Git Command History", logX + 10, logY + 8, 16, (Color){100, 200, 255, 255});
-    
+
     // Commands
     int y = logY + 35;
     for (const auto& cmd : commandHistory) {
@@ -426,7 +426,7 @@ void GitGame::DrawGitCommandLog() {
         DrawText(display.c_str(), logX + 10, y, 13, (Color){200, 200, 200, 255});
         y += 20;
     }
-    
+
     if (commandHistory.empty()) {
         DrawText("No commands yet...", logX + 10, y + 20, 13, (Color){100, 100, 120, 255});
     }
