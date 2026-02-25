@@ -595,7 +595,8 @@ std::string Level01_RealGit::ExecuteGitCommand(const std::string& cmd) {
     if (cmd.find(" ") == std::string::npos ||
         cmd.find("init") == 0 || cmd.find("add") == 0 || cmd.find("commit") == 0 ||
         cmd.find("status") == 0 || cmd.find("branch") == 0 || cmd.find("checkout") == 0 ||
-        cmd.find("merge") == 0 || cmd.find("log") == 0 || cmd.find("reset") == 0) {
+        cmd.find("merge") == 0 || cmd.find("log") == 0 || cmd.find("reset") == 0 ||
+        cmd.find("rebase") == 0 || cmd.find("cherry-pick") == 0 || cmd.find("stash") == 0) {
         // Simple git command - add git prefix
         fullCmd = "cd " + repoPath + " && git " + cmd + " 2>&1";
     } else {

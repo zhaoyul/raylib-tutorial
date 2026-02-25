@@ -21,9 +21,9 @@ Level::Level(int id, const std::string& name, const std::string& desc)
 void Level::HandleDevToolKeys() {
     GitWrapper* git = GetGitWrapper();
     if (!git || !git->IsRepoOpen() || repoPath.empty()) return;
-    
+
     bool fileChanged = false;
-    
+
     if (IsKeyPressed(KEY_ONE)) {
         // 1: 创建随机文件
         std::string filename = git->GenerateRandomFilename();
@@ -53,7 +53,7 @@ void Level::HandleDevToolKeys() {
             }
         }
     }
-    
+
     // Refresh view if files changed
     if (fileChanged) {
         RefreshWorkingDirectory();
@@ -63,12 +63,12 @@ void Level::HandleDevToolKeys() {
 // Shared implementation of ExecuteGitCommand for all levels
 std::string Level::ExecuteGitCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
-    
+
     GitWrapper* git = GetGitWrapper();
     if (!git) {
         return "Error: Git not initialized";
     }
-    
+
     // First, try level-specific command handling (for game progression)
     std::string levelResult = ProcessLevelCommand(cmd);
     if (!levelResult.empty()) {
@@ -77,7 +77,7 @@ std::string Level::ExecuteGitCommand(const std::string& cmd) {
         RefreshWorkingDirectory();
         return levelResult;
     }
-    
+
     // If level didn't handle it, parse and execute basic git commands
     // Use repoPath for operations that need path
     if (cmd == "init") {
@@ -171,31 +171,79 @@ std::string Level::ExecuteGitCommand(const std::string& cmd) {
         }
         return "Usage: reset --hard <target>";
     }
-    
+    else if (cmd.rfind("rebase", 0) == 0) {
+        // Use system git for rebase (interactive rebase, continue, abort, etc.)
+        // Get repo path from GitWrapper if repoPath member is empty
+        std::string targetPath = repoPath;
+        if (targetPath.empty() && git->IsRepoOpen()) {
+            targetPath = git->GetRepoPath();
+        }
+        if (targetPath.empty()) {
+            targetPath = ".";
+        }
+
+        std::string fullCmd = "cd " + targetPath + " && git " + cmd + " 2>&1";
+
+        FILE* pipe = popen(fullCmd.c_str(), "r");
+        if (!pipe) {
+            return "Error: Failed to execute rebase command";
+        }
+
+        std::string result;
+        char buffer[4096];
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            result += buffer;
+        }
+
+        int exitCode = pclose(pipe);
+
+        // Always refresh after rebase as it modifies commit history
+        SyncGraphWithRepo();
+        RefreshWorkingDirectory();
+
+        // Trim trailing newline
+        while (!result.empty() && (result.back() == '\n' || result.back() == '\r')) {
+            result.pop_back();
+        }
+
+        if (result.empty()) {
+            return (exitCode == 0) ? "Rebase completed" : "Rebase failed";
+        }
+        return result;
+    }
+
     // Fallback: Execute any other git command using system git
     // This allows all levels to support all git commands (log, diff, stash, rebase, etc.)
-    std::string fullCmd = "cd " + repoPath + " && git " + cmd + " 2>&1";
-    
+    // Get repo path from GitWrapper if repoPath member is empty
+    std::string targetPath = repoPath;
+    if (targetPath.empty() && git->IsRepoOpen()) {
+        targetPath = git->GetRepoPath();
+    }
+    if (targetPath.empty()) {
+        targetPath = ".";
+    }
+    std::string fullCmd = "cd " + targetPath + " && git " + cmd + " 2>&1";
+
     FILE* pipe = popen(fullCmd.c_str(), "r");
     if (!pipe) {
         return "Error: Failed to execute command";
     }
-    
+
     std::string result;
     char buffer[4096];
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
         result += buffer;
     }
-    
+
     int exitCode = pclose(pipe);
-    
+
     // Refresh UI after any git command that might modify state
     // Commands that modify state typically include: commit, merge, rebase, cherry-pick, revert, etc.
     static const std::set<std::string> modifyingCommands = {
-        "commit", "merge", "rebase", "cherry-pick", "cherry", "revert", "stash", 
+        "commit", "merge", "rebase", "cherry-pick", "cherry", "revert", "stash",
         "rm", "mv", "clean", "pull", "fetch", "push", "apply", "am"
     };
-    
+
     // Check if command starts with any modifying command
     bool shouldRefresh = false;
     for (const auto& modCmd : modifyingCommands) {
@@ -204,22 +252,22 @@ std::string Level::ExecuteGitCommand(const std::string& cmd) {
             break;
         }
     }
-    
+
     if (shouldRefresh) {
         SyncGraphWithRepo();
         RefreshWorkingDirectory();
     }
-    
+
     // Return output or error message
     if (result.empty()) {
         return (exitCode == 0) ? "Command executed successfully" : "Command failed";
     }
-    
+
     // Trim trailing newline
     while (!result.empty() && (result.back() == '\n' || result.back() == '\r')) {
         result.pop_back();
     }
-    
+
     return result;
 }
 
@@ -227,7 +275,7 @@ std::string Level::ExecuteGitCommand(const std::string& cmd) {
 // This works for all levels including Level 1
 std::string Level::ExecuteShellCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
-    
+
     // Handle special case for Level 1 when repo is not yet initialized
     std::string targetPath = repoPath;
     if (targetPath.empty()) {
@@ -237,42 +285,42 @@ std::string Level::ExecuteShellCommand(const std::string& cmd) {
             targetPath = git->GetRepoPath();
         }
     }
-    
+
     // Default to current directory if no repo path available
     if (targetPath.empty()) {
         targetPath = ".";
     }
-    
+
     // Execute command in shell
     std::string fullCmd = "cd " + targetPath + " && " + cmd + " 2>&1";
-    
+
     FILE* pipe = popen(fullCmd.c_str(), "r");
     if (!pipe) {
         return "Error: Failed to execute command";
     }
-    
+
     std::string result;
     char buffer[4096];
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
         result += buffer;
     }
-    
+
     int exitCode = pclose(pipe);
-    
+
     // Always refresh UI after compound commands since they likely modify state
     SyncGraphWithRepo();
     RefreshWorkingDirectory();
-    
+
     // Return output or error message
     if (result.empty()) {
         return (exitCode == 0) ? "Command executed successfully" : "Command failed";
     }
-    
+
     // Trim trailing newline
     while (!result.empty() && (result.back() == '\n' || result.back() == '\r')) {
         result.pop_back();
     }
-    
+
     return result;
 }
 
@@ -288,47 +336,47 @@ LevelManager::~LevelManager() {
 
 bool LevelManager::Initialize() {
     git = std::make_unique<GitWrapper>();
-    
+
     // Load Chinese font
     font.Load();
-    
+
     // Register all levels - store them in a separate registry
     auto level1 = std::make_unique<Level01_RealGit>();
     levels.push_back(std::move(level1));
-    
+
     auto level2 = std::make_unique<Level02_Branch>();
     levels.push_back(std::move(level2));
-    
+
     auto level3 = std::make_unique<Level03_Merge>();
     levels.push_back(std::move(level3));
-    
+
     auto level4 = std::make_unique<Level04_Remote>();
     levels.push_back(std::move(level4));
-    
+
     // Level 5: Rebase 变基危机
     auto level5 = std::make_unique<Level05_Rebase>();
     levels.push_back(std::move(level5));
-    
+
     // Level 6: Cherry-pick 紧急修复
     auto level6 = std::make_unique<Level06_CherryPick>();
     levels.push_back(std::move(level6));
-    
+
     // Level 7: Bisect 故障定位
     auto level7 = std::make_unique<Level07_Bisect>();
     levels.push_back(std::move(level7));
-    
+
     // Level 8: Reflog 时光回溯
     auto level8 = std::make_unique<Level08_Reflog>();
     levels.push_back(std::move(level8));
-    
+
     // Level 9: Interactive Rebase 历史重写
     auto level9 = std::make_unique<Level09_Interactive>();
     levels.push_back(std::move(level9));
-    
+
     // Level 10: Stash 战场
     auto level10 = std::make_unique<Level10_Stash>();
     levels.push_back(std::move(level10));
-    
+
     return true;
 }
 
@@ -340,22 +388,22 @@ void LevelManager::LoadLevel(int levelId) {
     // Find level by ID
     auto it = std::find_if(levels.begin(), levels.end(),
         [levelId](const auto& level) { return level->GetId() == levelId; });
-    
+
     if (it != levels.end()) {
         UnloadCurrentLevel();
         // Move ownership to currentLevel
         currentLevel = std::move(*it);
         // Remove from available levels
         levels.erase(it);
-        
+
         // Set font for level
         currentLevel->SetFont(&font);
-        
+
         // Set command history callback
         currentLevel->onGitCommand = [this](const std::string& cmd) {
             this->RecordCommand(cmd);
         };
-        
+
         currentLevel->Initialize();
         std::cout << "Loaded Level " << levelId << ": " << currentLevel->GetName() << std::endl;
     }
