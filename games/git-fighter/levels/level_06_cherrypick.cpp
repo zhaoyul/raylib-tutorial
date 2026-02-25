@@ -26,24 +26,24 @@ void Level06_CherryPick::Initialize() {
     availableFixes.clear();
     selectedFixes.clear();
     pickedFixes.clear();
-    
+
     repoPath = "/tmp/gitfighter_level6_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
-    
+
     git = std::make_unique<GitWrapper>();
-    
+
     splitView = std::make_unique<GitVis::SplitGitView>();
     splitView->Initialize(320, 100, 940, 520);
     splitView->SetSplitRatio(0.5f);
     splitView->SetGitWrapper(git.get());
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         hoveredCommit = node.hash;
         splitView->OnCommitSelected(node.hash);
     };
     splitView->SetRepoPath(repoPath);
-    
+
     CreateProductionScenario();
     std::cout << "Level 6 initialized at: " << repoPath << std::endl;
 }
@@ -51,7 +51,7 @@ void Level06_CherryPick::Initialize() {
 void Level06_CherryPick::CreateProductionScenario() {
     git->Init(repoPath);
     git->OpenRepo(repoPath);
-    
+
     // 模拟 release 分支 - 稳定的生产版本
     {
         std::ofstream f(repoPath + "/server.cpp");
@@ -63,11 +63,11 @@ void Level06_CherryPick::CreateProductionScenario() {
     }
     git->Add(".");
     git->Commit("Release v1.0");
-    
+
     // 创建 dev 分支继续开发
     git->CreateBranch("dev");
     git->Checkout("dev");
-    
+
     // Dev commit 1: 新功能（不需要到 release）
     {
         std::ofstream f(repoPath + "/feature.cpp");
@@ -75,7 +75,7 @@ void Level06_CherryPick::CreateProductionScenario() {
     }
     git->Add(".");
     git->Commit("Add experimental feature");
-    
+
     // Dev commit 2: Bug 修复 1（需要 cherry-pick！）
     {
         std::ofstream f(repoPath + "/server.cpp");
@@ -88,7 +88,7 @@ void Level06_CherryPick::CreateProductionScenario() {
     }
     git->Add(".");
     git->Commit("CRITICAL: Fix memory leak in server");
-    
+
     // Dev commit 3: 更多功能
     {
         std::ofstream f(repoPath + "/api.cpp");
@@ -96,7 +96,7 @@ void Level06_CherryPick::CreateProductionScenario() {
     }
     git->Add(".");
     git->Commit("Add API module");
-    
+
     // Dev commit 4: Bug 修复 2（也需要 cherry-pick！）
     {
         std::ofstream f(repoPath + "/server.cpp");
@@ -111,7 +111,7 @@ void Level06_CherryPick::CreateProductionScenario() {
     }
     git->Add(".");
     git->Commit("CRITICAL: Add timeout to prevent hanging");
-    
+
     // Dev commit 5: 重构（不需要到 release）
     {
         std::ofstream f(repoPath + "/utils.cpp");
@@ -119,10 +119,10 @@ void Level06_CherryPick::CreateProductionScenario() {
     }
     git->Add(".");
     git->Commit("Refactor utilities");
-    
+
     // 回到 release 分支
     git->Checkout("main");
-    
+
     // 收集可用的修复 commits
     auto commits = git->GetCommitGraph(20);
     for (const auto& c : commits) {
@@ -132,17 +132,17 @@ void Level06_CherryPick::CreateProductionScenario() {
             availableFixes.push_back(c.hash);
         }
     }
-    
+
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
 }
 
 void Level06_CherryPick::SyncGraphWithRepo() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->Clear();
-    
+
     auto commits = git->GetCommitGraph(50);
     for (const auto& c : commits) {
         GitVis::CommitNode node;
@@ -161,7 +161,7 @@ void Level06_CherryPick::SyncGraphWithRepo() {
         }
         commitPanel->AddCommit(node);
     }
-    
+
     std::set<std::string> addedBranches;
     Color branchColors[] = {
         {100, 200, 255, 255},   // main - blue
@@ -169,7 +169,7 @@ void Level06_CherryPick::SyncGraphWithRepo() {
         {100, 255, 150, 255},   // feature
     };
     int colorIndex = 0;
-    
+
     for (const auto& c : commits) {
         for (const auto& branchName : c.branches) {
             if (addedBranches.insert(branchName).second) {
@@ -179,13 +179,13 @@ void Level06_CherryPick::SyncGraphWithRepo() {
             }
         }
     }
-    
+
     std::string head = git->GetHEAD();
     if (!head.empty()) commitPanel->SetHEAD(head);
-    
+
     std::string currentBranch = git->GetCurrentBranch();
     if (!currentBranch.empty()) commitPanel->SetCurrentBranch(currentBranch);
-    
+
     commitPanel->RecalculateLayout();
 }
 
@@ -196,7 +196,7 @@ std::string Level06_CherryPick::ProcessLevelCommand(const std::string& cmd) {
         if (!hash.empty()) {
             selectedFixes.push_back(hash);
             currentStage = Stage::PICKING;
-            
+
             auto result = git->CherryPick(hash);
             if (result.success) {
                 pickedFixes.push_back(hash);
@@ -224,14 +224,14 @@ std::string Level06_CherryPick::ProcessLevelCommand(const std::string& cmd) {
 
 void Level06_CherryPick::Update(float deltaTime) {
     timer += deltaTime;
-    
+
     if (splitView) {
         int screenWidth = GetScreenWidth();
         int screenHeight = GetScreenHeight();
         splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
-    
+
     if (IsKeyPressed(KEY_SPACE)) {
         switch (currentStage) {
             case Stage::INTRO:
@@ -248,11 +248,11 @@ void Level06_CherryPick::Update(float deltaTime) {
                 break;
         }
     }
-    
+
     if (IsKeyPressed(KEY_C) && currentStage == Stage::SHOW_COMMITS) {
         currentStage = Stage::SELECT_COMMITS;
     }
-    
+
     // 数字键选择 commits
     if (currentStage == Stage::SELECT_COMMITS) {
         if (IsKeyPressed(KEY_ONE) && availableFixes.size() > 0) {
@@ -262,15 +262,15 @@ void Level06_CherryPick::Update(float deltaTime) {
             ProcessLevelCommand("cherry-pick " + availableFixes[1]);
         }
     }
-    
+
     if (IsKeyPressed(KEY_F) && currentStage == Stage::HANDLE_CONFLICT) {
         ProcessLevelCommand("resolve");
     }
-    
+
     if (IsKeyPressed(KEY_ENTER) && currentStage == Stage::PICKING) {
         ProcessLevelCommand("done");
     }
-    
+
     // Dev tools (1/2/3 keys)
     HandleDevToolKeys();
 }
@@ -288,13 +288,13 @@ void Level06_CherryPick::Draw() {
 void Level06_CherryPick::DrawStatusPanel() {
     DrawRectangle(0, 0, 300, 720, {40, 44, 52, 255});
     DrawRectangleLines(0, 0, 300, 720, {100, 150, 200, 255});
-    
+
     DrawChinese("Level 6: 紧急修复", 20, 20, 28, WHITE);
     DrawChinese("cherry-pick 精准修复", 20, 55, 18, LIGHTGRAY);
     DrawText("6 / 10", 250, 30, 16, {100, 200, 255, 255});
-    
+
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
-    
+
     const char* stageText = "";
     Color stageColor = YELLOW;
     switch (currentStage) {
@@ -307,18 +307,18 @@ void Level06_CherryPick::DrawStatusPanel() {
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
     DrawText(stageText, 20, 130, 18, stageColor);
-    
+
     // 进度
     if (currentStage == Stage::PICKING || currentStage == Stage::VERIFY_FIX) {
         DrawRectangle(10, 170, 280, 120, {40, 60, 40, 255});
         DrawChinese("修复进度:", 20, 180, 18, WHITE);
         DrawText(("已应用: " + std::to_string(pickedFixes.size())).c_str(), 20, 210, 16, GREEN);
-        
+
         for (size_t i = 0; i < pickedFixes.size() && i < 3; i++) {
             DrawText(("[OK] " + pickedFixes[i].substr(0, 7)).c_str(), 20, 235 + i*20, 14, {100, 255, 100, 255});
         }
     }
-    
+
     // 提示
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
@@ -336,29 +336,29 @@ void Level06_CherryPick::DrawCommitSelector() {
     int panelY = 100;
     int panelW = 430;
     int panelH = 400;
-    
+
     DrawRectangle(panelX, panelY, panelW, panelH, {20, 25, 35, 240});
     DrawRectangleLines(panelX, panelY, panelW, panelH, {100, 200, 255, 255});
-    
+
     DrawChinese("可选的修复提交:", panelX + 10, panelY + 10, 20, {100, 200, 255, 255});
-    
+
     int y = panelY + 50;
     for (size_t i = 0; i < availableFixes.size() && y < panelY + panelH - 60; i++) {
         bool isPicked = std::find(pickedFixes.begin(), pickedFixes.end(), availableFixes[i]) != pickedFixes.end();
-        
+
         Color bgColor = isPicked ? Color{40, 80, 40, 200} : Color{60, 60, 40, 200};
         DrawRectangle(panelX + 10, y, panelW - 20, 50, bgColor);
-        
+
         std::string label = "[" + std::to_string(i + 1) + "] " + availableFixes[i].substr(0, 7);
         DrawText(label.c_str(), panelX + 20, y + 8, 16, isPicked ? GREEN : YELLOW);
-        
+
         if (isPicked) {
             DrawChinese("[已应用]", panelX + panelW - 100, y + 15, 14, GREEN);
         }
-        
+
         y += 60;
     }
-    
+
     DrawRectangle(panelX, panelY + panelH - 50, panelW, 50, {30, 35, 45, 255});
     DrawChinese("按数字键选择要应用的修复", panelX + 20, panelY + panelH - 35, 16, LIGHTGRAY);
 }
@@ -408,5 +408,3 @@ void Level06_CherryPick::Shutdown() {
 bool Level06_CherryPick::IsComplete() const {
     return stageComplete;
 }
-
-

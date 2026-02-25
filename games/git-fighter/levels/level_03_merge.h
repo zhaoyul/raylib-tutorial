@@ -10,18 +10,18 @@ class Level03_Merge : public Level {
 public:
     Level03_Merge();
     ~Level03_Merge();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
-    
+
     GitWrapper* GetGitWrapper() override { return git.get(); }
     std::string ProcessLevelCommand(const std::string& cmd) override;
     void RefreshWorkingDirectory() override;
-    
+
 private:
     enum class Stage {
         INTRO,              // 介绍合并冲突
@@ -31,22 +31,22 @@ private:
         COMMIT_RESOLUTION,  // 提交解决方案
         COMPLETE            // 完成
     };
-    
+
     Stage currentStage;
     float timer;
     bool stageComplete;
-    
+
     // Git 相关
     std::unique_ptr<GitWrapper> git;
-    
+
     // 可视化
     std::unique_ptr<GitVis::SplitGitView> splitView;
-    
+
     // 合并状态
     bool conflictCreated;
     bool mergeAttempted;
     bool conflictResolved;
-    
+
     // 方法
     void CreateRepoWithConflict();
     void SyncGraphWithRepo();

@@ -11,18 +11,18 @@ class Level10_Stash : public Level {
 public:
     Level10_Stash();
     ~Level10_Stash();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
-    
+
     GitWrapper* GetGitWrapper() override { return git.get(); }
     std::string ProcessLevelCommand(const std::string& cmd) override;
     void RefreshWorkingDirectory() override;
-    
+
 private:
     enum class Stage {
         INTRO,              // 介绍场景
@@ -34,31 +34,31 @@ private:
         POP_STASH,          // 恢复之前的工作
         COMPLETE            // 完成
     };
-    
+
     Stage currentStage;
     float timer;
     bool stageComplete;
-    
+
     std::unique_ptr<GitWrapper> git;
     std::unique_ptr<GitVis::SplitGitView> splitView;
-    
+
     // Stash 状态
     bool hasStash;
     std::string stashMessage;
     int stashCount;
-    
+
     // 文件状态
     bool hasUncommittedChanges;
     bool hasFeatureFile;
     bool hasEmergencyFix;
-    
+
     void SetupRepo();
     void SyncGraphWithRepo();
 
     void DrawStatusPanel();
     void DrawDialogueIfNeeded();
     void DrawStashPanel();
-    
+
     void CreateStash();
     void PopStash();
     void SwitchToEmergency();

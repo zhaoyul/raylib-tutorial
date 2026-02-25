@@ -30,23 +30,23 @@ void Level05_Rebase::Initialize() {
     conflictResolved = false;
     resolvedCount = 0;
     rebaseProgress = 0;
-    
+
     repoPath = "/tmp/gitfighter_level5_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
-    
+
     git = std::make_unique<GitWrapper>();
-    
+
     splitView = std::make_unique<GitVis::SplitGitView>();
     splitView->Initialize(320, 100, 940, 520);
     splitView->SetSplitRatio(0.5f);
     splitView->SetGitWrapper(git.get());
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
     splitView->SetRepoPath(repoPath);
-    
+
     CreateRebaseScenario();
     std::cout << "Level 5 initialized at: " << repoPath << std::endl;
 }
@@ -54,7 +54,7 @@ void Level05_Rebase::Initialize() {
 void Level05_Rebase::CreateRebaseScenario() {
     git->Init(repoPath);
     git->OpenRepo(repoPath);
-    
+
     // Main 分支提交 1: 基础
     {
         std::ofstream f(repoPath + "/app.cpp");
@@ -62,7 +62,7 @@ void Level05_Rebase::CreateRebaseScenario() {
     }
     git->Add(".");
     git->Commit("Initial app");
-    
+
     // Main 分支提交 2: 添加配置
     {
         std::ofstream f(repoPath + "/config.cpp");
@@ -70,7 +70,7 @@ void Level05_Rebase::CreateRebaseScenario() {
     }
     git->Add(".");
     git->Commit("Add config module");
-    
+
     // Main 分支提交 3: 配置更新（分叉点）
     {
         std::ofstream f(repoPath + "/config.cpp");
@@ -78,7 +78,7 @@ void Level05_Rebase::CreateRebaseScenario() {
     }
     git->Add(".");
     git->Commit("Update config with retries");
-    
+
     // 关键：在分叉点前，main 先做一个提交
     {
         std::ofstream f(repoPath + "/main.cpp");
@@ -86,11 +86,11 @@ void Level05_Rebase::CreateRebaseScenario() {
     }
     git->Add(".");
     git->Commit("Add main.cpp");
-    
+
     // 现在创建 feature 分支（从分叉点）
     git->CreateBranch("feature");
     git->Checkout("feature");
-    
+
     // Feature 提交 1: 修改 config（制造冲突）
     {
         std::ofstream f(repoPath + "/config.cpp");
@@ -98,7 +98,7 @@ void Level05_Rebase::CreateRebaseScenario() {
     }
     git->Add(".");
     git->Commit("Feature: adjust timeout and add debug");
-    
+
     // Feature 提交 2: 添加新功能
     {
         std::ofstream f(repoPath + "/feature.cpp");
@@ -106,7 +106,7 @@ void Level05_Rebase::CreateRebaseScenario() {
     }
     git->Add(".");
     git->Commit("Add new feature module");
-    
+
     // 回到 master 继续开发（形成分叉）
     git->Checkout("master");
     {
@@ -115,17 +115,17 @@ void Level05_Rebase::CreateRebaseScenario() {
     }
     git->Add(".");
     git->Commit("Add utils on master");
-    
+
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
 }
 
 void Level05_Rebase::SyncGraphWithRepo() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->Clear();
-    
+
     auto commits = git->GetCommitGraph(50);
     for (const auto& c : commits) {
         GitVis::CommitNode node;
@@ -144,7 +144,7 @@ void Level05_Rebase::SyncGraphWithRepo() {
         }
         commitPanel->AddCommit(node);
     }
-    
+
     std::set<std::string> addedBranches;
     Color branchColors[] = {
         {100, 200, 255, 255},   // main - blue
@@ -152,7 +152,7 @@ void Level05_Rebase::SyncGraphWithRepo() {
         {100, 255, 150, 255},
     };
     int colorIndex = 0;
-    
+
     for (const auto& c : commits) {
         for (const auto& branchName : c.branches) {
             if (addedBranches.insert(branchName).second) {
@@ -162,13 +162,13 @@ void Level05_Rebase::SyncGraphWithRepo() {
             }
         }
     }
-    
+
     std::string head = git->GetHEAD();
     if (!head.empty()) commitPanel->SetHEAD(head);
-    
+
     std::string currentBranch = git->GetCurrentBranch();
     if (!currentBranch.empty()) commitPanel->SetCurrentBranch(currentBranch);
-    
+
     commitPanel->RecalculateLayout();
 }
 
@@ -216,14 +216,14 @@ std::string Level05_Rebase::ProcessLevelCommand(const std::string& cmd) {
 
 void Level05_Rebase::Update(float deltaTime) {
     timer += deltaTime;
-    
+
     if (splitView) {
         int screenWidth = GetScreenWidth();
         int screenHeight = GetScreenHeight();
         splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
-    
+
     if (IsKeyPressed(KEY_SPACE)) {
         switch (currentStage) {
             case Stage::INTRO:
@@ -240,24 +240,24 @@ void Level05_Rebase::Update(float deltaTime) {
                 break;
         }
     }
-    
+
     if (IsKeyPressed(KEY_R) && currentStage == Stage::SHOW_BRANCHES) {
         ProcessLevelCommand("rebase main");
         currentStage = Stage::START_REBASE;
     }
-    
+
     if (IsKeyPressed(KEY_C) && currentStage == Stage::START_REBASE) {
         currentStage = Stage::REBASE_CONFLICT;
     }
-    
+
     if (IsKeyPressed(KEY_F) && currentStage == Stage::REBASE_CONFLICT) {
         ProcessLevelCommand("resolve");
     }
-    
+
     if (IsKeyPressed(KEY_ENTER) && currentStage == Stage::CONTINUE_REBASE) {
         ProcessLevelCommand("rebase --continue");
     }
-    
+
     // Dev tools (1/2/3 keys)
     HandleDevToolKeys();
 }
@@ -272,13 +272,13 @@ void Level05_Rebase::Draw() {
 void Level05_Rebase::DrawStatusPanel() {
     DrawRectangle(0, 0, 300, 720, {40, 44, 52, 255});
     DrawRectangleLines(0, 0, 300, 720, {100, 150, 200, 255});
-    
+
     DrawChinese("Level 5: 变基危机", 20, 20, 28, WHITE);
     DrawChinese("学习 rebase", 20, 55, 18, LIGHTGRAY);
     DrawText("5 / 10", 250, 30, 16, {100, 200, 255, 255});
-    
+
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
-    
+
     const char* stageText = "";
     Color stageColor = YELLOW;
     switch (currentStage) {
@@ -292,20 +292,20 @@ void Level05_Rebase::DrawStatusPanel() {
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
     DrawText(stageText, 20, 130, 18, stageColor);
-    
+
     // 冲突进度
     if (currentStage == Stage::REBASE_CONFLICT || currentStage == Stage::CONTINUE_REBASE) {
         DrawRectangle(10, 170, 280, 100, {60, 40, 40, 255});
         DrawChinese("冲突解决进度:", 20, 180, 18, WHITE);
-        DrawText(("已解决: " + std::to_string(resolvedCount) + "/" + std::to_string(conflictCount)).c_str(), 
+        DrawText(("已解决: " + std::to_string(resolvedCount) + "/" + std::to_string(conflictCount)).c_str(),
                  20, 210, 16, YELLOW);
-        
+
         // 进度条
         float progress = (float)resolvedCount / conflictCount;
         DrawRectangle(20, 240, 260 * progress, 20, GREEN);
         DrawRectangleLines(20, 240, 260, 20, WHITE);
     }
-    
+
     // 说明
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
@@ -364,5 +364,3 @@ void Level05_Rebase::Shutdown() {
 bool Level05_Rebase::IsComplete() const {
     return stageComplete;
 }
-
-

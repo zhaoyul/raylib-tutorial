@@ -30,23 +30,23 @@ void Level10_Stash::Initialize() {
     hasFeatureFile = false;
     hasEmergencyFix = false;
     stashMessage = "";
-    
+
     repoPath = "/tmp/gitfighter_level10_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
-    
+
     git = std::make_unique<GitWrapper>();
-    
+
     splitView = std::make_unique<GitVis::SplitGitView>();
     splitView->Initialize(320, 100, 940, 520);
     splitView->SetSplitRatio(0.5f);
     splitView->SetGitWrapper(git.get());
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
     splitView->SetRepoPath(repoPath);
-    
+
     SetupRepo();
     std::cout << "Level 10 initialized at: " << repoPath << std::endl;
 }
@@ -54,7 +54,7 @@ void Level10_Stash::Initialize() {
 void Level10_Stash::SetupRepo() {
     git->Init(repoPath);
     git->OpenRepo(repoPath);
-    
+
     // 基础提交
     {
         std::ofstream f(repoPath + "/main.cpp");
@@ -62,11 +62,11 @@ void Level10_Stash::SetupRepo() {
     }
     git->Add(".");
     git->Commit("Initial version");
-    
+
     // 创建 feature 分支
     git->CreateBranch("feature-login");
     git->Checkout("feature-login");
-    
+
     // 开始开发功能（未提交）
     {
         std::ofstream f(repoPath + "/login.cpp");
@@ -74,22 +74,22 @@ void Level10_Stash::SetupRepo() {
     }
     hasUncommittedChanges = true;
     hasFeatureFile = true;
-    
+
     // 创建 hotfix 分支
     git->Checkout("main");
     git->CreateBranch("hotfix-security");
     git->Checkout("feature-login");  // 回到 feature 分支
-    
+
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
 }
 
 void Level10_Stash::SyncGraphWithRepo() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->Clear();
-    
+
     auto commits = git->GetCommitGraph(50);
     for (const auto& c : commits) {
         GitVis::CommitNode node;
@@ -108,7 +108,7 @@ void Level10_Stash::SyncGraphWithRepo() {
         }
         commitPanel->AddCommit(node);
     }
-    
+
     commitPanel->SetHEAD(git->GetHEAD());
     commitPanel->SetCurrentBranch(git->GetCurrentBranch());
     commitPanel->RecalculateLayout();
@@ -195,14 +195,14 @@ std::string Level10_Stash::ProcessLevelCommand(const std::string& cmd) {
 
 void Level10_Stash::Update(float deltaTime) {
     timer += deltaTime;
-    
+
     if (splitView) {
         int screenWidth = GetScreenWidth();
         int screenHeight = GetScreenHeight();
         splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
-    
+
     if (IsKeyPressed(KEY_SPACE)) {
         switch (currentStage) {
             case Stage::INTRO:
@@ -218,27 +218,27 @@ void Level10_Stash::Update(float deltaTime) {
                 break;
         }
     }
-    
+
     if (IsKeyPressed(KEY_S) && currentStage == Stage::EMERGENCY_CALL) {
         ProcessLevelCommand("stash");
     }
-    
+
     if (IsKeyPressed(KEY_C) && currentStage == Stage::STASH_CHANGES) {
         ProcessLevelCommand("checkout hotfix-security");
     }
-    
+
     if (IsKeyPressed(KEY_F) && currentStage == Stage::SWITCH_BRANCH) {
         ProcessLevelCommand("fix");
     }
-    
+
     if (IsKeyPressed(KEY_R) && currentStage == Stage::FIX_EMERGENCY) {
         ProcessLevelCommand("checkout feature-login");
     }
-    
+
     if (IsKeyPressed(KEY_P) && currentStage == Stage::POP_STASH) {
         ProcessLevelCommand("stash pop");
     }
-    
+
     // Dev tools (1/2/3 keys)
     HandleDevToolKeys();
 }
@@ -246,12 +246,12 @@ void Level10_Stash::Update(float deltaTime) {
 void Level10_Stash::Draw() {
     ClearBackground({30, 35, 45, 255});
     if (splitView) splitView->Draw();
-    
+
     if (hasStash || currentStage == Stage::STASH_CHANGES ||
         currentStage == Stage::SWITCH_BRANCH || currentStage == Stage::FIX_EMERGENCY) {
         DrawStashPanel();
     }
-    
+
     DrawStatusPanel();
     DrawDialogueIfNeeded();
 }
@@ -259,13 +259,13 @@ void Level10_Stash::Draw() {
 void Level10_Stash::DrawStatusPanel() {
     DrawRectangle(0, 0, 300, 720, {40, 44, 52, 255});
     DrawRectangleLines(0, 0, 300, 720, {100, 150, 200, 255});
-    
+
     DrawChinese("Level 10: Stash 战场", 20, 20, 28, WHITE);
     DrawChinese("暂存未完成的更改", 20, 55, 18, LIGHTGRAY);
     DrawText("10 / 10", 250, 30, 16, {100, 200, 255, 255});
-    
+
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
-    
+
     const char* stageText = "";
     Color stageColor = YELLOW;
     switch (currentStage) {
@@ -279,27 +279,27 @@ void Level10_Stash::DrawStatusPanel() {
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
     DrawText(stageText, 20, 130, 18, stageColor);
-    
+
     // 工作区状态
     DrawRectangle(10, 170, 280, 180, {40, 45, 55, 255});
     DrawChinese("工作区状态:", 20, 180, 18, WHITE);
-    
+
     DrawChinese("当前分支:", 20, 210, 14, LIGHTGRAY);
     std::string branch = git ? git->GetCurrentBranch() : "unknown";
     DrawText(branch.c_str(), 130, 210, 14, YELLOW);
-    
+
     DrawChinese("未提交更改:", 20, 240, 14, LIGHTGRAY);
-    DrawChinese(hasUncommittedChanges ? "[有]" : "[无]", 
+    DrawChinese(hasUncommittedChanges ? "[有]" : "[无]",
                 130, 240, 14, hasUncommittedChanges ? RED : GREEN);
-    
+
     DrawChinese("Stash 数量:", 20, 270, 14, LIGHTGRAY);
-    DrawText(std::to_string(stashCount).c_str(), 130, 270, 14, 
+    DrawText(std::to_string(stashCount).c_str(), 130, 270, 14,
              stashCount > 0 ? YELLOW : LIGHTGRAY);
-    
+
     if (!stashMessage.empty()) {
         DrawText(stashMessage.substr(0, 25).c_str(), 20, 300, 12, {200, 200, 100, 255});
     }
-    
+
     // 流程图
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("工作流程:", 20, 610, 18, {100, 200, 255, 255});
@@ -314,18 +314,18 @@ void Level10_Stash::DrawStashPanel() {
     int panelY = 100;
     int panelW = 330;
     int panelH = 200;
-    
+
     DrawRectangle(panelX, panelY, panelW, panelH, {30, 35, 45, 240});
     DrawRectangleLines(panelX, panelY, panelW, panelH, {200, 200, 100, 255});
-    
+
     DrawChinese("Stash 储藏室", panelX + 10, panelY + 10, 22, {200, 200, 100, 255});
-    
+
     if (hasStash) {
         // 显示 stash 内容
         DrawRectangle(panelX + 10, panelY + 50, panelW - 20, 80, {50, 50, 40, 200});
         DrawChinese("[保存的更改]", panelX + 20, panelY + 60, 16, YELLOW);
         DrawText(stashMessage.c_str(), panelX + 20, panelY + 90, 14, WHITE);
-        
+
         // stash pop 提示
         if (currentStage == Stage::POP_STASH) {
             DrawRectangle(panelX + 10, panelY + 140, panelW - 20, 40, {40, 80, 40, 200});
@@ -388,5 +388,3 @@ void Level10_Stash::Shutdown() {
 bool Level10_Stash::IsComplete() const {
     return stageComplete;
 }
-
-

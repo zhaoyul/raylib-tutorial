@@ -30,23 +30,23 @@ void Level09_Interactive::Initialize() {
     squashedCount = 0;
     droppedCount = 0;
     commitPlans.clear();
-    
+
     repoPath = "/tmp/gitfighter_level9_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
-    
+
     git = std::make_unique<GitWrapper>();
-    
+
     splitView = std::make_unique<GitVis::SplitGitView>();
     splitView->Initialize(320, 100, 940, 520);
     splitView->SetSplitRatio(0.5f);
     splitView->SetGitWrapper(git.get());
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
     splitView->SetRepoPath(repoPath);
-    
+
     CreateMessyHistory();
     std::cout << "Level 9 initialized at: " << repoPath << std::endl;
 }
@@ -54,7 +54,7 @@ void Level09_Interactive::Initialize() {
 void Level09_Interactive::CreateMessyHistory() {
     git->Init(repoPath);
     git->OpenRepo(repoPath);
-    
+
     // 创建混乱的提交历史
     std::vector<std::pair<std::string, std::string>> commits = {
         {"Initial commit", "main.cpp"},
@@ -68,7 +68,7 @@ void Level09_Interactive::CreateMessyHistory() {
         {"Final version", "final.cpp"},
         {"really final", "really_final.cpp"},   // 应该 squash
     };
-    
+
     for (const auto& [msg, file] : commits) {
         std::ofstream f(repoPath + "/" + file);
         f << "// " << file << "\ncontent\n";
@@ -76,19 +76,19 @@ void Level09_Interactive::CreateMessyHistory() {
         git->Add(".");
         git->Commit(msg);
     }
-    
+
     originalCount = (int)commits.size();
-    
+
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
 }
 
 void Level09_Interactive::SyncGraphWithRepo() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->Clear();
-    
+
     auto commits = git->GetCommitGraph(50);
     for (const auto& c : commits) {
         GitVis::CommitNode node;
@@ -107,7 +107,7 @@ void Level09_Interactive::SyncGraphWithRepo() {
         }
         commitPanel->AddCommit(node);
     }
-    
+
     commitPanel->SetHEAD(git->GetHEAD());
     commitPanel->SetCurrentBranch(git->GetCurrentBranch());
     commitPanel->RecalculateLayout();
@@ -116,7 +116,7 @@ void Level09_Interactive::SyncGraphWithRepo() {
 void Level09_Interactive::GenerateCommitPlan() {
     commitPlans.clear();
     auto commits = git->GetCommitGraph(20);
-    
+
     bool first = true;
     for (const auto& c : commits) {
         CommitPlan plan;
@@ -127,7 +127,7 @@ void Level09_Interactive::GenerateCommitPlan() {
         commitPlans.push_back(plan);
         first = false;
     }
-    
+
     // 智能建议
     for (size_t i = 0; i < commitPlans.size(); i++) {
         std::string msg = commitPlans[i].message;
@@ -172,7 +172,7 @@ void Level09_Interactive::ExecuteRebase() {
     finalCount = 0;
     squashedCount = 0;
     droppedCount = 0;
-    
+
     for (const auto& plan : commitPlans) {
         switch (plan.action) {
             case Action::PICK:
@@ -187,7 +187,7 @@ void Level09_Interactive::ExecuteRebase() {
                 break;
         }
     }
-    
+
     // 模拟执行结果
     currentStage = Stage::VERIFY_RESULT;
 }
@@ -220,14 +220,14 @@ std::string Level09_Interactive::ProcessLevelCommand(const std::string& cmd) {
 
 void Level09_Interactive::Update(float deltaTime) {
     timer += deltaTime;
-    
+
     if (splitView) {
         int screenWidth = GetScreenWidth();
         int screenHeight = GetScreenHeight();
         splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
-    
+
     if (IsKeyPressed(KEY_SPACE)) {
         switch (currentStage) {
             case Stage::INTRO:
@@ -244,12 +244,12 @@ void Level09_Interactive::Update(float deltaTime) {
                 break;
         }
     }
-    
+
     if (IsKeyPressed(KEY_I) && currentStage == Stage::SHOW_HISTORY) {
         GenerateCommitPlan();
         currentStage = Stage::PLAN_REBASE;
     }
-    
+
     if (currentStage == Stage::PLAN_REBASE) {
         // 上下选择
         if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_K)) {
@@ -258,18 +258,18 @@ void Level09_Interactive::Update(float deltaTime) {
         if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_J)) {
             selectedPlanIndex = std::min((int)commitPlans.size() - 1, selectedPlanIndex + 1);
         }
-        
+
         // 空格切换 action
         if (IsKeyPressed(KEY_SPACE)) {
             CycleAction(selectedPlanIndex);
         }
-        
+
         // 回车执行
         if (IsKeyPressed(KEY_ENTER)) {
             ExecuteRebase();
         }
     }
-    
+
     // Dev tools (1/2/3 keys)
     HandleDevToolKeys();
 }
@@ -277,13 +277,13 @@ void Level09_Interactive::Update(float deltaTime) {
 void Level09_Interactive::Draw() {
     ClearBackground({30, 35, 45, 255});
     if (splitView) splitView->Draw();
-    
-    if (currentStage == Stage::PLAN_REBASE || 
+
+    if (currentStage == Stage::PLAN_REBASE ||
         currentStage == Stage::EXECUTE_REBASE ||
         currentStage == Stage::VERIFY_RESULT) {
         DrawInteractivePanel();
     }
-    
+
     DrawStatusPanel();
     DrawDialogueIfNeeded();
 }
@@ -291,13 +291,13 @@ void Level09_Interactive::Draw() {
 void Level09_Interactive::DrawStatusPanel() {
     DrawRectangle(0, 0, 300, 720, {40, 44, 52, 255});
     DrawRectangleLines(0, 0, 300, 720, {100, 150, 200, 255});
-    
+
     DrawChinese("Level 9: 历史重写", 20, 20, 28, WHITE);
     DrawChinese("交互式 rebase", 20, 55, 18, LIGHTGRAY);
     DrawText("9 / 10", 250, 30, 16, {100, 200, 255, 255});
-    
+
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
-    
+
     const char* stageText = "";
     Color stageColor = YELLOW;
     switch (currentStage) {
@@ -309,9 +309,9 @@ void Level09_Interactive::DrawStatusPanel() {
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
     DrawText(stageText, 20, 130, 18, stageColor);
-    
+
     // 统计
-    if (currentStage == Stage::PLAN_REBASE || 
+    if (currentStage == Stage::PLAN_REBASE ||
         currentStage == Stage::EXECUTE_REBASE ||
         currentStage == Stage::VERIFY_RESULT) {
         DrawRectangle(10, 170, 280, 150, {40, 45, 55, 255});
@@ -321,7 +321,7 @@ void Level09_Interactive::DrawStatusPanel() {
         DrawText(("Squash: " + std::to_string(squashedCount)).c_str(), 20, 260, 14, {100, 255, 150, 255});
         DrawText(("Drop: " + std::to_string(droppedCount)).c_str(), 20, 280, 14, {255, 100, 100, 255});
     }
-    
+
     // 提示
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
@@ -338,57 +338,57 @@ void Level09_Interactive::DrawInteractivePanel() {
     int panelY = 100;
     int panelW = 480;
     int panelH = 520;
-    
+
     DrawRectangle(panelX, panelY, panelW, panelH, {20, 25, 35, 240});
     DrawRectangleLines(panelX, panelY, panelW, panelH, {100, 200, 255, 255});
-    
+
     DrawChinese("交互式 Rebase 计划", panelX + 10, panelY + 10, 22, {100, 200, 255, 255});
-    
+
     // 操作说明
     int legendY = panelY + 45;
     DrawText("pick", panelX + 20, legendY, 12, ActionToColor(Action::PICK));
     DrawText("reword", panelX + 80, legendY, 12, ActionToColor(Action::REWORD));
     DrawText("squash", panelX + 150, legendY, 12, ActionToColor(Action::SQUASH));
     DrawText("drop", panelX + 220, legendY, 12, ActionToColor(Action::DROP));
-    
+
     // 提交列表
     int listY = panelY + 80;
     int itemHeight = 40;
     int visibleItems = (panelH - 150) / itemHeight;
-    
+
     int startIdx = std::max(0, selectedPlanIndex - visibleItems / 2);
     int endIdx = std::min((int)commitPlans.size(), startIdx + visibleItems);
-    
+
     for (int i = startIdx; i < endIdx; i++) {
         const auto& plan = commitPlans[i];
         int y = listY + (i - startIdx) * itemHeight;
-        
+
         // 选中高亮
         if (i == selectedPlanIndex && currentStage == Stage::PLAN_REBASE) {
             DrawRectangle(panelX + 5, y - 2, panelW - 10, itemHeight - 4, {60, 70, 90, 200});
         }
-        
+
         // Action 标签
         const char* actionStr = ActionToString(plan.action);
         Color actionColor = ActionToColor(plan.action);
-        
+
         // 如果是第一个且试图 squash，显示警告
         if (plan.isCurrent && plan.action == Action::SQUASH) {
             actionColor = {150, 150, 150, 255};
         }
-        
+
         DrawRectangle(panelX + 15, y, 70, 25, actionColor);
         DrawText(actionStr, panelX + 20, y + 5, 14, BLACK);
-        
+
         // Commit 信息
         std::string shortMsg = plan.message;
         if (shortMsg.length() > 30) shortMsg = shortMsg.substr(0, 30) + "...";
         DrawText(shortMsg.c_str(), panelX + 95, y + 5, 14, WHITE);
-        
+
         // 简短 hash
         DrawText(plan.hash.substr(0, 7).c_str(), panelX + panelW - 80, y + 5, 12, {150, 150, 150, 255});
     }
-    
+
     // 底部状态
     DrawRectangle(panelX, panelY + panelH - 50, panelW, 50, {30, 35, 45, 255});
     if (currentStage == Stage::VERIFY_RESULT) {
@@ -439,5 +439,3 @@ void Level09_Interactive::Shutdown() {
 bool Level09_Interactive::IsComplete() const {
     return stageComplete;
 }
-
-

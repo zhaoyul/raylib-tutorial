@@ -10,16 +10,16 @@ class Level01_RealGit : public Level {
 public:
     Level01_RealGit();
     ~Level01_RealGit();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
     std::string ExecuteGitCommand(const std::string& cmd) override;
     void RefreshWorkingDirectory() override;
-    
+
 private:
     enum class Stage {
         INTRO,              // CTO 对话
@@ -29,24 +29,24 @@ private:
         WAIT_COMMIT,        // 等待 git commit
         COMPLETE            // 完成
     };
-    
+
     Stage currentStage;
     float timer;
     bool stageComplete;
-    
+
     // Git 相关
     std::unique_ptr<GitWrapper> git;
     std::string repoPath;
     std::string lastCommitHash;
-    
+
     // 可视化
     std::unique_ptr<GitVis::SplitGitView> splitView;
-    
+
     // 文件创建状态
     bool readmeCreated;
     bool mainCppCreated;
     bool filesAdded;
-    
+
     // 方法
     void CreateSampleFiles();
     void SyncGraphWithRepo() override;
@@ -55,7 +55,7 @@ private:
     void DrawCommandInput();
     void DrawStatusPanel();
     void DrawDialogueIfNeeded();
-    
+
     // 检查 Git 状态
     void CheckGitStatus();
 };

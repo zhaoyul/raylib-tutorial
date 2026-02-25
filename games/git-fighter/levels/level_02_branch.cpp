@@ -29,30 +29,30 @@ void Level02_Branch::Initialize() {
     changesCommitted = false;
     merged = false;
     currentBranch = "main";
-    
+
     // 创建临时目录
     repoPath = "/tmp/gitfighter_level2_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
-    
+
     // 初始化 Git
     git = std::make_unique<GitWrapper>();
-    
+
     // 初始化分屏视图
     splitView = std::make_unique<GitVis::SplitGitView>();
     splitView->Initialize(320, 100, 940, 520);
     splitView->SetSplitRatio(0.5f);
     splitView->SetGitWrapper(git.get());
-    
+
     // 设置回调
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
     splitView->SetRepoPath(repoPath);
-    
+
     // 创建初始仓库
     CreateInitialRepo();
-    
+
     std::cout << "Level 2 initialized at: " << repoPath << std::endl;
 }
 
@@ -60,7 +60,7 @@ void Level02_Branch::CreateInitialRepo() {
     // 初始化仓库
     git->Init(repoPath);
     git->OpenRepo(repoPath);
-    
+
     // 创建初始提交
     {
         std::ofstream file(repoPath + "/README.md");
@@ -68,7 +68,7 @@ void Level02_Branch::CreateInitialRepo() {
     }
     git->Add(".");
     git->Commit("Initial commit: 项目初始化");
-    
+
     // 创建第二个提交
     {
         std::ofstream file(repoPath + "/main.cpp");
@@ -76,17 +76,17 @@ void Level02_Branch::CreateInitialRepo() {
     }
     git->Add(".");
     git->Commit("Add main.cpp");
-    
+
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
 }
 
 void Level02_Branch::SyncGraphWithRepo() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->Clear();
-    
+
     auto commits = git->GetCommitGraph(50);
     for (const auto& c : commits) {
         GitVis::CommitNode node;
@@ -107,7 +107,7 @@ void Level02_Branch::SyncGraphWithRepo() {
         }
         commitPanel->AddCommit(node);
     }
-    
+
     // Add all branches to visualization
     std::set<std::string> addedBranches;
     Color branchColors[] = {
@@ -120,7 +120,7 @@ void Level02_Branch::SyncGraphWithRepo() {
         {150, 100, 255, 255},   // Purple
     };
     int colorIndex = 0;
-    
+
     for (const auto& c : commits) {
         for (const auto& branchName : c.branches) {
             if (addedBranches.insert(branchName).second) {
@@ -130,25 +130,25 @@ void Level02_Branch::SyncGraphWithRepo() {
             }
         }
     }
-    
+
     std::string head = git->GetHEAD();
     if (!head.empty()) {
         commitPanel->SetHEAD(head);
     }
-    
+
     // Set current branch name
     std::string currentBranch = git->GetCurrentBranch();
     if (!currentBranch.empty()) {
         commitPanel->SetCurrentBranch(currentBranch);
     }
-    
+
     commitPanel->RecalculateLayout();
 }
 
 std::string Level02_Branch::ProcessLevelCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
     RecordGitCommand(cmd);
-    
+
     if (cmd.rfind("branch", 0) == 0 && currentStage == Stage::CREATE_BRANCH) {
         // Parse: branch feature/login
         size_t spacePos = cmd.find(' ');
@@ -207,7 +207,7 @@ void Level02_Branch::CheckGitStatus() {
 
 void Level02_Branch::Update(float deltaTime) {
     timer += deltaTime;
-    
+
     // 自适应布局 - 参考 Level 1
     if (splitView) {
         int screenWidth = GetScreenWidth();
@@ -216,12 +216,12 @@ void Level02_Branch::Update(float deltaTime) {
         splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
-    
+
     // 键盘快捷键
     if (IsKeyPressed(KEY_SPACE) && currentStage == Stage::INTRO) {
         currentStage = Stage::CREATE_BRANCH;
     }
-    
+
     // 简单的命令输入处理
     if (IsKeyPressed(KEY_ENTER)) {
         // 模拟命令输入（实际应该有输入框）
@@ -246,7 +246,7 @@ void Level02_Branch::Update(float deltaTime) {
                 break;
         }
     }
-    
+
     // Dev tools (1/2/3 keys)
     HandleDevToolKeys();
 }
@@ -254,15 +254,15 @@ void Level02_Branch::Update(float deltaTime) {
 void Level02_Branch::Draw() {
     // 背景
     ClearBackground({30, 35, 45, 255});
-    
+
     // 绘制可视化
     if (splitView) {
         splitView->Draw();
     }
-    
+
     // 绘制状态面板
     DrawStatusPanel();
-    
+
     // 绘制对话框
     DrawDialogueIfNeeded();
 }
@@ -271,14 +271,14 @@ void Level02_Branch::DrawStatusPanel() {
     // 左侧状态面板
     DrawRectangle(0, 0, 300, 720, {40, 44, 52, 255});
     DrawRectangleLines(0, 0, 300, 720, {100, 150, 200, 255});
-    
+
     DrawChinese("Level 2: 分支探险", 20, 20, 28, WHITE);
     DrawChinese("学习 branch 和 checkout", 20, 55, 18, LIGHTGRAY);
     DrawText("2 / 10", 250, 30, 16, {100, 200, 255, 255});
-    
+
     // 当前阶段
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
-    
+
     const char* stageText = "";
     switch (currentStage) {
         case Stage::INTRO: stageText = "按空格开始"; break;
@@ -290,10 +290,10 @@ void Level02_Branch::DrawStatusPanel() {
         case Stage::COMPLETE: stageText = "关卡完成!"; break;
     }
     DrawChinese(stageText, 20, 130, 18, YELLOW);
-    
+
     // 当前分支
     DrawChinese(TextFormat("当前分支: %s", currentBranch.c_str()), 20, 200, 20, GREEN);
-    
+
     // 提示
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
@@ -330,7 +330,7 @@ void Level02_Branch::RefreshWorkingDirectory() {
 void Level02_Branch::Shutdown() {
     splitView.reset();
     git.reset();
-    
+
     // 清理临时目录
     try {
         fs::remove_all(repoPath);
@@ -340,5 +340,3 @@ void Level02_Branch::Shutdown() {
 bool Level02_Branch::IsComplete() const {
     return stageComplete;
 }
-
-

@@ -6,7 +6,7 @@
 
 namespace fs = std::filesystem;
 
-Level01_Init::Level01_Init() 
+Level01_Init::Level01_Init()
     : Level(1, "周末加班", "建立基础架构，学习 Git 基础命令"),
       currentStage(Stage::DIALOGUE_CTO),
       timer(0),
@@ -20,36 +20,36 @@ void Level01_Init::Initialize() {
     currentStage = Stage::DIALOGUE_CTO;
     timer = 0;
     commitCount = 0;
-    
+
     // Create a temporary directory for this level
     repoPath = "/tmp/gitfighter_level1_" + std::to_string((int)GetTime());
-    
+
     // Clean up any old directory with the same name (shouldn't happen, but safety first)
     try {
         fs::remove_all(repoPath);
     } catch (...) {}
-    
+
     git = new GitWrapper();
-    
+
     // Don't init yet - let player do it
 }
 
 void Level01_Init::Update(float deltaTime) {
     timer += deltaTime;
-    
+
     switch (currentStage) {
         case Stage::DIALOGUE_CTO:
             if (timer > 3.0f || IsKeyPressed(KEY_SPACE)) {
                 AdvanceStage();
             }
             break;
-            
+
         case Stage::SHOW_INSTRUCTIONS:
             if (timer > 2.0f || IsKeyPressed(KEY_SPACE)) {
                 AdvanceStage();
             }
             break;
-            
+
         case Stage::WAIT_INIT:
             // Check if player typed 'init' command
             if (CheckCommandInput()) {
@@ -59,7 +59,7 @@ void Level01_Init::Update(float deltaTime) {
                 }
             }
             break;
-            
+
         case Stage::CREATE_FILES:
             // Auto-create some tutorial files
             if (git && git->IsRepoOpen()) {
@@ -68,14 +68,14 @@ void Level01_Init::Update(float deltaTime) {
                 AdvanceStage();
             }
             break;
-            
+
         case Stage::WAIT_ADD:
             // Wait for player to add files
             if (CheckCommandInput()) {
                 AdvanceStage();
             }
             break;
-            
+
         case Stage::WAIT_COMMIT:
             // Wait for player to commit
             if (CheckCommandInput()) {
@@ -85,7 +85,7 @@ void Level01_Init::Update(float deltaTime) {
                 }
             }
             break;
-            
+
         case Stage::COMPLETE:
             // Level complete
             break;
@@ -94,16 +94,16 @@ void Level01_Init::Update(float deltaTime) {
 
 void Level01_Init::Draw() {
     ClearBackground((Color){245, 247, 250, 255});  // Light office background
-    
+
     // Draw workspace (file explorer visualization)
     DrawWorkspace();
-    
+
     // Draw command hint
     DrawCommandHint();
-    
+
     // Draw stage indicator
     DrawStageIndicator();
-    
+
     // Draw dialogue box if needed
     if (currentStage == Stage::DIALOGUE_CTO) {
         DrawDialogue();
@@ -115,7 +115,7 @@ void Level01_Init::Shutdown() {
         delete git;
         git = nullptr;
     }
-    
+
     // Clean up temp directory
     if (!repoPath.empty()) {
         try {
@@ -165,7 +165,7 @@ void Level01_Init::DrawWorkspace() {
     DrawRectangle(20, 80, 300, 500, WHITE);
     DrawRectangleLines(20, 80, 300, 500, (Color){200, 200, 200, 255});
     DrawChinese("文件资源管理器", 30, 90, 24, DARKGRAY);
-    
+
     // Draw files based on stage
     int y = 130;
     if (currentStage >= Stage::CREATE_FILES) {
@@ -174,7 +174,7 @@ void Level01_Init::DrawWorkspace() {
         DrawChinese("main.cpp", 60, y, 20, DARKGRAY);
         y += 35;
     }
-    
+
     // Show git status visualization
     if (git && git->IsRepoOpen()) {
         auto status = git->GetWorkingDirectoryStatus();
@@ -182,7 +182,7 @@ void Level01_Init::DrawWorkspace() {
         DrawLine(20, y - 10, 320, y - 10, (Color){200, 200, 200, 255});
         DrawChinese("Git 状态", 30, y, 22, DARKGRAY);
         y += 35;
-        
+
         for (const auto& file : status) {
             const char* statusText = "";
             Color statusColor = DARKGRAY;
@@ -203,10 +203,10 @@ void Level01_Init::DrawCommandHint() {
     DrawRectangle(940, 80, 320, 400, (Color){250, 250, 252, 255});
     DrawRectangleLines(940, 80, 320, 400, (Color){200, 200, 200, 255});
     DrawChinese("可用命令", 960, 90, 26, DARKGRAY);
-    
+
     int y = 140;
     Color cmdColor = DARKGRAY;
-    
+
     // Highlight available commands based on stage
     if (currentStage == Stage::WAIT_INIT) {
         cmdColor = BLUE;
@@ -216,7 +216,7 @@ void Level01_Init::DrawCommandHint() {
         DrawChinese("git init [OK]", 960, y, 22, cmdColor);
     }
     y += 45;
-    
+
     if (currentStage == Stage::WAIT_ADD) {
         cmdColor = BLUE;
         DrawChinese("[A] git add .", 960, y, 22, cmdColor);
@@ -226,7 +226,7 @@ void Level01_Init::DrawCommandHint() {
         DrawChinese("git add .", 960, y, 22, LIGHTGRAY);
     }
     y += 45;
-    
+
     if (currentStage == Stage::WAIT_COMMIT) {
         cmdColor = BLUE;
         DrawChinese("[C] git commit", 960, y, 22, cmdColor);
@@ -250,13 +250,13 @@ void Level01_Init::DrawStageIndicator() {
         case Stage::WAIT_COMMIT: currentIdx = 3; break;
         default: currentIdx = 0;
     }
-    
+
     int x = 400;
     for (int i = 0; i < 4; i++) {
         Color circleColor = (i <= currentIdx) ? BLUE : LIGHTGRAY;
         DrawCircle(x, 40, 14, circleColor);
         DrawChinese(stages[i], x - 35, 62, 20, (i <= currentIdx) ? DARKGRAY : LIGHTGRAY);
-        
+
         if (i < 3) {
             DrawLine(x + 14, 40, x + 86, 40, (i < currentIdx) ? BLUE : LIGHTGRAY);
         }
@@ -268,14 +268,14 @@ void Level01_Init::DrawDialogue() {
     // Draw dialogue box at the bottom
     DrawRectangle(0, 580, 1280, 140, (Color){30, 30, 40, 240});
     DrawRectangleLines(0, 580, 1280, 140, (Color){100, 150, 200, 255});
-    
+
     // CTO avatar placeholder
     DrawCircle(80, 640, 40, (Color){100, 150, 200, 255});
     DrawChinese("CTO", 60, 632, 22, WHITE);
-    
+
     // Dialogue text
     DrawChinese(dialogueCTO.c_str(), 150, 605, 28, WHITE);
-    
+
     // Continue hint
     if (timer > 1.0f) {
         DrawChinese("按 [空格] 继续...", 1050, 685, 20, LIGHTGRAY);

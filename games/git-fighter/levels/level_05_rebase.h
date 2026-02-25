@@ -10,18 +10,18 @@ class Level05_Rebase : public Level {
 public:
     Level05_Rebase();
     ~Level05_Rebase();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
-    
+
     GitWrapper* GetGitWrapper() override { return git.get(); }
     std::string ProcessLevelCommand(const std::string& cmd) override;
     void RefreshWorkingDirectory() override;
-    
+
 private:
     enum class Stage {
         INTRO,              // 介绍场景：feature 分支落后 main
@@ -33,27 +33,27 @@ private:
         REBASE_COMPLETE,    // rebase 完成
         COMPLETE            // 关卡完成
     };
-    
+
     Stage currentStage;
     float timer;
     bool stageComplete;
-    
+
     // Git
     std::unique_ptr<GitWrapper> git;
-    
+
     // 可视化
     std::unique_ptr<GitVis::SplitGitView> splitView;
-    
+
     // Rebase 状态
     bool rebaseStarted;
     bool conflictOccurred;
     bool conflictResolved;
     int conflictCount;          // 遇到的冲突数量
     int resolvedCount;          // 已解决的冲突数量
-    
+
     // 动画
     float rebaseProgress;
-    
+
     void CreateRebaseScenario();
     void StartRebase();
     void ResolveConflict();

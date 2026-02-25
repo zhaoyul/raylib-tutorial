@@ -10,18 +10,18 @@ class Level04_Remote : public Level {
 public:
     Level04_Remote();
     ~Level04_Remote();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
-    
+
     GitWrapper* GetGitWrapper() override { return git.get(); }
     std::string ProcessLevelCommand(const std::string& cmd) override;
     void RefreshWorkingDirectory() override;
-    
+
 private:
     enum class Stage {
         INTRO,              // 介绍远程仓库
@@ -31,23 +31,23 @@ private:
         PULL_CHANGES,       // 拉取并合并
         COMPLETE            // 完成
     };
-    
+
     Stage currentStage;
     float timer;
     bool stageComplete;
-    
+
     // Git 相关
     std::unique_ptr<GitWrapper> git;
-    
+
     // 可视化
     std::unique_ptr<GitVis::SplitGitView> splitView;
-    
+
     // 远程状态
     bool remoteAdded;
     bool pushed;
     bool fetched;
     bool pulled;
-    
+
     // 方法
     void CreateLocalRepo();
     void SyncGraphWithRepo();

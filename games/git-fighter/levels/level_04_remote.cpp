@@ -28,56 +28,56 @@ void Level04_Remote::Initialize() {
     pushed = false;
     fetched = false;
     pulled = false;
-    
+
     repoPath = "/tmp/gitfighter_level4_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
-    
+
     git = std::make_unique<GitWrapper>();
-    
+
     splitView = std::make_unique<GitVis::SplitGitView>();
     splitView->Initialize(320, 100, 940, 520);
     splitView->SetSplitRatio(0.5f);
     splitView->SetGitWrapper(git.get());
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
     splitView->SetRepoPath(repoPath);
-    
+
     CreateLocalRepo();
-    
+
     std::cout << "Level 4 initialized at: " << repoPath << std::endl;
 }
 
 void Level04_Remote::CreateLocalRepo() {
     git->Init(repoPath);
     git->OpenRepo(repoPath);
-    
+
     {
         std::ofstream file(repoPath + "/README.md");
         file << "# 协作项目\n\n本地开发中\n";
     }
     git->Add(".");
     git->Commit("Initial local commit");
-    
+
     {
         std::ofstream file(repoPath + "/feature.cpp");
         file << "// 新功能开发\nvoid feature() {}\n";
     }
     git->Add(".");
     git->Commit("Add feature");
-    
+
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
 }
 
 void Level04_Remote::SyncGraphWithRepo() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->Clear();
-    
+
     auto commits = git->GetCommitGraph(50);
     for (const auto& c : commits) {
         GitVis::CommitNode node;
@@ -98,7 +98,7 @@ void Level04_Remote::SyncGraphWithRepo() {
         }
         commitPanel->AddCommit(node);
     }
-    
+
     // Add all branches to visualization
     std::set<std::string> addedBranches;
     Color branchColors[] = {
@@ -111,7 +111,7 @@ void Level04_Remote::SyncGraphWithRepo() {
         {150, 100, 255, 255},   // Purple
     };
     int colorIndex = 0;
-    
+
     for (const auto& c : commits) {
         for (const auto& branchName : c.branches) {
             if (addedBranches.insert(branchName).second) {
@@ -121,25 +121,25 @@ void Level04_Remote::SyncGraphWithRepo() {
             }
         }
     }
-    
+
     std::string head = git->GetHEAD();
     if (!head.empty()) {
         commitPanel->SetHEAD(head);
     }
-    
+
     // Set current branch name
     std::string currentBranch = git->GetCurrentBranch();
     if (!currentBranch.empty()) {
         commitPanel->SetCurrentBranch(currentBranch);
     }
-    
+
     commitPanel->RecalculateLayout();
 }
 
 std::string Level04_Remote::ProcessLevelCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
     RecordGitCommand(cmd);
-    
+
     if (cmd.rfind("remote add", 0) == 0 && currentStage == Stage::ADD_REMOTE) {
         // 模拟添加远程仓库
         remoteAdded = true;
@@ -176,7 +176,7 @@ std::string Level04_Remote::ProcessLevelCommand(const std::string& cmd) {
 
 void Level04_Remote::Update(float deltaTime) {
     timer += deltaTime;
-    
+
     // 自适应布局
     if (splitView) {
         int screenWidth = GetScreenWidth();
@@ -184,11 +184,11 @@ void Level04_Remote::Update(float deltaTime) {
         splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
-    
+
     if (IsKeyPressed(KEY_SPACE) && currentStage == Stage::INTRO) {
         currentStage = Stage::ADD_REMOTE;
     }
-    
+
     if (IsKeyPressed(KEY_ENTER)) {
         switch (currentStage) {
             case Stage::ADD_REMOTE:
@@ -210,18 +210,18 @@ void Level04_Remote::Update(float deltaTime) {
                 break;
         }
     }
-    
+
     // Dev tools (1/2/3 keys)
     HandleDevToolKeys();
 }
 
 void Level04_Remote::Draw() {
     ClearBackground({30, 35, 45, 255});
-    
+
     if (splitView) {
         splitView->Draw();
     }
-    
+
     DrawStatusPanel();
     DrawDialogueIfNeeded();
 }
@@ -229,13 +229,13 @@ void Level04_Remote::Draw() {
 void Level04_Remote::DrawStatusPanel() {
     DrawRectangle(0, 0, 300, 720, {40, 44, 52, 255});
     DrawRectangleLines(0, 0, 300, 720, {100, 150, 200, 255});
-    
+
     DrawChinese("Level 4: 远程协作", 20, 20, 28, WHITE);
     DrawChinese("学习 remote/push/pull", 20, 55, 18, LIGHTGRAY);
     DrawText("4 / 10", 250, 30, 16, {100, 200, 255, 255});
-    
+
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
-    
+
     const char* stageText = "";
     switch (currentStage) {
         case Stage::INTRO: stageText = "按空格开始"; break;
@@ -246,14 +246,14 @@ void Level04_Remote::DrawStatusPanel() {
         case Stage::COMPLETE: stageText = "完成!"; break;
     }
     DrawText(stageText, 20, 130, 18, YELLOW);
-    
+
     // 进度指示
     DrawChinese("进度:", 20, 200, 20, GREEN);
     DrawText(remoteAdded ? "[X] remote add" : "[ ] remote add", 20, 230, 16, remoteAdded ? GREEN : GRAY);
     DrawText(pushed ? "[X] push" : "[ ] push", 20, 255, 16, pushed ? GREEN : GRAY);
     DrawText(fetched ? "[X] fetch" : "[ ] fetch", 20, 280, 16, fetched ? GREEN : GRAY);
     DrawText(pulled ? "[X] pull" : "[ ] pull", 20, 305, 16, pulled ? GREEN : GRAY);
-    
+
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
     DrawChinese("remote 管理远程仓库", 20, 635, 16, LIGHTGRAY);
@@ -282,7 +282,7 @@ void Level04_Remote::RefreshWorkingDirectory() {
 void Level04_Remote::Shutdown() {
     splitView.reset();
     git.reset();
-    
+
     try {
         fs::remove_all(repoPath);
     } catch (...) {}
@@ -291,5 +291,3 @@ void Level04_Remote::Shutdown() {
 bool Level04_Remote::IsComplete() const {
     return stageComplete;
 }
-
-

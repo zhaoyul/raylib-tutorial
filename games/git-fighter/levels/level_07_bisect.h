@@ -11,18 +11,18 @@ class Level07_Bisect : public Level {
 public:
     Level07_Bisect();
     ~Level07_Bisect();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
-    
+
     GitWrapper* GetGitWrapper() override { return git.get(); }
     std::string ProcessLevelCommand(const std::string& cmd) override;
     void RefreshWorkingDirectory() override;
-    
+
 private:
     enum class Stage {
         INTRO,              // 介绍 bug 报告
@@ -33,14 +33,14 @@ private:
         FOUND_CULPRIT,      // 找到罪魁祸首
         COMPLETE            // 完成
     };
-    
+
     Stage currentStage;
     float timer;
     bool stageComplete;
-    
+
     std::unique_ptr<GitWrapper> git;
     std::unique_ptr<GitVis::SplitGitView> splitView;
-    
+
     // Bisect 状态
     std::vector<std::string> allCommits;        // 所有 commit hashes
     std::vector<bool> commitStatus;             // true=good, false=bad, undefined=unknown
@@ -50,10 +50,10 @@ private:
     int bugCommitIndex;                         // 真正引入 bug 的 commit 索引
     int stepsTaken;                             // 已用步数
     int maxSteps;                               // 最大步数（二分查找最优）
-    
+
     // 模拟测试结果
     bool currentTestResult;
-    
+
     void CreateBuggyHistory();
     void SyncGraphWithRepo();
     void StartBisect();
@@ -66,6 +66,6 @@ private:
     void DrawBisectPanel();
     void DrawCommitRange();
 
-    
+
     int CalculateNextIndex();
 };

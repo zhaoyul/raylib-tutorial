@@ -11,14 +11,14 @@ class Level01_GUI : public Level {
 public:
     Level01_GUI();
     ~Level01_GUI();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
-    
+
 private:
     enum class Stage {
         INTRO,
@@ -27,29 +27,29 @@ private:
         WAIT_COMMIT,
         COMPLETE
     };
-    
+
     Stage currentStage;
     float timer;
     bool stageComplete;
-    
+
     // Git
     std::unique_ptr<GitWrapper> git;
     std::string repoPath;
     std::string lastCommitHash;
-    
+
     // Visualization
     std::unique_ptr<GitVis::SplitGitView> splitView;
-    
+
     // GUI
     std::unique_ptr<GitGUI::GUIManager> gui;
     std::unique_ptr<GitGUI::StepIndicator> stepIndicator;
     std::unique_ptr<GitGUI::InfoCard> infoCard;
-    
+
     // File creation flags
     bool readmeCreated;
     bool mainCppCreated;
     bool filesAdded;
-    
+
     // Methods
     void CreateSampleFiles();
     void SyncGraphWithRepo();

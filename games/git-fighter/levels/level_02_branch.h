@@ -10,18 +10,18 @@ class Level02_Branch : public Level {
 public:
     Level02_Branch();
     ~Level02_Branch();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
-    
+
     GitWrapper* GetGitWrapper() override { return git.get(); }
     std::string ProcessLevelCommand(const std::string& cmd) override;
     void RefreshWorkingDirectory() override;
-    
+
 private:
     enum class Stage {
         INTRO,              // 介绍分支概念
@@ -32,25 +32,25 @@ private:
         MERGE_BRANCH,       // 合并分支
         COMPLETE            // 完成
     };
-    
+
     Stage currentStage;
     float timer;
     bool stageComplete;
-    
+
     // Git 相关
     std::unique_ptr<GitWrapper> git;
     std::string lastCommitHash;
-    
+
     // 可视化
     std::unique_ptr<GitVis::SplitGitView> splitView;
-    
+
     // 分支状态
     std::string currentBranch;
     std::string featureBranchName;
     bool featureBranchCreated;
     bool changesCommitted;
     bool merged;
-    
+
     // 方法
     void CreateInitialRepo();
     void SyncGraphWithRepo();

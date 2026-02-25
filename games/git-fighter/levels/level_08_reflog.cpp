@@ -34,33 +34,33 @@ void Level08_Reflog::Initialize() {
     panicPulse = 0;
     currentReflogPage = 0;
     recoveryMethod = "";
-    
+
     repoPath = "/tmp/gitfighter_level8_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
-    
+
     git = std::make_unique<GitWrapper>();
-    
+
     splitView = std::make_unique<GitVis::SplitGitView>();
     splitView->Initialize(320, 100, 940, 520);
     splitView->SetSplitRatio(0.5f);
     splitView->SetGitWrapper(git.get());
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->onNodeSelected = [this](const GitVis::CommitNode& node) {
         splitView->OnCommitSelected(node.hash);
     };
     splitView->SetRepoPath(repoPath);
-    
+
     // 创建正常开发历史的仓库
     CreateNormalRepo();
-    
+
     std::cout << "Level 8 initialized at: " << repoPath << std::endl;
 }
 
 void Level08_Reflog::CreateNormalRepo() {
     git->Init(repoPath);
     git->OpenRepo(repoPath);
-    
+
     // Commit 1: 初始项目结构
     {
         std::ofstream file(repoPath + "/main.cpp");
@@ -73,7 +73,7 @@ void Level08_Reflog::CreateNormalRepo() {
     }
     git->Add(".");
     git->Commit("Initial project setup");
-    
+
     // Commit 2: 添加核心功能
     {
         std::ofstream file(repoPath + "/core.cpp");
@@ -84,7 +84,7 @@ void Level08_Reflog::CreateNormalRepo() {
     }
     git->Add(".");
     git->Commit("Add core calculation module");
-    
+
     // Commit 3: 添加数据库支持（重要功能！）
     {
         std::ofstream file(repoPath + "/database.cpp");
@@ -103,7 +103,7 @@ void Level08_Reflog::CreateNormalRepo() {
     }
     git->Add(".");
     git->Commit("Add database support - CRITICAL FEATURE");
-    
+
     // Commit 4: 添加用户认证
     {
         std::ofstream file(repoPath + "/auth.cpp");
@@ -117,7 +117,7 @@ void Level08_Reflog::CreateNormalRepo() {
     }
     git->Add(".");
     git->Commit("Add user authentication");
-    
+
     // Commit 5: 最新功能 - API 接口
     {
         std::ofstream file(repoPath + "/api.cpp");
@@ -128,7 +128,7 @@ void Level08_Reflog::CreateNormalRepo() {
     }
     git->Add(".");
     git->Commit("Add REST API endpoints");
-    
+
     // 记录这3个重要的 commit（会被丢失的）
     auto commits = git->GetCommitGraph(10);
     if (commits.size() >= 4) {
@@ -136,7 +136,7 @@ void Level08_Reflog::CreateNormalRepo() {
         lostCommits[1] = commits[1].hash;  // Auth
         lostCommits[2] = commits[2].hash;  // Database
     }
-    
+
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
 }
@@ -144,7 +144,7 @@ void Level08_Reflog::CreateNormalRepo() {
 void Level08_Reflog::TriggerAccident() {
     // 执行危险的 reset --hard HEAD~3
     std::cout << "ACCIDENT: Executing reset --hard HEAD~3" << std::endl;
-    
+
     auto result = git->ResetHard("HEAD~3");
     if (result.success) {
         accidentTriggered = true;
@@ -161,10 +161,10 @@ void Level08_Reflog::LoadReflog() {
 
 void Level08_Reflog::SyncGraphWithRepo() {
     if (!git || !git->IsRepoOpen()) return;
-    
+
     auto* commitPanel = splitView->GetCommitPanel();
     commitPanel->Clear();
-    
+
     auto commits = git->GetCommitGraph(50);
     for (const auto& c : commits) {
         GitVis::CommitNode node;
@@ -183,7 +183,7 @@ void Level08_Reflog::SyncGraphWithRepo() {
         }
         commitPanel->AddCommit(node);
     }
-    
+
     std::set<std::string> addedBranches;
     Color branchColors[] = {
         {100, 200, 255, 255},
@@ -192,7 +192,7 @@ void Level08_Reflog::SyncGraphWithRepo() {
         {255, 100, 200, 255},
     };
     int colorIndex = 0;
-    
+
     for (const auto& c : commits) {
         for (const auto& branchName : c.branches) {
             if (addedBranches.insert(branchName).second) {
@@ -202,24 +202,24 @@ void Level08_Reflog::SyncGraphWithRepo() {
             }
         }
     }
-    
+
     std::string head = git->GetHEAD();
     if (!head.empty()) {
         commitPanel->SetHEAD(head);
     }
-    
+
     std::string currentBranch = git->GetCurrentBranch();
     if (!currentBranch.empty()) {
         commitPanel->SetCurrentBranch(currentBranch);
     }
-    
+
     commitPanel->RecalculateLayout();
 }
 
 std::string Level08_Reflog::ProcessLevelCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
     RecordGitCommand(cmd);
-    
+
     if (cmd == "reset --hard HEAD~3" && currentStage == Stage::SHOW_HISTORY) {
         TriggerAccident();
         currentStage = Stage::PANIC_MODE;
@@ -231,7 +231,7 @@ std::string Level08_Reflog::ProcessLevelCommand(const std::string& cmd) {
         currentStage = Stage::SHOW_REFLOG;
         return "Showing reflog";
     }
-    else if (cmd.rfind("reset --hard HEAD@{1}", 0) == 0 && 
+    else if (cmd.rfind("reset --hard HEAD@{1}", 0) == 0 &&
              (currentStage == Stage::SHOW_REFLOG || currentStage == Stage::RECOVERY_DECISION)) {
         // 恢复到事故前一刻
         auto result = git->ResetHard("HEAD@{1}");
@@ -244,7 +244,7 @@ std::string Level08_Reflog::ProcessLevelCommand(const std::string& cmd) {
             return "Recovered to HEAD@{1}";
         }
     }
-    else if (cmd.rfind("reset --hard HEAD@{2}", 0) == 0 && 
+    else if (cmd.rfind("reset --hard HEAD@{2}", 0) == 0 &&
              (currentStage == Stage::SHOW_REFLOG || currentStage == Stage::RECOVERY_DECISION)) {
         // 恢复到更早的状态（完全恢复）
         auto result = git->ResetHard("HEAD@{2}");
@@ -264,7 +264,7 @@ std::string Level08_Reflog::ProcessLevelCommand(const std::string& cmd) {
 void Level08_Reflog::Update(float deltaTime) {
     timer += deltaTime;
     panicPulse += deltaTime * 5;  // 脉冲动画
-    
+
     // 自适应布局
     if (splitView) {
         int screenWidth = GetScreenWidth();
@@ -272,7 +272,7 @@ void Level08_Reflog::Update(float deltaTime) {
         splitView->SetBounds(320, 100, screenWidth - 320, screenHeight - 170);
         splitView->Update(deltaTime);
     }
-    
+
     // 空格键推进剧情
     if (IsKeyPressed(KEY_SPACE)) {
         switch (currentStage) {
@@ -296,7 +296,7 @@ void Level08_Reflog::Update(float deltaTime) {
                 break;
         }
     }
-    
+
     // 数字键选择恢复方式
     if (currentStage == Stage::SHOW_REFLOG || currentStage == Stage::RECOVERY_DECISION) {
         if (IsKeyPressed(KEY_ONE) || IsKeyPressed(KEY_KP_1)) {
@@ -308,50 +308,50 @@ void Level08_Reflog::Update(float deltaTime) {
             ProcessLevelCommand("reset --hard HEAD@{2}");
         }
     }
-    
+
     // R 键触发事故（在 SHOW_HISTORY 阶段）
     if (IsKeyPressed(KEY_R) && currentStage == Stage::SHOW_HISTORY) {
         currentStage = Stage::ACCIDENT_HAPPENS;
     }
-    
+
     // Dev tools (1/2/3 keys)
     HandleDevToolKeys();
 }
 
 void Level08_Reflog::Draw() {
     ClearBackground({30, 35, 45, 255});
-    
+
     if (splitView) {
         splitView->Draw();
     }
-    
+
     // 紧急模式覆盖层
     if (currentStage == Stage::PANIC_MODE || currentStage == Stage::SHOW_REFLOG) {
         DrawPanicOverlay();
     }
-    
+
     DrawStatusPanel();
-    
+
     // Reflog 面板
-    if (reflogVisible && (currentStage == Stage::SHOW_REFLOG || 
+    if (reflogVisible && (currentStage == Stage::SHOW_REFLOG ||
                           currentStage == Stage::RECOVERY_DECISION ||
                           currentStage == Stage::RECOVER_CODE)) {
         DrawReflogPanel();
     }
-    
+
     DrawDialogueIfNeeded();
 }
 
 void Level08_Reflog::DrawStatusPanel() {
     DrawRectangle(0, 0, 300, 720, {40, 44, 52, 255});
     DrawRectangleLines(0, 0, 300, 720, {100, 150, 200, 255});
-    
+
     DrawChinese("Level 8: 时光回溯", 20, 20, 28, WHITE);
     DrawChinese("用 reflog 拯救代码", 20, 55, 18, LIGHTGRAY);
     DrawText("8 / 10", 250, 30, 16, {100, 200, 255, 255});
-    
+
     DrawChinese("当前任务:", 20, 100, 20, {100, 200, 255, 255});
-    
+
     const char* stageText = "";
     Color stageColor = YELLOW;
     switch (currentStage) {
@@ -366,7 +366,7 @@ void Level08_Reflog::DrawStatusPanel() {
         case Stage::COMPLETE: stageText = "完成！"; stageColor = GREEN; break;
     }
     DrawText(stageText, 20, 130, 18, stageColor);
-    
+
     // 事故信息
     if (accidentTriggered) {
         DrawRectangle(10, 170, 280, 120, {60, 30, 30, 255});
@@ -378,7 +378,7 @@ void Level08_Reflog::DrawStatusPanel() {
         DrawChinese("- Auth 认证", 30, 272, 14, {255, 150, 150, 255});
         DrawChinese("- API 接口", 30, 289, 14, {255, 150, 150, 255});
     }
-    
+
     // 恢复状态
     if (codeRecovered) {
         DrawRectangle(10, 310, 280, 80, {30, 60, 30, 255});
@@ -386,7 +386,7 @@ void Level08_Reflog::DrawStatusPanel() {
         DrawChinese("[OK] 代码已恢复", 20, 320, 20, GREEN);
         DrawChinese(("方法: " + recoveryMethod).c_str(), 20, 350, 16, WHITE);
     }
-    
+
     // 操作提示
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
@@ -437,7 +437,7 @@ void Level08_Reflog::DrawPanicOverlay() {
     float pulse = (sinf(panicPulse) + 1.0f) * 0.5f;
     unsigned char alpha = static_cast<unsigned char>(pulse * 30);
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), {255, 0, 0, alpha});
-    
+
     // 顶部警告条
     if (fmodf(timer, 1.0f) < 0.5f) {
         DrawRectangle(300, 0, GetScreenWidth() - 300, 40, {200, 50, 50, 200});
@@ -448,51 +448,51 @@ void Level08_Reflog::DrawPanicOverlay() {
 void Level08_Reflog::DrawReflogPanel() {
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
-    
+
     // Reflog 面板 - 右侧覆盖层
     int panelX = screenWidth - 450;
     int panelY = 100;
     int panelW = 430;
     int panelH = screenHeight - 270;
-    
+
     DrawRectangle(panelX, panelY, panelW, panelH, {20, 25, 35, 240});
     DrawRectangleLines(panelX, panelY, panelW, panelH, {100, 200, 255, 255});
-    
+
     DrawChinese("Git Reflog - 操作历史", panelX + 10, panelY + 10, 22, {100, 200, 255, 255});
     DrawChinese("(按序号选择恢复)", panelX + 250, panelY + 15, 14, LIGHTGRAY);
-    
+
     int y = panelY + 50;
     int entryHeight = 70;
-    
+
     for (size_t i = 0; i < reflogEntries.size() && y + entryHeight < panelY + panelH; i++) {
         const auto& entry = reflogEntries[i];
-        
+
         // 条目背景
         Color bgColor = (i == 0) ? Color{60, 80, 60, 200} : Color{40, 45, 55, 200};
         if (entry.action == "reset" && entry.message.find("moving") != std::string::npos) {
             // 标记事故点
             bgColor = {80, 40, 40, 200};
         }
-        
+
         DrawRectangle(panelX + 10, y, panelW - 20, entryHeight - 5, bgColor);
-        
+
         // 序号和动作
         Color actionColor = WHITE;
         if (entry.action == "commit") actionColor = GREEN;
         else if (entry.action == "reset") actionColor = RED;
         else if (entry.action == "checkout") actionColor = YELLOW;
-        
+
         std::string idxStr = "[" + std::to_string(i) + "] ";
         DrawText((idxStr + entry.action).c_str(), panelX + 20, y + 8, 16, actionColor);
-        
+
         // 简短 hash
         DrawText(entry.hash.substr(0, 7).c_str(), panelX + 150, y + 8, 14, {150, 150, 150, 255});
-        
+
         // 消息
         std::string msg = entry.message;
         if (msg.length() > 35) msg = msg.substr(0, 35) + "...";
         DrawText(msg.c_str(), panelX + 20, y + 30, 13, LIGHTGRAY);
-        
+
         // 提示可恢复
         if (i >= 1 && i <= 2 && !codeRecovered) {
             if (i == 1) {
@@ -501,10 +501,10 @@ void Level08_Reflog::DrawReflogPanel() {
                 DrawChinese("按 [2] 完全恢复", panelX + panelW - 110, y + 25, 14, {100, 255, 150, 255});
             }
         }
-        
+
         y += entryHeight;
     }
-    
+
     // 底部说明
     DrawRectangle(panelX, panelY + panelH - 60, panelW, 60, {30, 35, 45, 255});
     DrawLine(panelX + 10, panelY + panelH - 60, panelX + panelW - 10, panelY + panelH - 60, {100, 100, 120, 255});
@@ -522,7 +522,7 @@ void Level08_Reflog::RefreshWorkingDirectory() {
 void Level08_Reflog::Shutdown() {
     splitView.reset();
     git.reset();
-    
+
     try {
         fs::remove_all(repoPath);
     } catch (...) {}
@@ -531,5 +531,3 @@ void Level08_Reflog::Shutdown() {
 bool Level08_Reflog::IsComplete() const {
     return stageComplete;
 }
-
-

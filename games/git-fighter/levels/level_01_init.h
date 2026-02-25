@@ -7,14 +7,14 @@
 class Level01_Init : public Level {
 public:
     Level01_Init();
-    
+
     void Initialize() override;
     void Update(float deltaTime) override;
     void Draw() override;
     void Shutdown() override;
-    
+
     bool IsComplete() const override;
-    
+
 private:
     // Tutorial stages
     enum class Stage {
@@ -26,22 +26,22 @@ private:
         WAIT_COMMIT,        // Wait for git commit
         COMPLETE            // Level complete
     };
-    
+
     Stage currentStage;
     float timer;
     int commitCount;
     std::string repoPath;  // Temp directory for this level
-    
+
     // Visual elements
     void DrawWorkspace();
     void DrawCommandHint();
     void DrawStageIndicator();
     void DrawDialogue();
-    
+
     // Helper
     void AdvanceStage();
     bool CheckCommandInput();
-    
+
     // Git wrapper (passed from LevelManager)
     class GitWrapper* git;
 };
