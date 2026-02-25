@@ -231,8 +231,38 @@ GitResult GitWrapper::Checkout(const std::string& branchName) {
 
 GitResult GitWrapper::Merge(const std::string& branchName) {
     if (!repo) return {false, "", "Not a git repository"};
-    // Simplified - just mark as success for now
-    return {true, "Merged branch '" + branchName + "'", ""};
+    
+    // Use system git to perform actual merge
+    std::string cmd = "cd " + repoPath + " && git merge " + branchName + " 2>&1";
+    
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) {
+        return {false, "", "Failed to execute merge command"};
+    }
+    
+    std::string output;
+    char buffer[4096];
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        output += buffer;
+    }
+    
+    int exitCode = pclose(pipe);
+    
+    // Update HEAD after merge
+    UpdateHEAD();
+    
+    // Return appropriate result based on exit code
+    if (exitCode == 0) {
+        // Fast-forward or clean merge
+        return {true, output.empty() ? "Merged branch '" + branchName + "'" : output, ""};
+    } else if (output.find("conflict") != std::string::npos || 
+               output.find("CONFLICT") != std::string::npos) {
+        // Merge with conflicts - this is expected in some scenarios
+        return {true, output, ""};
+    } else {
+        // Other error
+        return {false, "", output.empty() ? "Merge failed" : output};
+    }
 }
 
 std::vector<std::string> GitWrapper::GetBranches() {

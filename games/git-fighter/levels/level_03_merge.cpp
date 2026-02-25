@@ -218,27 +218,80 @@ std::string Level03_Merge::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
 
     if (cmd == "merge feature" && currentStage == Stage::ATTEMPT_MERGE) {
-        auto result = git->Merge("feature");
+        // Use system git to perform real merge (creates actual conflict)
+        std::string fullCmd = "cd " + repoPath + " && git merge feature 2>&1";
+        
+        FILE* pipe = popen(fullCmd.c_str(), "r");
+        std::string output;
+        if (pipe) {
+            char buffer[4096];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+            pclose(pipe);
+        }
+        
         mergeAttempted = true;
         currentStage = Stage::RESOLVE_CONFLICT;
         SyncGraphWithRepo();
-        return "Merging feature...";
+        RefreshWorkingDirectory();
+        
+        if (output.find("CONFLICT") != std::string::npos || 
+            output.find("conflict") != std::string::npos) {
+            return "合并产生冲突! 需要手动解决。\n" + output;
+        }
+        return "Merging feature...\n" + output;
     }
-    else if (cmd == "add" && currentStage == Stage::RESOLVE_CONFLICT) {
-        // 模拟冲突已解决，添加文件
-        git->Add(".");
+    else if ((cmd == "add" || cmd == "add .") && currentStage == Stage::RESOLVE_CONFLICT) {
+        // 使用系统 git 添加文件（保持 merge 状态）
+        std::string fullCmd = "cd " + repoPath + " && git add . 2>&1";
+        
+        FILE* pipe = popen(fullCmd.c_str(), "r");
+        std::string output;
+        if (pipe) {
+            char buffer[4096];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+            pclose(pipe);
+        }
+        
         conflictResolved = true;
         currentStage = Stage::COMMIT_RESOLUTION;
-        return "Added files to staging";
+        RefreshWorkingDirectory();
+        
+        // Trim trailing newline
+        while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+            output.pop_back();
+        }
+        
+        return output.empty() ? "Added files to staging" : output;
     }
     else if (cmd.rfind("commit", 0) == 0 && currentStage == Stage::COMMIT_RESOLUTION) {
-        auto result = git->Commit("Merge branch 'feature' - resolved conflicts");
-        if (result.success) {
-            currentStage = Stage::COMPLETE;
-            stageComplete = true;
-            SyncGraphWithRepo();
-            return "Committed merge resolution";
+        // 使用系统 git 提交 merge（这会创建有两个父节点的 merge commit）
+        std::string fullCmd = "cd " + repoPath + " && git commit -m \"Merge branch 'feature' - resolved conflicts\" 2>&1";
+        
+        FILE* pipe = popen(fullCmd.c_str(), "r");
+        std::string output;
+        if (pipe) {
+            char buffer[4096];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+            pclose(pipe);
         }
+        
+        currentStage = Stage::COMPLETE;
+        stageComplete = true;
+        SyncGraphWithRepo();
+        RefreshWorkingDirectory();
+        
+        // Trim trailing newline
+        while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+            output.pop_back();
+        }
+        
+        return output.empty() ? "Merge commit created successfully!" : output;
     }
     // Return empty for unknown commands to let base class handle them
     return "";
