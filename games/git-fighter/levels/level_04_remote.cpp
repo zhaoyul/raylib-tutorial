@@ -28,9 +28,13 @@ void Level04_Remote::Initialize() {
     pushed = false;
     fetched = false;
     pulled = false;
+    remoteHasNewCommits = false;
+    remoteCommits.clear();
 
     repoPath = "/tmp/gitfighter_level4_" + std::to_string((int)GetTime());
+    remotePath = "/tmp/gitfighter_level4_remote_" + std::to_string((int)GetTime());
     fs::create_directories(repoPath);
+    fs::create_directories(remotePath);
 
     git = std::make_unique<GitWrapper>();
 
@@ -45,9 +49,54 @@ void Level04_Remote::Initialize() {
     };
     splitView->SetRepoPath(repoPath);
 
+    // 先创建 remote 仓库（模拟已存在的远程仓库）
+    CreateRemoteRepo();
+    // 再创建本地仓库
     CreateLocalRepo();
 
     std::cout << "Level 4 initialized at: " << repoPath << std::endl;
+    std::cout << "Remote repo at: " << remotePath << std::endl;
+}
+
+void Level04_Remote::CreateRemoteRepo() {
+    // 创建 bare 仓库作为 remote
+    std::string cmd = "cd " + remotePath + " && git init --bare remote.git 2>&1";
+    std::system(cmd.c_str());
+    
+    // 创建一个临时工作目录来初始化 remote 仓库的内容
+    std::string tempPath = remotePath + "/temp_init";
+    fs::create_directories(tempPath);
+    
+    // 在临时目录创建一些提交（模拟其他人已经 push 的内容）
+    cmd = "cd " + tempPath + " && git init && git config user.email 'remote@git.com' && git config user.name 'Remote' 2>&1";
+    std::system(cmd.c_str());
+    
+    {
+        std::ofstream file(tempPath + "/README.md");
+        file << "# Remote Project\n\nShared repository\n";
+    }
+    cmd = "cd " + tempPath + " && git add . && git commit -m 'Initial remote commit' 2>&1";
+    std::system(cmd.c_str());
+    
+    {
+        std::ofstream file(tempPath + "/shared.cpp");
+        file << "// Shared code\nvoid shared() {}\n";
+    }
+    cmd = "cd " + tempPath + " && git add . && git commit -m 'Add shared module' 2>&1";
+    std::system(cmd.c_str());
+    
+    // Push 到 bare 仓库
+    cmd = "cd " + tempPath + " && git push " + remotePath + "/remote.git master 2>&1";
+    std::system(cmd.c_str());
+    
+    // 记录 remote 的提交
+    remoteCommits.push_back({"abc1234", "Initial remote commit"});
+    remoteCommits.push_back({"def5678", "Add shared module"});
+    
+    // 清理临时目录
+    fs::remove_all(tempPath);
+    
+    std::cout << "[Level4] Remote repo created at: " << remotePath << "/remote.git" << std::endl;
 }
 
 void Level04_Remote::CreateLocalRepo() {
@@ -56,14 +105,14 @@ void Level04_Remote::CreateLocalRepo() {
 
     {
         std::ofstream file(repoPath + "/README.md");
-        file << "# 协作项目\n\n本地开发中\n";
+        file << "# Local Project\n\nLocal development\n";
     }
     git->Add(".");
     git->Commit("Initial local commit");
 
     {
         std::ofstream file(repoPath + "/feature.cpp");
-        file << "// 新功能开发\nvoid feature() {}\n";
+        file << "// New feature\nvoid feature() {}\n";
     }
     git->Add(".");
     git->Commit("Add feature");
@@ -136,39 +185,180 @@ void Level04_Remote::SyncGraphWithRepo() {
     commitPanel->RecalculateLayout();
 }
 
+void Level04_Remote::SyncRemoteBranches() {
+    // 在提交图中添加 origin/main 分支标记
+    if (!remoteAdded) return;
+    
+    auto* commitPanel = splitView->GetCommitPanel();
+    
+    // 获取本地仓库的远程分支信息
+    std::string cmd = "cd " + repoPath + " && git branch -r 2>&1";
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (pipe) {
+        char buffer[256];
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            std::string line(buffer);
+            // Trim whitespace
+            line.erase(0, line.find_first_not_of(" \t\r\n"));
+            line.erase(line.find_last_not_of(" \t\r\n") + 1);
+            
+            if (line.find("origin/") != std::string::npos) {
+                // 获取 remote 分支指向的 commit
+                std::string revParseCmd = "cd " + repoPath + " && git rev-parse " + line + " 2>&1";
+                FILE* revPipe = popen(revParseCmd.c_str(), "r");
+                if (revPipe) {
+                    char hashBuffer[41];
+                    if (fgets(hashBuffer, sizeof(hashBuffer), revPipe) != nullptr) {
+                        std::string hash(hashBuffer);
+                        hash = hash.substr(0, 7);  // short hash
+                        // Add origin/main branch to visualization
+                        commitPanel->AddBranch(line, hash, {255, 150, 100, 255});
+                    }
+                    pclose(revPipe);
+                }
+            }
+        }
+        pclose(pipe);
+    }
+}
+
 std::string Level04_Remote::ProcessLevelCommand(const std::string& cmd) {
     std::cout << "Processing command: " << cmd << std::endl;
     RecordGitCommand(cmd);
 
     if (cmd.rfind("remote add", 0) == 0 && currentStage == Stage::ADD_REMOTE) {
-        // 模拟添加远程仓库
+        // 使用系统 git 添加 remote
+        std::string fullCmd = "cd " + repoPath + " && git remote add origin " + remotePath + "/remote.git 2>&1";
+        FILE* pipe = popen(fullCmd.c_str(), "r");
+        std::string output;
+        if (pipe) {
+            char buffer[4096];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+            pclose(pipe);
+        }
+        
+        // 执行 fetch 来获取远程分支信息
+        fullCmd = "cd " + repoPath + " && git fetch origin 2>&1";
+        pipe = popen(fullCmd.c_str(), "r");
+        if (pipe) {
+            char buffer[4096];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+            pclose(pipe);
+        }
+        
         remoteAdded = true;
         currentStage = Stage::PUSH_MAIN;
         SyncGraphWithRepo();
-        return "Added remote origin";
+        SyncRemoteBranches();
+        
+        // Trim output
+        while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+            output.pop_back();
+        }
+        return output.empty() ? "Added remote origin and fetched" : output;
     }
     else if (cmd.rfind("push", 0) == 0 && currentStage == Stage::PUSH_MAIN) {
+        // 使用系统 git push
+        std::string fullCmd = "cd " + repoPath + " && git push -u origin master 2>&1";
+        FILE* pipe = popen(fullCmd.c_str(), "r");
+        std::string output;
+        if (pipe) {
+            char buffer[4096];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+            pclose(pipe);
+        }
+        
         pushed = true;
         currentStage = Stage::FETCH_REMOTE;
+        
+        // 模拟其他人 push 了新提交到 remote
+        remoteHasNewCommits = true;
+        
         SyncGraphWithRepo();
-        return "Pushed to origin main";
+        SyncRemoteBranches();
+        
+        while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+            output.pop_back();
+        }
+        return output.empty() ? "Pushed to origin master" : output;
     }
     else if (cmd == "fetch" && currentStage == Stage::FETCH_REMOTE) {
+        // 在 fetch 前，先模拟其他人向 remote 添加了新提交
+        if (remoteHasNewCommits) {
+            std::string tempPath = remotePath + "/temp_simulate";
+            fs::create_directories(tempPath);
+            
+            // Clone remote, add commit, push back
+            std::string cmd = "cd " + tempPath + " && git clone " + remotePath + "/remote.git . 2>&1";
+            std::system(cmd.c_str());
+            cmd = "cd " + tempPath + " && git config user.email 'other@git.com' && git config user.name 'Other' 2>&1";
+            std::system(cmd.c_str());
+            
+            {
+                std::ofstream file(tempPath + "/other_update.cpp");
+                file << "// Other developer's update\nvoid other_func() {}\n";
+            }
+            cmd = "cd " + tempPath + " && git add . && git commit -m 'Other: Add new function' 2>&1";
+            std::system(cmd.c_str());
+            cmd = "cd " + tempPath + " && git push 2>&1";
+            std::system(cmd.c_str());
+            
+            fs::remove_all(tempPath);
+            remoteHasNewCommits = false;  // 已添加
+        }
+        
+        // 执行 fetch
+        std::string fullCmd = "cd " + repoPath + " && git fetch origin 2>&1";
+        FILE* pipe = popen(fullCmd.c_str(), "r");
+        std::string output;
+        if (pipe) {
+            char buffer[4096];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+            pclose(pipe);
+        }
+        
         fetched = true;
         currentStage = Stage::PULL_CHANGES;
-        return "Fetched from origin";
+        SyncGraphWithRepo();
+        SyncRemoteBranches();
+        
+        while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+            output.pop_back();
+        }
+        return output.empty() ? "Fetched from origin" : output;
     }
     else if (cmd == "pull" && currentStage == Stage::PULL_CHANGES) {
+        // 使用系统 git pull
+        std::string fullCmd = "cd " + repoPath + " && git pull origin master 2>&1";
+        FILE* pipe = popen(fullCmd.c_str(), "r");
+        std::string output;
+        if (pipe) {
+            char buffer[4096];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                output += buffer;
+            }
+            pclose(pipe);
+        }
+        
         pulled = true;
         currentStage = Stage::COMPLETE;
         stageComplete = true;
-        // 模拟拉取了远程更新
-        {
-            std::ofstream file(repoPath + "/remote_update.txt");
-            file << "# 远程更新\n来自 origin/main\n";
-        }
         SyncGraphWithRepo();
-        return "Pulled from origin";
+        SyncRemoteBranches();
+        RefreshWorkingDirectory();
+        
+        while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+            output.pop_back();
+        }
+        return output.empty() ? "Pulled from origin" : output;
     }
     // Return empty for unknown commands to let base class handle them
     return "";
@@ -267,9 +457,9 @@ void Level04_Remote::DrawDialogueIfNeeded() {
         int dialogY = screenHeight - 180;
         DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
         DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: 项目需要团队协作，需要连接远程仓库。", 120, dialogY + 20, 24, WHITE);
-        DrawChinese("学会 push 分享你的代码，pull 获取他人更新。", 120, dialogY + 50, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始学习远程协作", 120, dialogY + 100, 20, YELLOW);
+        DrawChinese("CTO: 多人开发需要远程仓库。", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("push 上传代码, pull 下载更新。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("按 [空格] 开始", 120, dialogY + 100, 20, YELLOW);
     }
 }
 
@@ -285,6 +475,7 @@ void Level04_Remote::Shutdown() {
 
     try {
         fs::remove_all(repoPath);
+        fs::remove_all(remotePath);
     } catch (...) {}
 }
 
