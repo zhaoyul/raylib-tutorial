@@ -499,9 +499,7 @@ void InternalStructurePanel::Update(float deltaTime) {
     Vector2 mousePos = GetMousePosition();
     Vector2 localMouse = {mousePos.x - bounds.x, mousePos.y - bounds.y};
     
-    // Track if we started dragging within this panel
-    static bool startedDragInPanel = false;
-    
+    // Track if we started dragging within this panel (as member variable)
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         if (CheckCollisionPointRec(mousePos, bounds)) {
             // First check if clicked on expand/collapse button for TREE nodes
@@ -539,29 +537,29 @@ void InternalStructurePanel::Update(float deltaTime) {
                 auto* obj = GetObjectAt(mousePos);
                 if (obj) {
                     SelectObject(obj->hash);
-                    startedDragInPanel = false;  // Selection, not drag
+                    dragState.isDragging = false;  // Selection, not drag
                 } else {
                     viewport.OnDragStart(localMouse);
-                    startedDragInPanel = true;
+                    dragState.isDragging = true;
                 }
             } else {
-                startedDragInPanel = false;
+                dragState.isDragging = false;
             }
         } else {
-            startedDragInPanel = false;
+            dragState.isDragging = false;
         }
     }
     
     // Continue dragging even if mouse leaves panel (more responsive)
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && startedDragInPanel) {
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && dragState.isDragging) {
         viewport.OnDrag(localMouse);
     }
     
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-        if (startedDragInPanel) {
+        if (dragState.isDragging) {
             viewport.OnDragEnd();
         }
-        startedDragInPanel = false;
+        dragState.isDragging = false;
     }
     
     // Only zoom when mouse is over panel

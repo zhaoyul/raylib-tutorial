@@ -620,13 +620,11 @@ void CommitGraphPanel::Update(float deltaTime) {
         }
     }
     
-    // Handle input
+    // Handle input - use member variables instead of static to avoid conflicts
     Vector2 mousePos = GetMousePosition();
     Vector2 localMouse = {mousePos.x - bounds.x, mousePos.y - bounds.y};
     
-    // Track drag state
-    static bool startedDragInPanel = false;
-    static Vector2 dragStartPos = {0, 0};
+    // Track drag state (as member variables to avoid static conflicts)
     const float CLICK_THRESHOLD = 5.0f;  // Max movement to be considered a click
     
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -634,28 +632,28 @@ void CommitGraphPanel::Update(float deltaTime) {
             auto* node = GetNodeAt(mousePos);
             if (node) {
                 SelectNode(node->hash);
-                startedDragInPanel = false;
+                dragState.isDragging = false;
             } else {
                 viewport.OnDragStart(localMouse);
-                startedDragInPanel = true;
-                dragStartPos = mousePos;
+                dragState.isDragging = true;
+                dragState.dragStartPos = mousePos;
             }
         } else {
-            startedDragInPanel = false;
+            dragState.isDragging = false;
         }
     }
     
     // Continue dragging even if mouse leaves panel (more responsive)
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && startedDragInPanel) {
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && dragState.isDragging) {
         viewport.OnDrag(localMouse);
     }
     
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-        if (startedDragInPanel) {
+        if (dragState.isDragging) {
             viewport.OnDragEnd();
             // Check if this was a click (minimal movement)
-            float dx = dragStartPos.x - mousePos.x;
-            float dy = dragStartPos.y - mousePos.y;
+            float dx = dragState.dragStartPos.x - mousePos.x;
+            float dy = dragState.dragStartPos.y - mousePos.y;
             float dragDist = sqrtf(dx*dx + dy*dy);
             if (dragDist < CLICK_THRESHOLD) {
                 // Click on empty space - deselect
@@ -667,7 +665,7 @@ void CommitGraphPanel::Update(float deltaTime) {
                 }
             }
         }
-        startedDragInPanel = false;
+        dragState.isDragging = false;
     }
     
     // Only zoom and hover when mouse is over panel

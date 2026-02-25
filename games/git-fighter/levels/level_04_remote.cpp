@@ -444,6 +444,21 @@ void Level04_Remote::DrawStatusPanel() {
     DrawText(fetched ? "[X] fetch" : "[ ] fetch", 20, 280, 16, fetched ? GREEN : GRAY);
     DrawText(pulled ? "[X] pull" : "[ ] pull", 20, 305, 16, pulled ? GREEN : GRAY);
 
+    // Local / Remote 标注说明
+    DrawRectangle(10, 340, 280, 90, {40, 44, 52, 255});
+    DrawRectangleLines(10, 340, 280, 90, {100, 150, 200, 255});
+    DrawChinese("图例说明:", 20, 350, 18, WHITE);
+    
+    // Local branch indicator (blue)
+    DrawCircle(35, 380, 8, {100, 200, 255, 255});
+    DrawText("master", 50, 375, 14, WHITE);
+    DrawChinese("- 本地分支", 110, 375, 14, LIGHTGRAY);
+    
+    // Remote branch indicator (orange)
+    DrawCircle(35, 405, 8, {255, 150, 100, 255});
+    DrawText("origin/master", 50, 400, 14, WHITE);
+    DrawChinese("- 远程分支", 160, 400, 14, LIGHTGRAY);
+
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
     DrawChinese("remote 管理远程仓库", 20, 635, 16, LIGHTGRAY);

@@ -213,6 +213,12 @@ private:
     DraggableView viewport;
     Rectangle bounds;
     
+    // Drag state (member variable to avoid static conflicts with other panels)
+    struct DragState {
+        bool isDragging = false;
+        Vector2 dragStartPos = {0, 0};
+    } dragState;
+    
     // Animation
     float time;
 };
@@ -263,6 +269,11 @@ private:
     
     DraggableView viewport;
     Rectangle bounds;
+    
+    // Drag state (member variable to avoid static conflicts)
+    struct DragState {
+        bool isDragging = false;
+    } dragState;
     
     // Layout params
     float levelHeight;
