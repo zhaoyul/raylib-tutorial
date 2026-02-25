@@ -108,9 +108,6 @@ bool GitGame::Initialize() {
     
     // Setup command callback to forward to current level
     gitConsole.SetCommandCallback([this](const std::string& cmd) {
-        // Command history is recorded via levelManager callback below
-        // to avoid duplication (ExecuteGitCommand also calls RecordGitCommand)
-        
         if (auto* level = levelManager->GetCurrentLevel()) {
             // Execute command through level and get result
             std::string result = level->ExecuteGitCommand(cmd);

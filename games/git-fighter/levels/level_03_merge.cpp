@@ -58,6 +58,8 @@ void Level03_Merge::CreateRepoWithConflict() {
     git->Init(repoPath);
     git->OpenRepo(repoPath);
     
+    std::cout << "[Level3] Creating repo at: " << repoPath << std::endl;
+    
     // 创建初始文件
     {
         std::ofstream file(repoPath + "/config.txt");
@@ -68,33 +70,66 @@ void Level03_Merge::CreateRepoWithConflict() {
     }
     git->Add(".");
     git->Commit("Initial config");
+    std::cout << "[Level3] Commit 1: Initial config, HEAD=" << git->GetHEAD().substr(0,7) << std::endl;
     
-    // 创建 feature 分支并修改
+    // 关键：先在 master 上创建一个提交，建立分叉的基础
+    {
+        std::ofstream file(repoPath + "/main.cpp");
+        file << "// 主程序 v1.0\nint main() { return 0; }\n";
+    }
+    git->Add(".");
+    auto result = git->Commit("Add main.cpp");
+    std::string mainCommit2 = git->GetHEAD();
+    std::cout << "[Level3] Commit 2: Add main.cpp, HEAD=" << mainCommit2.substr(0,7) << std::endl;
+    std::cout << "[Level3] Current branch: " << git->GetCurrentBranch() << std::endl;
+    
+    // 从 master 分叉创建 feature 分支
     git->CreateBranch("feature");
+    std::cout << "[Level3] Created feature branch from " << mainCommit2.substr(0,7) << std::endl;
+    
+    // 切换到 feature 并提交
     git->Checkout("feature");
+    std::cout << "[Level3] Switched to feature, HEAD=" << git->GetHEAD().substr(0,7) << std::endl;
+    std::cout << "[Level3] Current branch: " << git->GetCurrentBranch() << std::endl;
+    
     {
         std::ofstream file(repoPath + "/config.txt");
         file << "# 配置文件\n"
              << "debug=true\n"
              << "timeout=60\n"
              << "retries=5\n"
-             << "# Feature branch changes\n";
+             << "# Feature changes\n";
     }
     git->Add(".");
-    git->Commit("Update config in feature");
+    git->Commit("Feature: Update config");
+    std::string featureCommit = git->GetHEAD();
+    std::cout << "[Level3] Commit 3 (feature): Update config, HEAD=" << featureCommit.substr(0,7) << std::endl;
     
-    // 回到 main 分支并修改（制造冲突）
-    git->Checkout("main");
+    // 切换回 master 并提交 - 这会创建分叉！
+    result = git->Checkout("master");
+    if (!result.success) {
+        std::cout << "[Level3] ERROR: Failed to checkout master: " << result.error << std::endl;
+    }
+    std::cout << "[Level3] Switched back to master, HEAD=" << git->GetHEAD().substr(0,7) << std::endl;
+    std::cout << "[Level3] Current branch: " << git->GetCurrentBranch() << std::endl;
+    
     {
         std::ofstream file(repoPath + "/config.txt");
         file << "# 配置文件\n"
              << "debug=false\n"
              << "timeout=45\n"
              << "retries=3\n"
-             << "# Main branch changes\n";
+             << "# Main changes\n";
     }
     git->Add(".");
-    git->Commit("Update config in main");
+    git->Commit("Main: Update config");
+    std::string mainCommit3 = git->GetHEAD();
+    std::cout << "[Level3] Commit 4 (master): Update config, HEAD=" << mainCommit3.substr(0,7) << std::endl;
+    
+    // 验证分支指向
+    std::cout << "\n[Level3] Final state:" << std::endl;
+    std::cout << "  master branch should be at: " << mainCommit3.substr(0,7) << std::endl;
+    std::cout << "  feature branch should be at: " << featureCommit.substr(0,7) << std::endl;
     
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
@@ -107,6 +142,20 @@ void Level03_Merge::SyncGraphWithRepo() {
     commitPanel->Clear();
     
     auto commits = git->GetCommitGraph(50);
+    
+    // Debug: print commit graph structure
+    std::cout << "=== Level3 Graph ===" << std::endl;
+    for (int i = 0; i < (int)commits.size() && i < 6; i++) {
+        const auto& c = commits[i];
+        std::cout << i << ": " << c.shortHash();
+        std::cout << " [";
+        for (const auto& b : c.branches) std::cout << b << " ";
+        std::cout << "] parent:";
+        for (const auto& p : c.parents) std::cout << " " << p.substr(0, 7);
+        std::cout << std::endl;
+    }
+    std::cout << "===================" << std::endl;
+    
     for (const auto& c : commits) {
         GitVis::CommitNode node;
         node.hash = c.hash;
@@ -286,9 +335,10 @@ void Level03_Merge::DrawDialogueIfNeeded() {
         int dialogY = screenHeight - 180;
         DrawRectangle(100, dialogY, 1080, 150, {40, 44, 52, 240});
         DrawRectangleLines(100, dialogY, 1080, 150, {100, 150, 200, 255});
-        DrawChinese("CTO: main 与 feature 分支一起修改了 config.txt！", 120, dialogY + 20, 24, WHITE);
-        DrawChinese("尝试合并时会产生冲突，需要手动解决。", 120, dialogY + 50, 22, LIGHTGRAY);
-        DrawChinese("按 [空格] 开始合并挑战", 120, dialogY + 100, 20, YELLOW);
+        DrawChinese("CTO: master 和 feature 分支各自提交了代码！", 120, dialogY + 20, 24, WHITE);
+        DrawChinese("两个分支都修改了 config.txt，形成真正的分叉历史。", 120, dialogY + 50, 22, LIGHTGRAY);
+        DrawChinese("尝试 merge feature 时必然产生冲突，需要手动解决！", 120, dialogY + 80, 22, RED);
+        DrawChinese("按 [空格] 开始合并挑战", 120, dialogY + 110, 20, YELLOW);
     }
 }
 

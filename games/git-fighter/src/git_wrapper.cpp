@@ -112,6 +112,17 @@ GitResult GitWrapper::Commit(const std::string& message) {
         have_parent = 1;
     }
     
+    // Get current branch name for updating
+    std::string update_ref = "HEAD";
+    git_reference* head_ref = nullptr;
+    if (git_repository_head(&head_ref, repo) == 0) {
+        if (git_reference_type(head_ref) == GIT_REFERENCE_SYMBOLIC) {
+            // HEAD points to a branch, use the branch name
+            update_ref = git_reference_name(head_ref);
+        }
+        git_reference_free(head_ref);
+    }
+    
     // Create commit
     git_oid commit_oid;
     int error;
@@ -120,12 +131,12 @@ GitResult GitWrapper::Commit(const std::string& message) {
         git_commit* parent = nullptr;
         git_commit_lookup(&parent, repo, &parent_oid);
         const git_commit* parents[] = {parent};
-        error = git_commit_create(&commit_oid, repo, "HEAD", sig, sig, 
+        error = git_commit_create(&commit_oid, repo, update_ref.c_str(), sig, sig, 
                                    NULL, message.c_str(), tree, 1, parents);
         git_commit_free(parent);
     } else {
         // First commit, no parents
-        error = git_commit_create(&commit_oid, repo, "HEAD", sig, sig,
+        error = git_commit_create(&commit_oid, repo, update_ref.c_str(), sig, sig,
                                    NULL, message.c_str(), tree, 0, NULL);
     }
     

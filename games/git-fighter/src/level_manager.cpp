@@ -69,15 +69,19 @@ std::string Level::ExecuteGitCommand(const std::string& cmd) {
     }
     
     // First, try level-specific command handling (for game progression)
-    // This allows commands like "init", "add", "commit" to drive game state
     std::string levelResult = ProcessLevelCommand(cmd);
     if (!levelResult.empty()) {
         return levelResult;
     }
     
     // If level didn't handle it, parse and execute basic git commands
+    // Use repoPath for operations that need path
     if (cmd == "init") {
-        auto result = git->Init(".");
+        std::string targetPath = repoPath.empty() ? "." : repoPath;
+        auto result = git->Init(targetPath);
+        if (result.success) {
+            git->OpenRepo(targetPath);
+        }
         SyncGraphWithRepo();
         return result.success ? "Initialized empty Git repository" : result.error;
     }
