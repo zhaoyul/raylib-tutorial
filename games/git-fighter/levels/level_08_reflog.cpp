@@ -365,7 +365,7 @@ void Level08_Reflog::DrawStatusPanel() {
         case Stage::VERIFY_RECOVERY: stageText = "验证恢复结果"; break;
         case Stage::COMPLETE: stageText = "完成！"; stageColor = GREEN; break;
     }
-    DrawText(stageText, 20, 130, 18, stageColor);
+    DrawChinese(stageText, 20, 130, 18, stageColor);
 
     // 事故信息
     if (accidentTriggered) {

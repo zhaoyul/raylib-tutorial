@@ -435,7 +435,7 @@ void Level04_Remote::DrawStatusPanel() {
         case Stage::PULL_CHANGES: stageText = "4. pull"; break;
         case Stage::COMPLETE: stageText = "完成!"; break;
     }
-    DrawText(stageText, 20, 130, 18, YELLOW);
+    DrawChinese(stageText, 20, 130, 18, YELLOW);
 
     // 进度指示
     DrawChinese("进度:", 20, 200, 20, GREEN);

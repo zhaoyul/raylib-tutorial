@@ -306,13 +306,13 @@ void Level06_CherryPick::DrawStatusPanel() {
         case Stage::VERIFY_FIX: stageText = "修复完成!"; stageColor = GREEN; break;
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
-    DrawText(stageText, 20, 130, 18, stageColor);
+    DrawChinese(stageText, 20, 130, 18, stageColor);
 
     // 进度
     if (currentStage == Stage::PICKING || currentStage == Stage::VERIFY_FIX) {
         DrawRectangle(10, 170, 280, 120, {40, 60, 40, 255});
         DrawChinese("修复进度:", 20, 180, 18, WHITE);
-        DrawText(("已应用: " + std::to_string(pickedFixes.size())).c_str(), 20, 210, 16, GREEN);
+        DrawChinese(("已应用: " + std::to_string(pickedFixes.size())).c_str(), 20, 210, 16, GREEN);
 
         for (size_t i = 0; i < pickedFixes.size() && i < 3; i++) {
             DrawText(("[OK] " + pickedFixes[i].substr(0, 7)).c_str(), 20, 235 + i*20, 14, {100, 255, 100, 255});

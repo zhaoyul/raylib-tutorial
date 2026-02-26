@@ -291,14 +291,14 @@ void Level05_Rebase::DrawStatusPanel() {
         case Stage::REBASE_COMPLETE: stageText = "rebase 完成!"; stageColor = GREEN; break;
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
-    DrawText(stageText, 20, 130, 18, stageColor);
+    DrawChinese(stageText, 20, 130, 18, stageColor);
 
     // 冲突进度
     if (currentStage == Stage::REBASE_CONFLICT || currentStage == Stage::CONTINUE_REBASE) {
         DrawRectangle(10, 170, 280, 100, {60, 40, 40, 255});
         DrawChinese("冲突解决进度:", 20, 180, 18, WHITE);
-        DrawText(("已解决: " + std::to_string(resolvedCount) + "/" + std::to_string(conflictCount)).c_str(),
-                 20, 210, 16, YELLOW);
+        DrawChinese(("已解决: " + std::to_string(resolvedCount) + "/" + std::to_string(conflictCount)).c_str(),
+                    20, 210, 16, YELLOW);
 
         // 进度条
         float progress = (float)resolvedCount / conflictCount;

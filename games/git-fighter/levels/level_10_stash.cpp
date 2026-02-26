@@ -278,7 +278,7 @@ void Level10_Stash::DrawStatusPanel() {
         case Stage::POP_STASH: stageText = "按 P 恢复"; break;
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
-    DrawText(stageText, 20, 130, 18, stageColor);
+    DrawChinese(stageText, 20, 130, 18, stageColor);
 
     // 工作区状态
     DrawRectangle(10, 170, 280, 180, {40, 45, 55, 255});

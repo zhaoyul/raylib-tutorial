@@ -365,7 +365,7 @@ void Level03_Merge::DrawStatusPanel() {
         case Stage::COMMIT_RESOLUTION: stageText = "提交: commit"; break;
         case Stage::COMPLETE: stageText = "完成!"; break;
     }
-    DrawText(stageText, 20, 130, 18, YELLOW);
+    DrawChinese(stageText, 20, 130, 18, YELLOW);
 
     if (currentStage == Stage::RESOLVE_CONFLICT) {
         DrawRectangle(10, 300, 280, 200, {60, 30, 30, 255});

@@ -141,7 +141,7 @@ void Level01_Visual::Draw() {
 
     // Draw stage progress
     DrawRectangle(350, 20, 880, 50, (Color){240, 240, 245, 255});
-    DrawText("Level 1: 周末加班", 360, 30, 24, DARKGRAY);
+    DrawChinese("Level 1: 周末加班", 360, 30, 24, DARKGRAY);
 
     const char* stageText = "";
     switch (currentStage) {
@@ -151,17 +151,17 @@ void Level01_Visual::Draw() {
         case Stage::WAIT_FIRST_COMMIT: stageText = "等待首次提交..."; break;
         case Stage::COMPLETE: stageText = "完成!"; break;
     }
-    DrawText(stageText, 800, 32, 18, BLUE);
+    DrawChinese(stageText, 800, 32, 18, BLUE);
 
     // Draw hint at bottom
     DrawRectangle(350, 610, 880, 100, (Color){250, 250, 252, 255});
     DrawRectangleLines(350, 610, 880, 100, (Color){200, 200, 200, 255});
 
     if (currentStage == Stage::WAIT_INIT) {
-        DrawText("💡 提示: 按 [I] 执行 git init 初始化仓库", 370, 640, 20, DARKGRAY);
-        DrawText("   或在终端输入: git init", 370, 665, 16, GRAY);
+        DrawChinese("💡 提示: 按 [I] 执行 git init 初始化仓库", 370, 640, 20, DARKGRAY);
+        DrawChinese("   或在终端输入: git init", 370, 665, 16, GRAY);
     } else if (currentStage == Stage::WAIT_FIRST_COMMIT) {
-        DrawText("💡 提示: 按 [A] 添加文件, [C] 提交更改", 370, 640, 20, DARKGRAY);
+        DrawChinese("💡 提示: 按 [A] 添加文件, [C] 提交更改", 370, 640, 20, DARKGRAY);
     }
 }
 
@@ -180,7 +180,7 @@ void Level01_Visual::DrawCommandPanel() {
     int y = 20;
 
     // Title
-    DrawText("Git 命令面板", 20, y, 24, DARKGRAY);
+    DrawChinese("Git 命令面板", 20, y, 24, DARKGRAY);
     y += 50;
 
     // Available commands based on stage
@@ -207,7 +207,7 @@ void Level01_Visual::DrawCommandPanel() {
 
         DrawText(cmd.key, 35, y + 10, 20, textColor);
         DrawText(cmd.name, 100, y + 10, 20, textColor);
-        DrawText(cmd.desc, 35, y + 35, 14, textColor);
+        DrawChinese(cmd.desc, 35, y + 35, 14, textColor);
 
         y += 70;
     }
@@ -217,25 +217,25 @@ void Level01_Visual::DrawCommandPanel() {
     DrawLine(20, y, 320, y, (Color){200, 200, 200, 255});
     y += 20;
 
-    DrawText("当前状态:", 20, y, 18, DARKGRAY);
+    DrawChinese("当前状态:", 20, y, 18, DARKGRAY);
     y += 30;
 
     if (repoInitialized) {
-        DrawText("[OK] 仓库已初始化", 20, y, 16, GREEN);
+        DrawChinese("[OK] 仓库已初始化", 20, y, 16, GREEN);
     } else {
-        DrawText("○ 未初始化", 20, y, 16, GRAY);
+        DrawChinese("○ 未初始化", 20, y, 16, GRAY);
     }
     y += 25;
 
     if (firstCommitDone) {
-        DrawText("[OK] 首次提交完成", 20, y, 16, GREEN);
+        DrawChinese("[OK] 首次提交完成", 20, y, 16, GREEN);
     } else if (repoInitialized) {
-        DrawText("○ 等待提交", 20, y, 16, ORANGE);
+        DrawChinese("○ 等待提交", 20, y, 16, ORANGE);
     }
 
     // File status
     y += 50;
-    DrawText("文件状态:", 20, y, 18, DARKGRAY);
+    DrawChinese("文件状态:", 20, y, 18, DARKGRAY);
     y += 30;
 
     if (currentStage >= Stage::WAIT_FIRST_COMMIT) {
@@ -255,11 +255,11 @@ void Level01_Visual::DrawDialoguePanel() {
     DrawText("CTO", 65, 635, 18, WHITE);
 
     // Dialogue text
-    DrawText(dialogueCTO, 150, 610, 24, WHITE);
+    DrawChinese(dialogueCTO, 150, 610, 24, WHITE);
 
     // Continue hint
     if (timer > 1.0f) {
-        DrawText("按 [空格] 继续...", 1100, 690, 16, LIGHTGRAY);
+        DrawChinese("按 [空格] 继续...", 1100, 690, 16, LIGHTGRAY);
     }
 }
 

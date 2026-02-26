@@ -288,20 +288,20 @@ void Level07_Bisect::DrawStatusPanel() {
         case Stage::FOUND_CULPRIT: stageText = "找到了!"; stageColor = {255, 100, 255, 255}; break;
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
-    DrawText(stageText, 20, 130, 18, stageColor);
+    DrawChinese(stageText, 20, 130, 18, stageColor);
 
     // 进度统计
     if (currentStage != Stage::INTRO && currentStage != Stage::START_BISECT) {
         DrawRectangle(10, 170, 280, 150, {40, 40, 50, 255});
         DrawChinese("搜索进度:", 20, 180, 18, WHITE);
-        DrawText(("步数: " + std::to_string(stepsTaken) + "/" + std::to_string(maxSteps)).c_str(),
-                 20, 210, 16, YELLOW);
-        DrawText(("范围: " + std::to_string(goodIndex + 1) + " - " + std::to_string(badIndex + 1)).c_str(),
-                 20, 240, 16, LIGHTGRAY);
+        DrawChinese(("步数: " + std::to_string(stepsTaken) + "/" + std::to_string(maxSteps)).c_str(),
+                    20, 210, 16, YELLOW);
+        DrawChinese(("范围: " + std::to_string(goodIndex + 1) + " - " + std::to_string(badIndex + 1)).c_str(),
+                    20, 240, 16, LIGHTGRAY);
 
         if (currentTestIndex >= 0) {
-            DrawText(("当前测试: #" + std::to_string(currentTestIndex + 1)).c_str(),
-                     20, 270, 16, {100, 200, 255, 255});
+            DrawChinese(("当前测试: #" + std::to_string(currentTestIndex + 1)).c_str(),
+                        20, 270, 16, {100, 200, 255, 255});
         }
     }
 

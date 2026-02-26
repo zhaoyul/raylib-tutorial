@@ -308,7 +308,7 @@ void Level09_Interactive::DrawStatusPanel() {
         case Stage::VERIFY_RESULT: stageText = "验证完成"; stageColor = GREEN; break;
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
-    DrawText(stageText, 20, 130, 18, stageColor);
+    DrawChinese(stageText, 20, 130, 18, stageColor);
 
     // 统计
     if (currentStage == Stage::PLAN_REBASE ||
@@ -316,8 +316,8 @@ void Level09_Interactive::DrawStatusPanel() {
         currentStage == Stage::VERIFY_RESULT) {
         DrawRectangle(10, 170, 280, 150, {40, 45, 55, 255});
         DrawChinese("整理统计:", 20, 180, 18, WHITE);
-        DrawText(("原始: " + std::to_string(originalCount) + " commits").c_str(), 20, 210, 16, LIGHTGRAY);
-        DrawText(("预计: " + std::to_string(finalCount) + " commits").c_str(), 20, 235, 16, GREEN);
+        DrawChinese(("原始: " + std::to_string(originalCount) + " commits").c_str(), 20, 210, 16, LIGHTGRAY);
+        DrawChinese(("预计: " + std::to_string(finalCount) + " commits").c_str(), 20, 235, 16, GREEN);
         DrawText(("Squash: " + std::to_string(squashedCount)).c_str(), 20, 260, 14, {100, 255, 150, 255});
         DrawText(("Drop: " + std::to_string(droppedCount)).c_str(), 20, 280, 14, {255, 100, 100, 255});
     }
