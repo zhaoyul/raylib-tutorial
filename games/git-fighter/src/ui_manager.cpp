@@ -1,5 +1,27 @@
 #include "ui_manager.h"
+#include "chinese_font_loader.h"
 #include <cstring>
+
+namespace {
+Font s_uiManagerChineseFont = {};
+bool s_uiManagerChineseFontLoaded = false;
+bool s_uiManagerChineseFontInit = false;
+}
+
+void EnsureUIManagerChineseFont() {
+    if (s_uiManagerChineseFontInit) return;
+    s_uiManagerChineseFontInit = true;
+    s_uiManagerChineseFontLoaded = GitFighter::FontSupport::LoadChineseFont(s_uiManagerChineseFont, 20);
+}
+
+void DrawLocalizedText(const char* text, int x, int y, int size, Color color) {
+    EnsureUIManagerChineseFont();
+    if (s_uiManagerChineseFontLoaded && GitFighter::FontSupport::ContainsChinese(text)) {
+        DrawTextEx(s_uiManagerChineseFont, text, {(float)x, (float)y}, (float)size, 1.0f, color);
+    } else {
+        DrawText(text, x, y, size, color);
+    }
+}
 
 CommandInput::CommandInput() : submitted(false), cursorTimer(0), showCursor(true) {}
 
@@ -33,10 +55,10 @@ void CommandInput::Draw(int x, int y, int width, int height) {
     DrawRectangleLines(x, y, width, height, (Color){100, 150, 200, 255});
 
     // Prompt
-    DrawText("$ ", x + 10, y + 10, 24, (Color){100, 200, 100, 255});
+    DrawLocalizedText("$ ", x + 10, y + 10, 24, (Color){100, 200, 100, 255});
 
     // Command text
-    DrawText(currentCommand.c_str(), x + 40, y + 10, 24, WHITE);
+    DrawLocalizedText(currentCommand.c_str(), x + 40, y + 10, 24, WHITE);
 
     // Cursor
     if (showCursor) {
@@ -45,7 +67,7 @@ void CommandInput::Draw(int x, int y, int width, int height) {
     }
 
     // Hint
-    DrawText("输入 git 命令 (或按快捷键)", x + 10, y + height - 20, 16, GRAY);
+    DrawLocalizedText("输入 git 命令 (或按快捷键)", x + 10, y + height - 20, 16, GRAY);
 }
 
 void CommandInput::Clear() {
@@ -78,7 +100,7 @@ void UIManager::Draw() {
         DrawText(dialogueText.c_str(), 150, 630, 24, WHITE);
 
         // Continue hint
-        DrawText("按 [空格] 继续...", 1100, 690, 16, LIGHTGRAY);
+        DrawLocalizedText("按 [空格] 继续...", 1100, 690, 16, LIGHTGRAY);
     }
 }
 

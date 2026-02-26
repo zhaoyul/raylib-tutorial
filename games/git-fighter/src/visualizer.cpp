@@ -1,4 +1,26 @@
 #include "visualizer.h"
+#include "chinese_font_loader.h"
+
+namespace {
+Font s_visualizerChineseFont = {0};
+bool s_visualizerChineseFontLoaded = false;
+bool s_visualizerChineseFontInit = false;
+
+void EnsureVisualizerChineseFont() {
+    if (s_visualizerChineseFontInit) return;
+    s_visualizerChineseFontInit = true;
+    s_visualizerChineseFontLoaded = GitFighter::FontSupport::LoadChineseFont(s_visualizerChineseFont, 20);
+}
+
+void DrawLocalizedText(const char* text, int x, int y, int size, Color color) {
+    EnsureVisualizerChineseFont();
+    if (s_visualizerChineseFontLoaded && GitFighter::FontSupport::ContainsChinese(text)) {
+        DrawTextEx(s_visualizerChineseFont, text, {(float)x, (float)y}, (float)size, 1.0f, color);
+    } else {
+        DrawText(text, x, y, size, color);
+    }
+}
+}
 
 GitVisualizer::GitVisualizer()
     : animationTime(0), animating(false), animationType(0) {}
@@ -10,7 +32,7 @@ void GitVisualizer::DrawCommitGraph(int centerX, int centerY, int width, int hei
     DrawRectangle(centerX - width/2, centerY - height/2, width, height, (Color){45, 45, 55, 255});
     DrawRectangleLines(centerX - width/2, centerY - height/2, width, height, (Color){100, 100, 120, 255});
 
-    DrawText("提交历史图", centerX - width/2 + 10, centerY - height/2 + 10, 20, LIGHTGRAY);
+    DrawLocalizedText("提交历史图", centerX - width/2 + 10, centerY - height/2 + 10, 20, LIGHTGRAY);
 
     // Draw sample nodes (placeholder)
     int startX = centerX - width/2 + 40;
@@ -67,13 +89,13 @@ void GitVisualizer::DrawFileStatus(int x, int y, const std::string& filename, in
 void GitVisualizer::DrawWorkingDirectory(int x, int y, int width, int height) {
     DrawRectangle(x, y, width, height, WHITE);
     DrawRectangleLines(x, y, width, height, (Color){200, 200, 200, 255});
-    DrawText("工作区 (Working Directory)", x + 10, y + 10, 18, DARKGRAY);
+    DrawLocalizedText("工作区 (Working Directory)", x + 10, y + 10, 18, DARKGRAY);
 }
 
 void GitVisualizer::DrawStagingArea(int x, int y, int width, int height) {
     DrawRectangle(x, y, width, height, (Color){250, 252, 240, 255});
     DrawRectangleLines(x, y, width, height, (Color){180, 200, 180, 255});
-    DrawText("暂存区 (Staging Area)", x + 10, y + 10, 18, DARKGRAY);
+    DrawLocalizedText("暂存区 (Staging Area)", x + 10, y + 10, 18, DARKGRAY);
 }
 
 void GitVisualizer::UpdateAnimation(float deltaTime) {

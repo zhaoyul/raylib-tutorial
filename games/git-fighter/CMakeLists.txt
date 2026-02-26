@@ -27,6 +27,7 @@ add_executable(git-fighter
     src/game.cpp
     src/level_manager.cpp
     src/level_font.cpp
+    src/chinese_font_loader.cpp
     src/git_wrapper.cpp
     src/visualizer.cpp
     src/ui_manager.cpp

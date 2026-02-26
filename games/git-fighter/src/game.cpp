@@ -1,5 +1,6 @@
 #include "game.h"
 #include "level_manager.h"
+#include "chinese_font_loader.h"
 #include <iostream>
 #include <cstdlib>
 #include <filesystem>
@@ -26,38 +27,8 @@ static void CleanupTempDirectories() {
 
 // GameFont implementation
 void GameFont::Load() {
-    hasChineseFont = false;
-
-    // Try multiple possible paths
-    const char* paths[] = {
-        "data/fonts/NotoSansCJKsc-Regular.otf",
-        "../data/fonts/NotoSansCJKsc-Regular.otf",
-        "../../data/fonts/NotoSansCJKsc-Regular.otf",
-    };
-
-    const char* fontPath = nullptr;
-    for (const auto& p : paths) {
-        if (FileExists(p)) {
-            fontPath = p;
-            break;
-        }
-    }
-
-    if (!fontPath) {
-        TraceLog(LOG_WARNING, "Chinese font not found in any standard path");
-        return;
-    }
-
-    // Generate codepoints for Chinese (ASCII + CJK)
-    int codepoints[20000];
-    int idx = 0;
-    for (int cp = 0x0020; cp <= 0x007E; cp++) codepoints[idx++] = cp;
-    for (int cp = 0x4E00; cp <= 0x8FFF; cp++) codepoints[idx++] = cp;
-
-    chineseFont = LoadFontEx(fontPath, 48, codepoints, idx);
-
-    if (chineseFont.texture.id != 0 && chineseFont.glyphCount > 1000) {
-        hasChineseFont = true;
+    hasChineseFont = GitFighter::FontSupport::LoadChineseFont(chineseFont, 48);
+    if (hasChineseFont) {
         TraceLog(LOG_INFO, "Chinese font loaded: %d glyphs", chineseFont.glyphCount);
     } else {
         TraceLog(LOG_WARNING, "Failed to load Chinese font properly");
