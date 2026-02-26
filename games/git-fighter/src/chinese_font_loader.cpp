@@ -182,6 +182,7 @@ bool LoadChineseFont(Font& font, int baseFontSize) {
 
     std::vector<std::string> candidates;
     std::unordered_set<std::string> seen;
+    const char* home = std::getenv("HOME");
 
 #if defined(_WIN32)
         const char* systemFonts[] = {
@@ -227,7 +228,6 @@ bool LoadChineseFont(Font& font, int baseFontSize) {
             AddCandidate(candidates, path, seen);
         }
 
-        const char* home = std::getenv("HOME");
         if (home) {
             AddSystemFontCandidatesFromDirectory(std::filesystem::path(home) / "Library/Fonts", candidates, seen);
         }
@@ -251,7 +251,6 @@ bool LoadChineseFont(Font& font, int baseFontSize) {
             AddCandidate(candidates, path, seen);
         }
 
-        const char* home = std::getenv("HOME");
         if (home) {
             AddSystemFontCandidatesFromDirectory(std::filesystem::path(home) / ".fonts", candidates, seen);
             AddSystemFontCandidatesFromDirectory(std::filesystem::path(home) / ".local/share/fonts", candidates, seen);
@@ -263,7 +262,6 @@ bool LoadChineseFont(Font& font, int baseFontSize) {
 #endif
 
     // 兜底：如果上面都没能匹配到可用字体，再宽泛扫描系统字体目录。
-    const char* home = std::getenv("HOME");
     if (home) {
         AddSystemFontFallbackCandidates(
             std::filesystem::path(home) / "Library/Fonts",
