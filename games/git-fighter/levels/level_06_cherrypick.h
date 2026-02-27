@@ -45,6 +45,7 @@ private:
     std::vector<std::string> availableFixes;    // 可选的修复 commits
     std::vector<std::string> selectedFixes;     // 已选择的
     std::vector<std::string> pickedFixes;       // 已成功的
+    std::string pendingConflictHash;            // 当前发生冲突的 commit
     int currentPickIndex;
     bool hasConflict;
 

@@ -305,6 +305,39 @@ void Level07_Bisect::DrawStatusPanel() {
         }
     }
 
+    // 步骤清单：提示当前 bisect 所处环节
+    DrawRectangle(10, 350, 280, 190, {35, 40, 50, 255});
+    DrawRectangleLines(10, 350, 280, 190, {100, 150, 200, 255});
+    DrawChinese("通关步骤:", 20, 360, 18, {100, 200, 255, 255});
+
+    bool stepIntroDone = (currentStage != Stage::INTRO);
+    bool stepBeginDone = (currentStage != Stage::INTRO && currentStage != Stage::START_BISECT);
+    bool stepTestDone = (stepsTaken > 0 || currentStage == Stage::FOUND_CULPRIT || currentStage == Stage::COMPLETE);
+    bool stepMarkDone = (stepsTaken > 0 || currentStage == Stage::FOUND_CULPRIT || currentStage == Stage::COMPLETE);
+    bool stepFoundDone = (currentStage == Stage::FOUND_CULPRIT || currentStage == Stage::COMPLETE);
+    bool stepCompleteDone = (currentStage == Stage::COMPLETE);
+
+    bool stepIntroActive = (currentStage == Stage::INTRO);
+    bool stepBeginActive = (currentStage == Stage::START_BISECT);
+    bool stepTestActive = (currentStage == Stage::TESTING_COMMIT);
+    bool stepMarkActive = (currentStage == Stage::MARK_GOOD || currentStage == Stage::MARK_BAD);
+    bool stepFoundActive = (currentStage == Stage::FOUND_CULPRIT);
+    bool stepCompleteActive = (currentStage == Stage::FOUND_CULPRIT);
+
+    auto drawStep = [&](int y, const char* label, bool done, bool active) {
+        const char* status = done ? "[x]" : "[ ]";
+        Color color = done ? GREEN : (active ? YELLOW : LIGHTGRAY);
+        std::string line = std::string(status) + " " + label;
+        DrawChinese(line.c_str(), 20, y, 15, color);
+    };
+
+    drawStep(388, "开始挑战 (空格)", stepIntroDone, stepIntroActive);
+    drawStep(412, "启动 bisect (B)", stepBeginDone, stepBeginActive);
+    drawStep(436, "测试提交 (T)", stepTestDone, stepTestActive);
+    drawStep(460, "标记结果 (G/X)", stepMarkDone, stepMarkActive);
+    drawStep(484, "定位 culprit", stepFoundDone, stepFoundActive);
+    drawStep(508, "通关 (空格)", stepCompleteDone, stepCompleteActive);
+
     // 图例
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("图例:", 20, 610, 18, {100, 200, 255, 255});

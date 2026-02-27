@@ -3,6 +3,8 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
+#include <unordered_set>
 
 namespace fs = std::filesystem;
 
@@ -23,6 +25,7 @@ void Level06_CherryPick::Initialize() {
     stageComplete = false;
     currentPickIndex = 0;
     hasConflict = false;
+    pendingConflictHash.clear();
     availableFixes.clear();
     selectedFixes.clear();
     pickedFixes.clear();
@@ -132,6 +135,17 @@ void Level06_CherryPick::CreateProductionScenario() {
             availableFixes.push_back(c.hash);
         }
     }
+    // revwalk 默认是新到旧；关卡里按 1/2 时希望先应用较早修复，降低冲突概率
+    std::reverse(availableFixes.begin(), availableFixes.end());
+    std::unordered_set<std::string> seenFixes;
+    std::vector<std::string> dedupedFixes;
+    dedupedFixes.reserve(availableFixes.size());
+    for (const auto& h : availableFixes) {
+        if (seenFixes.insert(h).second) {
+            dedupedFixes.push_back(h);
+        }
+    }
+    availableFixes.swap(dedupedFixes);
 
     SyncGraphWithRepo();
     splitView->GetStructurePanel()->ScanWorkingDirectory(repoPath);
@@ -191,30 +205,45 @@ void Level06_CherryPick::SyncGraphWithRepo() {
 
 std::string Level06_CherryPick::ProcessLevelCommand(const std::string& cmd) {
     RecordGitCommand(cmd);
-    if (cmd.rfind("cherry-pick", 0) == 0 && currentStage == Stage::SELECT_COMMITS) {
+    if (cmd.rfind("cherry-pick", 0) == 0 &&
+        (currentStage == Stage::SELECT_COMMITS || currentStage == Stage::PICKING)) {
         std::string hash = cmd.substr(12);
         if (!hash.empty()) {
-            selectedFixes.push_back(hash);
+            if (std::find(pickedFixes.begin(), pickedFixes.end(), hash) != pickedFixes.end()) {
+                currentStage = Stage::PICKING;
+                return "Already cherry-picked " + hash.substr(0, 7);
+            }
+
+            if (std::find(selectedFixes.begin(), selectedFixes.end(), hash) == selectedFixes.end()) {
+                selectedFixes.push_back(hash);
+            }
             currentStage = Stage::PICKING;
 
             auto result = git->CherryPick(hash);
             if (result.success) {
                 pickedFixes.push_back(hash);
+                pendingConflictHash.clear();
                 SyncGraphWithRepo();
                 return "Cherry-picked " + hash.substr(0, 7);
             } else {
                 hasConflict = true;
+                pendingConflictHash = hash;
                 currentStage = Stage::HANDLE_CONFLICT;
-                return "Cherry-pick conflict";
+                return "Cherry-pick conflict on " + hash.substr(0, 7);
             }
         }
     }
     else if (cmd == "resolve" && currentStage == Stage::HANDLE_CONFLICT) {
         hasConflict = false;
-        currentStage = Stage::PICKING;
-        return "Resolved conflict";
+        // 引导玩家重新选择提交，避免停在“已应用 0”但无法继续的状态
+        currentStage = Stage::SELECT_COMMITS;
+        return "Conflict marked resolved, choose another fix (1/2)";
     }
     else if (cmd == "done" && currentStage == Stage::PICKING) {
+        if (pickedFixes.empty()) {
+            currentStage = Stage::SELECT_COMMITS;
+            return "No fixes applied yet, choose one with 1/2 first";
+        }
         currentStage = Stage::VERIFY_FIX;
         return "Done picking";
     }
@@ -253,8 +282,8 @@ void Level06_CherryPick::Update(float deltaTime) {
         currentStage = Stage::SELECT_COMMITS;
     }
 
-    // 数字键选择 commits
-    if (currentStage == Stage::SELECT_COMMITS) {
+    // 数字键选择 commits：在选择阶段和应用阶段都可继续选择
+    if (currentStage == Stage::SHOW_COMMITS || currentStage == Stage::SELECT_COMMITS || currentStage == Stage::PICKING) {
         if (IsKeyPressed(KEY_ONE) && availableFixes.size() > 0) {
             ProcessLevelCommand("cherry-pick " + availableFixes[0]);
         }
@@ -299,11 +328,11 @@ void Level06_CherryPick::DrawStatusPanel() {
     Color stageColor = YELLOW;
     switch (currentStage) {
         case Stage::INTRO: stageText = "按空格开始"; break;
-        case Stage::SHOW_COMMITS: stageText = "按 C 选择"; break;
-        case Stage::SELECT_COMMITS: stageText = "选择修复"; break;
-        case Stage::PICKING: stageText = "执行中..."; break;
-        case Stage::HANDLE_CONFLICT: stageText = "有冲突!"; stageColor = RED; break;
-        case Stage::VERIFY_FIX: stageText = "修复完成!"; stageColor = GREEN; break;
+        case Stage::SHOW_COMMITS: stageText = "按 C 或 1/2 选择修复"; break;
+        case Stage::SELECT_COMMITS: stageText = "按 1/2 应用修复"; break;
+        case Stage::PICKING: stageText = "可继续按 1/2，按回车完成"; break;
+        case Stage::HANDLE_CONFLICT: stageText = "冲突! 按 F 返回选择"; stageColor = RED; break;
+        case Stage::VERIFY_FIX: stageText = "修复完成! 按空格通关"; stageColor = GREEN; break;
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
     DrawChinese(stageText, 20, 130, 18, stageColor);
@@ -320,14 +349,54 @@ void Level06_CherryPick::DrawStatusPanel() {
     }
 
     // 提示
-    DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
+    DrawRectangle(10, 560, 280, 140, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
-    if (currentStage == Stage::SELECT_COMMITS) {
+    if (currentStage == Stage::SHOW_COMMITS) {
+        DrawChinese("C: 打开修复列表", 20, 635, 16, LIGHTGRAY);
+        DrawChinese("或直接按 1/2 选修复", 20, 655, 16, LIGHTGRAY);
+    } else if (currentStage == Stage::SELECT_COMMITS) {
         DrawChinese("1/2: 选择修复", 20, 635, 16, LIGHTGRAY);
-        DrawChinese("只挑需要的 commit", 20, 655, 16, LIGHTGRAY);
+        DrawChinese("只挑 CRITICAL 提交", 20, 655, 16, LIGHTGRAY);
     } else if (currentStage == Stage::PICKING) {
-        DrawChinese("Enter: 完成", 20, 635, 16, LIGHTGRAY);
+        DrawChinese("1/2: 可继续应用", 20, 635, 16, LIGHTGRAY);
+        DrawChinese("Enter: 完成并验证", 20, 655, 16, LIGHTGRAY);
+    } else if (currentStage == Stage::HANDLE_CONFLICT) {
+        DrawChinese("F: 标记冲突已解决", 20, 635, 16, LIGHTGRAY);
+        DrawChinese("返回后按 1/2 选其他修复", 20, 655, 16, LIGHTGRAY);
+    } else if (currentStage == Stage::VERIFY_FIX) {
+        DrawChinese("空格: 进入完成状态", 20, 635, 16, LIGHTGRAY);
+        DrawChinese("你可以继续查看图谱变化", 20, 655, 16, LIGHTGRAY);
     }
+
+    // 步骤清单：明确当前关卡的最短通关路径
+    DrawRectangle(10, 350, 280, 190, {35, 40, 50, 255});
+    DrawRectangleLines(10, 350, 280, 190, {100, 150, 200, 255});
+    DrawChinese("通关步骤:", 20, 360, 18, {100, 200, 255, 255});
+
+    bool stepOpenListDone = (currentStage != Stage::INTRO && currentStage != Stage::SHOW_COMMITS) || !pickedFixes.empty();
+    bool stepPickFixDone = !pickedFixes.empty();
+    bool stepResolveDone = !hasConflict;
+    bool stepVerifyDone = (currentStage == Stage::VERIFY_FIX || currentStage == Stage::COMPLETE);
+    bool stepCompleteDone = (currentStage == Stage::COMPLETE);
+
+    bool stepOpenListActive = !stepOpenListDone;
+    bool stepPickFixActive = stepOpenListDone && !stepPickFixDone;
+    bool stepResolveActive = stepPickFixDone && hasConflict;
+    bool stepVerifyActive = stepPickFixDone && stepResolveDone && !stepVerifyDone;
+    bool stepCompleteActive = stepVerifyDone && !stepCompleteDone;
+
+    auto drawStep = [&](int y, const char* label, bool done, bool active) {
+        const char* status = done ? "[x]" : "[ ]";
+        Color color = done ? GREEN : (active ? YELLOW : LIGHTGRAY);
+        std::string line = std::string(status) + " " + label;
+        DrawChinese(line.c_str(), 20, y, 15, color);
+    };
+
+    drawStep(388, "打开列表 (C)", stepOpenListDone, stepOpenListActive);
+    drawStep(416, "应用修复 (1/2)", stepPickFixDone, stepPickFixActive);
+    drawStep(444, "处理冲突 (F, 如有)", stepResolveDone, stepResolveActive);
+    drawStep(472, "完成验证 (Enter)", stepVerifyDone, stepVerifyActive);
+    drawStep(500, "通关 (空格)", stepCompleteDone, stepCompleteActive);
 }
 
 void Level06_CherryPick::DrawCommitSelector() {
@@ -377,7 +446,7 @@ void Level06_CherryPick::DrawDialogueIfNeeded() {
         DrawRectangle(100, dialogY, 1080, 100, {40, 40, 60, 240});
         DrawRectangleLines(100, dialogY, 1080, 100, {100, 150, 200, 255});
         DrawChinese("main 分支是稳定的生产版本，dev 分支上有新功能和修复。", 120, dialogY + 30, 22, WHITE);
-        DrawChinese("我们需要用 cherry-pick 只把修复应用到 main。", 120, dialogY + 60, 20, YELLOW);
+        DrawChinese("按 [C] 后用 [1]/[2] 选择修复，再按 [Enter] 完成。", 120, dialogY + 60, 20, YELLOW);
     }
     else if (currentStage == Stage::SELECT_COMMITS) {
         DrawRectangle(100, dialogY, 1080, 100, {60, 60, 40, 240});
@@ -385,11 +454,27 @@ void Level06_CherryPick::DrawDialogueIfNeeded() {
         DrawChinese("选择标记为 CRITICAL 的修复提交，不要选新功能！", 120, dialogY + 30, 24, YELLOW);
         DrawChinese("按 [1] 或 [2] 应用对应的修复", 120, dialogY + 60, 20, WHITE);
     }
+    else if (currentStage == Stage::PICKING) {
+        DrawRectangle(100, dialogY, 1080, 110, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 110, {100, 200, 100, 255});
+        DrawChinese("修复已应用到 main。你可以继续按 [1]/[2] 追加修复。", 120, dialogY + 25, 22, WHITE);
+        DrawChinese("完成后按 [Enter] 进入验证，再按 [空格] 通关。", 120, dialogY + 60, 20, YELLOW);
+    }
+    else if (currentStage == Stage::HANDLE_CONFLICT) {
+        DrawRectangle(100, dialogY, 1080, 100, {70, 35, 35, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, RED);
+        std::string conflictTitle = "cherry-pick 冲突";
+        if (!pendingConflictHash.empty()) {
+            conflictTitle += ": " + pendingConflictHash.substr(0, 7);
+        }
+        DrawChinese(conflictTitle.c_str(), 120, dialogY + 30, 24, RED);
+        DrawChinese("按 [F] 后回到选择界面，建议先试另一个修复。", 120, dialogY + 60, 20, WHITE);
+    }
     else if (currentStage == Stage::VERIFY_FIX) {
         DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
         DrawRectangleLines(100, dialogY, 1080, 100, GREEN);
         DrawChinese("CTO: 完美！cherry-pick 让我们只应用了必要的修复。", 120, dialogY + 20, 24, GREEN);
-        DrawChinese("生产环境已修复，新功能还在 dev 分支等待发布。", 120, dialogY + 50, 20, WHITE);
+        DrawChinese("生产环境已修复，新功能还在 dev 分支等待发布。按 [空格] 通关。", 120, dialogY + 50, 20, WHITE);
     }
 }
 

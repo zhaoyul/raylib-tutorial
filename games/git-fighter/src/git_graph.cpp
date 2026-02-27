@@ -381,14 +381,22 @@ void GitGraphRenderer::DrawNodes() {
         DrawCircle(pos.x, pos.y, r * 0.7f,
                    {40, 44, 52, (unsigned char)(255 * node.alpha)});
 
-        // Draw hash abbreviation
-        float fontSize = 12 * zoomLevel;
+        // Draw hash abbreviation with minimum font size and shadow for readability
+        int fontSize = (int)(12 * zoomLevel);
+        if (fontSize < 12) fontSize = 12;
+        if (fontSize > 18) fontSize = 18;
+
         int textWidth = MeasureText(node.shortHash.c_str(), fontSize);
-        DrawText(node.shortHash.c_str(),
-                 pos.x - textWidth / 2,
-                 pos.y - fontSize / 2,
-                 fontSize,
-                 {200, 200, 200, (unsigned char)(255 * node.alpha)});
+        int textX = (int)(pos.x - textWidth / 2);
+        int textY = (int)(pos.y - fontSize / 2);
+        unsigned char baseA = (unsigned char)(255 * node.alpha);
+        unsigned char shadowA = (unsigned char)(180 * node.alpha);
+
+        DrawText(node.shortHash.c_str(), textX + 1, textY + 1, fontSize, {0, 0, 0, shadowA});
+        DrawText(node.shortHash.c_str(), textX - 1, textY, fontSize, {0, 0, 0, shadowA});
+        DrawText(node.shortHash.c_str(), textX + 1, textY, fontSize, {0, 0, 0, shadowA});
+        DrawText(node.shortHash.c_str(), textX, textY - 1, fontSize, {0, 0, 0, shadowA});
+        DrawText(node.shortHash.c_str(), textX, textY, fontSize, {245, 245, 245, baseA});
 
         // Draw selection ring
         if (node.hash == selectedHash) {

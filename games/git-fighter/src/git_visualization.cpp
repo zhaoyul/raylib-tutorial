@@ -800,13 +800,16 @@ void CommitGraphPanel::DrawNodes() {
         // Inner circle
         DrawCircle(screenPos.x, screenPos.y, r * 0.7f, {40, 44, 52, 255});
         
-        // Hash text - fixed font size
-        int fontSize = 12;
+        // Hash text: larger size + shadow for better readability on dense backgrounds
+        int fontSize = 14;
         int textW = MeasureText(node.shortHash.c_str(), fontSize);
-        DrawText(node.shortHash.c_str(), 
-                (int)(screenPos.x - textW/2), 
-                (int)(screenPos.y - fontSize/2),
-                fontSize, WHITE);
+        int textX = (int)(screenPos.x - textW / 2);
+        int textY = (int)(screenPos.y - fontSize / 2);
+        DrawText(node.shortHash.c_str(), textX + 1, textY + 1, fontSize, {0, 0, 0, 220});
+        DrawText(node.shortHash.c_str(), textX - 1, textY, fontSize, {0, 0, 0, 180});
+        DrawText(node.shortHash.c_str(), textX + 1, textY, fontSize, {0, 0, 0, 180});
+        DrawText(node.shortHash.c_str(), textX, textY - 1, fontSize, {0, 0, 0, 180});
+        DrawText(node.shortHash.c_str(), textX, textY, fontSize, {245, 245, 245, 255});
     }
 }
 

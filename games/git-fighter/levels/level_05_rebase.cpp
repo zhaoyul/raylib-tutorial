@@ -306,6 +306,36 @@ void Level05_Rebase::DrawStatusPanel() {
         DrawRectangleLines(20, 240, 260, 20, WHITE);
     }
 
+    // 步骤清单：降低操作路径歧义
+    DrawRectangle(10, 350, 280, 190, {35, 40, 50, 255});
+    DrawRectangleLines(10, 350, 280, 190, {100, 150, 200, 255});
+    DrawChinese("通关步骤:", 20, 360, 18, {100, 200, 255, 255});
+
+    bool stepIntroDone = (currentStage != Stage::INTRO);
+    bool stepRebaseDone = (currentStage != Stage::INTRO && currentStage != Stage::SHOW_BRANCHES);
+    bool stepConflictDone = conflictResolved || currentStage == Stage::REBASE_COMPLETE || currentStage == Stage::COMPLETE;
+    bool stepContinueDone = (currentStage == Stage::REBASE_COMPLETE || currentStage == Stage::COMPLETE);
+    bool stepCompleteDone = (currentStage == Stage::COMPLETE);
+
+    bool stepIntroActive = !stepIntroDone;
+    bool stepRebaseActive = (currentStage == Stage::SHOW_BRANCHES);
+    bool stepConflictActive = (currentStage == Stage::START_REBASE || currentStage == Stage::REBASE_CONFLICT);
+    bool stepContinueActive = (currentStage == Stage::CONTINUE_REBASE);
+    bool stepCompleteActive = (currentStage == Stage::REBASE_COMPLETE);
+
+    auto drawStep = [&](int y, const char* label, bool done, bool active) {
+        const char* status = done ? "[x]" : "[ ]";
+        Color color = done ? GREEN : (active ? YELLOW : LIGHTGRAY);
+        std::string line = std::string(status) + " " + label;
+        DrawChinese(line.c_str(), 20, y, 15, color);
+    };
+
+    drawStep(388, "开始挑战 (空格)", stepIntroDone, stepIntroActive);
+    drawStep(416, "启动 rebase (R)", stepRebaseDone, stepRebaseActive);
+    drawStep(444, "处理冲突 (C -> F)", stepConflictDone, stepConflictActive);
+    drawStep(472, "继续 rebase (Enter)", stepContinueDone, stepContinueActive);
+    drawStep(500, "通关 (空格)", stepCompleteDone, stepCompleteActive);
+
     // 说明
     DrawRectangle(10, 600, 280, 100, {50, 50, 60, 255});
     DrawChinese("提示:", 20, 610, 18, {100, 200, 255, 255});
