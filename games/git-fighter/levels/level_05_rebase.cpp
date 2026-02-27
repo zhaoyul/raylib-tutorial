@@ -284,10 +284,10 @@ void Level05_Rebase::DrawStatusPanel() {
     switch (currentStage) {
         case Stage::INTRO: stageText = "按空格开始"; break;
         case Stage::SHOW_BRANCHES: stageText = "按 R 开始 rebase"; break;
-        case Stage::START_REBASE: stageText = "rebase 开始"; break;
-        case Stage::REBASE_CONFLICT: stageText = "有冲突! 按 F"; stageColor = RED; break;
+        case Stage::START_REBASE: stageText = "已开始，按 C 进入冲突"; break;
+        case Stage::REBASE_CONFLICT: stageText = "有冲突! 按 F 解决"; stageColor = RED; break;
         case Stage::RESOLVE_CONFLICT: stageText = "解决冲突中..."; break;
-        case Stage::CONTINUE_REBASE: stageText = "按回车继续"; break;
+        case Stage::CONTINUE_REBASE: stageText = "冲突已解，按回车继续"; break;
         case Stage::REBASE_COMPLETE: stageText = "rebase 完成!"; stageColor = GREEN; break;
         case Stage::COMPLETE: stageText = "完成!"; stageColor = GREEN; break;
     }
@@ -312,9 +312,15 @@ void Level05_Rebase::DrawStatusPanel() {
     if (currentStage == Stage::SHOW_BRANCHES) {
         DrawChinese("rebase 重写历史", 20, 635, 16, LIGHTGRAY);
         DrawChinese("使提交记录更线性", 20, 655, 16, LIGHTGRAY);
+    } else if (currentStage == Stage::START_REBASE) {
+        DrawChinese("下一步: 按 C 触发冲突", 20, 635, 16, LIGHTGRAY);
+        DrawChinese("然后按 F 解决冲突", 20, 655, 16, LIGHTGRAY);
     } else if (currentStage == Stage::REBASE_CONFLICT) {
-        DrawChinese("F: 标记冲突已解决", 20, 635, 16, LIGHTGRAY);
-        DrawChinese("解决后继续 rebase", 20, 655, 16, LIGHTGRAY);
+        DrawChinese(("F: 标记冲突已解决 (" + std::to_string(conflictCount) + " 次)").c_str(), 20, 635, 16, LIGHTGRAY);
+        DrawChinese("全部解决后按回车继续", 20, 655, 16, LIGHTGRAY);
+    } else if (currentStage == Stage::CONTINUE_REBASE) {
+        DrawChinese("冲突已全部解决", 20, 635, 16, LIGHTGRAY);
+        DrawChinese("按 Enter 执行 rebase --continue", 20, 655, 16, LIGHTGRAY);
     }
 }
 
@@ -334,12 +340,24 @@ void Level05_Rebase::DrawDialogueIfNeeded() {
         DrawChinese("main 和 feature 都修改了 config.cpp，rebase 会产生冲突。", 120, dialogY + 30, 22, WHITE);
         DrawChinese("按 [R] 开始 rebase feature 到 main", 120, dialogY + 60, 20, YELLOW);
     }
+    else if (currentStage == Stage::START_REBASE) {
+        DrawRectangle(100, dialogY, 1080, 120, {40, 50, 70, 240});
+        DrawRectangleLines(100, dialogY, 1080, 120, {100, 170, 255, 255});
+        DrawChinese("rebase 已启动。下一步会进入冲突处理演示。", 120, dialogY + 20, 22, WHITE);
+        DrawChinese("按 [C] 进入冲突 -> 按 [F] 解决 -> 按 [Enter] 继续", 120, dialogY + 55, 20, YELLOW);
+    }
     else if (currentStage == Stage::REBASE_CONFLICT) {
         DrawRectangle(100, dialogY, 1080, 120, {60, 30, 30, 240});
         DrawRectangleLines(100, dialogY, 1080, 120, RED);
         DrawChinese("CTO: 冲突了！config.cpp 需要手动解决。", 120, dialogY + 20, 26, RED);
         DrawChinese("rebase 比 merge 更容易冲突，因为逐个应用提交。", 120, dialogY + 55, 22, WHITE);
-        DrawChinese("按 [F] 解决冲突", 120, dialogY + 90, 20, YELLOW);
+        DrawChinese(("按 [F] 解决冲突 (共 " + std::to_string(conflictCount) + " 次)").c_str(), 120, dialogY + 90, 20, YELLOW);
+    }
+    else if (currentStage == Stage::CONTINUE_REBASE) {
+        DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
+        DrawRectangleLines(100, dialogY, 1080, 100, {100, 200, 100, 255});
+        DrawChinese("冲突已解决，准备继续 rebase。", 120, dialogY + 25, 24, WHITE);
+        DrawChinese("按 [Enter] 执行 rebase --continue", 120, dialogY + 60, 20, YELLOW);
     }
     else if (currentStage == Stage::REBASE_COMPLETE) {
         DrawRectangle(100, dialogY, 1080, 100, {40, 60, 40, 240});
