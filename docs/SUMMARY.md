@@ -1,162 +1,104 @@
 # 项目总结 / Project Summary
 
-## 项目概述 / Overview
+## 概览 / Overview
 
-本项目是一个完整的 Raylib 游戏开发教程仓库，从零开始教授 C++、CMake 和 Raylib 游戏开发。
+这个仓库是一个以 Raylib 为核心的教学型代码库，覆盖：
 
-## 项目结构 / Structure
+- 8 个循序渐进的教程章节
+- 7 个主要游戏/示例目录
+- 1 组 Snake 渐进式扩展版本
+- 1 个可选 Janet + Raylib REPL 模块
 
-### 教程章节 (chapters/)
-包含 6 个循序渐进的教程章节：
+The repo is organized as a teaching codebase rather than a single monolithic game. Start with the chapters, then move into complete games and optional experimental modules.
 
-1. **C++ 基础** - 变量、函数、类和对象
-2. **CMake 入门** - 构建系统和项目管理
-3. **Raylib 基础** - 窗口、绘图、输入处理
-4. **游戏循环** - 更新、渲染、帧率控制
-5. **碰撞检测** - AABB、圆形碰撞
-6. **游戏状态** - 状态机、UI系统
+## 结构 / Structure
 
-### 游戏项目 (games/)
-包含 6 个完整的游戏实现：
+### `chapters/`
 
-1. **打砖块 (Brick Breaker)** - 经典打砖块游戏
-   - 挡板控制
-   - 球的物理反弹
-   - 多层砖块系统
-   - 生命和分数系统
+按顺序组织的教程章节：
 
-2. **贪吃蛇 (Snake)** - 经典贪吃蛇游戏
-   - 网格系统
-   - 蛇的移动和成长
-   - 食物生成
-   - 自碰撞检测
+1. `01-cpp-basics`
+2. `02-cmake-intro`
+3. `03-raylib-basics`
+4. `04-game-loop`
+5. `05-collision`
+6. `06-game-states`
+7. `07-raygui-basics`
+8. `08-raygui-advanced`
 
-3. **俄罗斯方块 (Tetris)** - 经典俄罗斯方块
-   - 7种方块形状
-   - 旋转机制
-   - 消行系统
-   - 分数计算
+### `games/`
 
-4. **坦克大战 (Tank Battle)** - 坦克对战游戏
-   - 玩家坦克控制
-   - 敌人AI
-   - 子弹系统
-   - 碰撞检测
+完整游戏和附加示例：
 
-5. **塔防游戏 (Tower Defense)** - 保卫萝卜风格塔防
-   - 防御塔系统
-   - 敌人路径
-   - 波次管理
-   - 资源系统
+1. `brick-breaker`
+2. `snake`
+3. `tetris`
+4. `tank-battle`
+5. `tower-defense`
+6. `fps`
+7. `git-fighter`
 
-6. **第一人称射击 (FPS)** - 简单的FPS游戏
-   - 第一人称相机
-   - 3D环境
-   - 射击机制
-   - 目标系统
+### `games/snake/phases/`
 
-## 技术特点 / Technical Features
+Snake 的渐进式扩展版本：
 
-### 构建系统
-- 使用 CMake 作为构建系统
-- 自动下载和配置 Raylib 依赖
-- 支持选择性构建章节或游戏
-- 跨平台支持 (Windows, Linux, macOS)
+- `v0-base` 由 `games/snake/` 提供
+- `v1-items`
+- `v2-fx`
+- `v3-audio`
+- `v4-multi`
 
-### 代码质量
-- C++17 标准
-- 清晰的代码结构
-- 详细的注释（中英文）
-- 遵循最佳实践
+### `janet/`
 
-### 文档
-- 完整的中英文 README
-- 详细的构建指南 (docs/BUILD.md)
-- 综合学习指南 (docs/GUIDE.md)
-- 每个章节和游戏都有单独的 README
+可选的 Janet + Raylib 互操作模块、REPL 工作流和 NetREPL 示例。
 
-## 学习路径 / Learning Path
+### `docs/`
 
-### 初学者路径 (1-2周)
-1. 学习 Chapter 1-3
-2. 实现 Brick Breaker
-3. 实现 Snake
+主要文档入口：
 
-### 进阶路径 (3-4周)
-1. 学习 Chapter 4-6
-2. 实现 Tetris
-3. 实现 Tank Battle
+- `README.md`
+- `docs/BUILD.md`
+- `docs/GUIDE.md`
+- `docs/JANET.md`
+- `games/snake/ROADMAP.md`
+- `games/git-fighter/README.md`
 
-### 高级路径 (5-8周)
-1. 实现 Tower Defense
-2. 实现 FPS
-3. 创建自己的游戏
+## 构建特点 / Build Characteristics
 
-## 代码统计 / Code Statistics
+- Top-level CMake fetches `raylib` and `raygui` automatically if they are not already installed.
+- `BUILD_GAMES=ON` also includes `games/git-fighter`, so full builds require `pkg-config` and `libgit2`.
+- Output paths are split by content type:
+  - chapters: `build/bin/chapters/`
+  - main games: `build/bin/games/`
+  - Snake phases: `build/bin/snake-phases/`
+  - Git Fighter + demos: `build/bin/`
+  - Janet module: `build/janet/`
 
-- **章节数量**: 6 个
-- **游戏项目**: 6 个
-- **C++ 源文件**: 18 个
-- **总代码行数**: 约 2500+ 行
-- **文档页数**: 4 个主要文档
+## 推荐阅读顺序 / Recommended Reading Order
 
-## 已实现功能 / Implemented Features
+1. Read and run the numbered chapter directories in order.
+2. Move to `games/brick-breaker` or `games/snake` for a first complete game.
+3. Use `games/snake/ROADMAP.md` and `games/snake/phases/README.md` when you want progressive extensions.
+4. Enable `janet/` only when you specifically want REPL-driven prototyping.
 
-✅ 完整的项目结构
-✅ 6 个教程章节（含示例代码）
-✅ 6 个完整游戏实现
-✅ CMake 构建系统
-✅ 中英文文档
-✅ 详细的学习指南
-✅ 构建说明文档
-✅ Janet REPL 互操作实验环境
+## 当前文档重点 / Current Documentation Focus
 
-## 待完善功能 / Future Enhancements
+- 清晰的第一次构建路径
+- 平台依赖说明
+- 教程与示例结构导航
+- `git-fighter` 的额外依赖说明
+- CMake 4 和字体资源相关的故障排查
 
-- [ ] 添加游戏截图和 GIF
-- [ ] 添加音效和音乐示例
-- [ ] 添加网络多人游戏示例
-- [ ] 添加粒子系统教程
-- [ ] 添加更多高级游戏示例
-- [ ] 创建视频教程
-- [ ] 添加单元测试
+## 适合人群 / Target Audience
 
-## 适用人群 / Target Audience
+- C++ beginners
+- Developers new to Raylib
+- Students working through game-programming exercises
+- Teachers who want small, readable examples plus larger projects
 
-- C++ 初学者
-- 游戏开发初学者
-- 想学习 Raylib 的开发者
-- 教育工作者和学生
+## 相关文档 / Related Documents
 
-## 依赖项 / Dependencies
-
-- CMake 3.15+
-- C++17 兼容编译器
-- Raylib 5.0 (自动下载)
-- 图形库依赖 (Linux: X11)
-
-## 许可证 / License
-
-MIT License - 可自由使用和修改
-
-## 贡献 / Contributing
-
-欢迎提交：
-- Bug 报告
-- 功能建议
-- 代码改进
-- 文档改进
-- 新的游戏示例
-
-## 资源链接 / Resources
-
-- [Raylib 官网](https://www.raylib.com/)
-- [C++ 参考](https://en.cppreference.com/)
-- [CMake 文档](https://cmake.org/documentation/)
-- [LearnCpp.com](https://www.learncpp.com/)
-
----
-
-**项目完成日期**: 2026-02-09
-**作者**: zhaoyul
-**维护状态**: 积极维护
+- [README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/README.md)
+- [docs/BUILD.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/BUILD.md)
+- [docs/GUIDE.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/GUIDE.md)
+- [docs/JANET.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/JANET.md)

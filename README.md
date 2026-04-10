@@ -1,384 +1,200 @@
 # Raylib 游戏开发教程 / Raylib Game Development Tutorial
 
-## 📚 项目简介 / Project Introduction
+一个围绕 C++、CMake、Raylib 和 Raygui 的教程仓库：先学基础章节，再阅读完整游戏，再按需进入 Snake 渐进版本和 Janet REPL 实验环境。
 
-这是一个从零开始学习 C++、CMake 和 Raylib 的完整教程项目。通过构建经典游戏来掌握游戏开发的核心概念。
+This repository teaches C++, CMake, Raylib, and Raygui through ordered tutorial chapters, complete game examples, progressive Snake phases, and an optional Janet REPL workflow.
 
-This is a comprehensive tutorial project for learning C++, CMake, and Raylib from scratch. Master game development core concepts by building classic games.
+## 仓库内容 / What Is In This Repo
 
-## 🎮 游戏项目 / Game Projects
+### 教程章节 / Chapters
 
-本教程包含以下游戏项目：
+| 路径 | 主题 | 目标 |
+|------|------|------|
+| `chapters/01-cpp-basics` | C++ basics | 变量、函数、类、容器 |
+| `chapters/02-cmake-intro` | CMake intro | 目标、依赖、构建目录 |
+| `chapters/03-raylib-basics` | Raylib basics | 窗口、绘图、输入 |
+| `chapters/04-game-loop` | Game loop | update/render/delta time |
+| `chapters/05-collision` | Collision | AABB、圆形碰撞 |
+| `chapters/06-game-states` | Game states | 菜单、暂停、结束状态 |
+| `chapters/07-raygui-basics` | Raygui basics | 按钮、滑块、文本框 |
+| `chapters/08-raygui-advanced` | Raygui advanced | 样式、布局、复杂界面 |
 
-1. **打砖块 (Brick Breaker)** - 学习基础游戏循环、碰撞检测
-2. **贪吃蛇 (Snake)** - 学习游戏状态管理、数据结构、粒子系统、存档系统
-3. **俄罗斯方块 (Tetris)** - 学习二维数组、旋转算法
-4. **坦克大战 (Tank Battle)** - 学习精灵动画、多对象管理
-5. **塔防游戏 (Tower Defense)** - 学习路径寻找、升级系统
-6. **第一人称射击 (FPS)** - 学习3D图形、相机控制
+### 游戏与示例 / Games And Examples
 
-### 🐍 Snake 游戏扩展路线图
+| 路径 | 内容 | 重点 |
+|------|------|------|
+| `games/brick-breaker` | Brick Breaker | 碰撞响应、状态管理 |
+| `games/snake` | Snake base game | 网格移动、`std::deque`、状态机 |
+| `games/snake/phases` | Snake phases | 从 v0 到 v4 的渐进扩展 |
+| `games/tetris` | Tetris | 二维数组、旋转、消行 |
+| `games/tank-battle` | Tank Battle | 多对象管理、子弹与 AI |
+| `games/tower-defense` | Tower Defense | 路径、范围检测、波次 |
+| `games/fps` | FPS | 3D camera、射击与场景 |
+| `games/git-fighter` | Git tutorial game | libgit2、可视化、关卡脚本 |
 
-贪吃蛇游戏设计为**渐进式学习项目**，通过多个阶段逐步引入新的编程概念。每个阶段都是独立的代码版本，可在 `games/snake/phases/` 目录找到。
+### 可选模块 / Optional Module
 
-| 阶段         | 功能                  | 教学内容                       | 难度     |
-|--------------|-----------------------|--------------------------------|----------|
-| **v0-base**  | 经典贪吃蛇            | `std::deque`, 游戏循环, 状态机 | ⭐       |
-| **v1-items** | 多种食物 + 障碍物     | 枚举类, 继承, 多态碰撞         | ⭐⭐     |
-| **v2-fx**    | 粒子系统 + 动画       | 对象池, 时间管理, 缓动函数     | ⭐⭐     |
-| **v3-audio** | 音效 + 高分榜         | 资源管理, JSON, 文件I/O        | ⭐⭐⭐   |
-| **v4-multi** | 双人模式 + 关卡编辑器 | 设计模式, 序列化, 架构         | ⭐⭐⭐⭐ |
+| 路径 | 内容 |
+|------|------|
+| `janet/` | Janet + Raylib interop module, REPL workflow, NetREPL examples |
 
-<details>
-<summary>📋 各阶段详细说明 (点击展开)</summary>
+## 学习顺序 / Suggested Learning Order
 
-#### 🎯 v0-base - 经典贪吃蛇
-**核心功能：**
-- 蛇的移动和成长机制
-- 食物随机生成
-- 墙壁和自身碰撞检测
-- 分数系统和速度递增
+1. 从 `chapters/01` 到 `chapters/08` 依次阅读和运行。
+2. 选一个完整游戏开始拆读，通常建议 `games/brick-breaker` 或 `games/snake`。
+3. 想继续扩展 Snake 时，再进入 `games/snake/phases/README.md` 和 `games/snake/ROADMAP.md`。
+4. 需要 REPL 原型、热替换或脚本化实验时，再启用 `janet/`。
 
-**学习目标：**
-- `std::deque` 双端队列管理蛇身
-- 基于时间的移动控制 (`GetFrameTime()`)
-- 简单状态机 (MENU/PLAYING/GAME_OVER)
-- 基础 Raylib 绘图 API
+## 依赖与前置条件 / Prerequisites
 
----
+### 基础依赖 / Base Requirements
 
-#### 🍎 v1-items - 道具与障碍系统
-**新增功能：**
-- **多种食物类型：**
-  - 普通食物 (+10分)
-  - 金色食物 (+50分，限时出现)
-  - 速度食物 (临时加速/减速)
-- **障碍物系统：**
-  - 随机生成墙壁
-  - 随关卡增加的障碍密度
-- **生命系统：** 3条命，撞墙不立即结束
-
-**学习目标：**
-- `enum class` 强类型枚举
-- 继承和多态：`Item` 基类 + 各种道具派生类
-- 虚函数实现多态行为
-- 更复杂的碰撞检测逻辑
-
-**代码结构变化：**
-```cpp
-class Item {
-public:
-    virtual void onEat(Snake& snake, Game& game) = 0;
-    virtual Color getColor() const = 0;
-    virtual ~Item() = default;
-};
-```
-
----
-
-#### ✨ v2-fx - 视觉特效
-**新增功能：**
-- **粒子系统：**
-  - 吃食物时的爆炸效果
-  - 蛇移动时的轨迹拖尾
-  - 游戏结束时的消散动画
-- **平滑动画：**
-  - 蛇头朝向旋转
-  - 身体间的平滑连接
-  - 食物浮动动画
-- **屏幕震动：** 碰撞时的反馈
-
-**学习目标：**
-- 对象池模式 (Object Pool) 管理粒子
-- 缓动函数 (Easing Functions)
-- 向量数学基础 (`Vector2` 运算)
-- 透明度混合和颜色插值
-
-**关键算法：**
-```cpp
-// 线性插值 (Lerp)
-Vector2 Lerp(Vector2 a, Vector2 b, float t) {
-    return {a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t};
-}
-```
-
----
-
-#### 🎵 v3-audio - 音效与数据持久化
-**新增功能：**
-- **音效系统：**
-  - 吃食物音效 (不同食物不同音调)
-  - 碰撞音效
-  - 背景音乐 (循环播放)
-- **高分榜系统：**
-  - 本地存储前10名
-  - 玩家名字输入
-  - 按分数排序
-- **设置菜单：**
-  - 音量调节
-  - 难度选择 (影响速度和障碍数)
-  - 按键自定义
-
-**学习目标：**
-- Raylib 音频 API (`LoadSound`, `PlaySound`)
-- JSON 解析 (使用 [nlohmann/json](https://github.com/nlohmann/json))
-- 文件 I/O 和错误处理
-- 资源管理器模式 (RAII)
-
-**数据结构：**
-```cpp
-struct HighScore {
-    std::string name;
-    int score;
-    int length;
-    std::string date;
-};
-```
-
----
-
-#### 👥 v4-multi - 多人模式与关卡编辑器
-**新增功能：**
-- **双人模式：**
-  - 本地双人同屏对战
-  - 竞争吃食物，可互相阻挡
-  - 先到指定分数者获胜
-- **关卡编辑器：**
-  - 可视化编辑障碍位置
-  - 保存/加载关卡文件
-  - 预设关卡 + 自定义关卡
-- **AI 对手：**
-  - 简单寻路算法 (BFS)
-  - 可调整难度
-
-**学习目标：**
-- 组件-实体系统 (ECS) 基础
-- BFS 路径寻找算法
-- 工厂模式创建游戏对象
-- 序列化/反序列化
-- 现代 C++ 特性 (lambda, smart pointers)
-
-**设计模式应用：**
-- **单例模式：** 资源管理器、配置管理器
-- **观察者模式：** 事件系统 (吃食物、碰撞事件)
-- **状态模式：** 更复杂的状态机
-- **策略模式：** AI 行为切换
-
-</details>
-
-## 📖 学习章节 / Learning Chapters
-
-- **第1章: C++ 基础** - 变量、函数、类、指针
-- **第2章: CMake 入门** - 构建系统、依赖管理
-- **第3章: Raylib 基础** - 窗口、绘图、输入处理
-- **第4章: 游戏循环** - 更新、渲染、帧率控制
-- **第5章: 碰撞检测** - AABB、圆形碰撞、SAT
-- **第6章: 游戏状态** - 状态机、基础UI绘制
-- **第7章: Raygui 基础** - 按钮、滑块、文本框等控件使用
-- **第8章: Raygui 高级应用** - 样式定制、布局管理、复杂界面
-
-## 🚀 快速开始 / Quick Start
-
-### 环境要求 / Requirements
-
-- C++ 编译器 (GCC 7+, Clang 6+, MSVC 2017+)
+- C++17 compiler
 - CMake 3.15+
 - Git
-- 图形库依赖（Linux需要 X11 开发库）
+- 首次配置时需要网络，用于拉取 `raylib` 和 `raygui`
 
-> **注意：** 在无图形界面的服务器环境中，需要安装图形库依赖才能编译。详见 [构建指南](docs/BUILD.md)。
+### 完整构建额外依赖 / Extra Requirements For Full Builds
 
-### 构建步骤 / Build Instructions
+`games/git-fighter` 会在 `BUILD_GAMES=ON` 时一并参与配置，因此完整构建还需要：
+
+- `pkg-config`
+- `libgit2` development files
+
+### Linux 图形库依赖 / Linux Graphics Packages
+
+Raylib desktop builds need X11/OpenGL development packages on Linux. See [docs/BUILD.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/BUILD.md) for concrete package lists.
+
+## 快速开始 / Quick Start
+
+### 方案 A: 先跑教程章节（推荐第一次使用） / Profile A: Chapters-Only First Run
+
+这条路径避开了 `git-fighter` 的 `libgit2` 依赖，更适合第一次验证工具链。
+
+This is the safest first build because it avoids the extra `git-fighter` dependency chain.
 
 ```bash
-# 克隆仓库 / Clone repository
-git clone https://github.com/zhaoyul/raylib-tutorial.git
-cd raylib-tutorial
+cmake -S . -B build \
+  -DBUILD_GAMES=OFF \
+  -DBUILD_SNAKE_PHASES=OFF \
+  -DBUILD_JANET=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
-# Linux: 安装图形库依赖
-sudo apt install libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
+cmake --build build --target cpp-basics chapter07_raygui_basics -j
 
-# 创建构建目录 / Create build directory
-mkdir build && cd build
-
-# 配置和构建 / Configure and build
-cmake ..
-cmake --build .
-
-# 运行游戏 (示例) / Run game (example)
-./bin/games/brick-breaker
-./bin/games/snake          # 🐍 试试贪吃蛇！
+./build/bin/chapters/cpp-basics
+./build/bin/chapters/chapter07_raygui_basics
 ```
 
-### 🐍 快速体验 Snake 游戏
+### 方案 B: 构建整个教程仓库 / Profile B: Full Tutorial Build
+
+先安装 `pkg-config` 和 `libgit2`，然后再配置：
+
+Install `pkg-config` and `libgit2` first, then configure the whole repo:
 
 ```bash
-# 构建并运行 Snake
-cmake --build . --target snake
-./bin/games/snake
+cmake -S . -B build -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+cmake --build build -j
 
-# 在 Emacs 中开发 (使用 .dir-locals.el 配置)
-emacs games/snake/main.cpp
-# 然后按 M-x compile 即可编译运行
+./build/bin/games/snake
+./build/bin/games/brick-breaker
+./build/bin/git-fighter
+./build/bin/snake-phases/snake-v1-items
 ```
 
-**想扩展 Snake？** 查看 [games/snake/ROADMAP.md](games/snake/ROADMAP.md) 了解完整的渐进式开发计划！
-
-> 详细构建说明请参考 [构建指南 / Build Guide](docs/BUILD.md)
-
-## 🧪 Janet REPL 实验环境 / Janet REPL Playground
-
-新增可选的 Janet + Raylib 互操作模块，支持在 REPL 中驱动窗口、绘制与状态更新，适合做实时原型和热重载实验。
-
-> 详细流程与示例请参考 [Janet 文档 / Janet Guide](docs/JANET.md)
-
-### Janet 编译 / 开发 / 调试 / 测试 / NetREPL
-
-下面的命令都假设你在仓库根目录 `raylib-tutorial/`。
-
-#### 1) 编译模块 (CMake)
-
-启用 Janet 子工程并只编译 `raylib_janet` 目标：
+### 方案 C: 只玩 Snake 扩展阶段 / Profile C: Snake Phases Only
 
 ```bash
-cmake -S . -B build -DBUILD_JANET=ON -DBUILD_GAMES=OFF -DBUILD_CHAPTERS=OFF
+cmake -S . -B build \
+  -DBUILD_CHAPTERS=OFF \
+  -DBUILD_GAMES=OFF \
+  -DBUILD_SNAKE_PHASES=ON \
+  -DBUILD_JANET=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+cmake --build build --target snake-v1-items snake-v2-fx -j
+
+./build/bin/snake-phases/snake-v1-items
+./build/bin/snake-phases/snake-v2-fx
+```
+
+### 方案 D: 只启用 Janet / Profile D: Janet Only
+
+```bash
+cmake -S . -B build \
+  -DBUILD_CHAPTERS=OFF \
+  -DBUILD_GAMES=OFF \
+  -DBUILD_SNAKE_PHASES=OFF \
+  -DBUILD_JANET=ON \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
 cmake --build build --target raylib_janet -j
 ```
 
-产物路径：`build/janet/raylib.so`（macOS/Linux）或 `build/janet/raylib.dll`（Windows）。
+更多 Janet 工作流见 [docs/JANET.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/JANET.md)。
 
-#### 2) 开发 (推荐的环境变量)
+## 运行产物位置 / Output Layout
 
-将“本仓库里的模块”和“本地构建的 native module”都加入 `JANET_PATH`：
+| 构建内容 | 输出目录 | 示例 |
+|----------|----------|------|
+| Chapters | `build/bin/chapters/` | `cpp-basics`, `chapter07_raygui_basics` |
+| Main games | `build/bin/games/` | `snake`, `tetris`, `fps` |
+| Snake phases | `build/bin/snake-phases/` | `snake-v1-items`, `snake-v4-multi` |
+| Git Fighter + demos | `build/bin/` | `git-fighter`, `demo-graph`, `demo-split-view` |
+| Janet module | `build/janet/` | `raylib.so` / `raylib.dll` |
 
-```bash
-export JANET_PATH="$(pwd)/build/janet:$(pwd)/janet"
-```
+## 文档导航 / Documentation Map
 
-如果你要用 NetREPL（下面第 5 节），还需要把 `spork` 也加入路径（见第 5 节）。
+- [docs/BUILD.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/BUILD.md): platform prerequisites, build profiles, troubleshooting
+- [docs/GUIDE.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/GUIDE.md): broader learning guide
+- [docs/JANET.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/JANET.md): Janet REPL and NetREPL workflow
+- [docs/SUMMARY.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/SUMMARY.md): repo-wide structure summary
+- [games/snake/ROADMAP.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/games/snake/ROADMAP.md): Snake progression plan
+- [games/git-fighter/README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/games/git-fighter/README.md): Git Fighter build and run notes
+- [data/fonts/README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/data/fonts/README.md): Chinese font setup for the Raygui chapters
 
-#### 3) 调试 (Debug)
+## 常见问题 / Troubleshooting Highlights
 
-最小化复现（只验证能 import）：
+### `Compatibility with CMake < 3.5 has been removed`
 
-```bash
-JANET_PATH="$(pwd)/build/janet" janet -e '(import raylib) (print "raylib loaded")'
-```
-
-使用 lldb 调试 Janet 进程（方便定位 `raylib_janet.cpp` 崩溃/断点）：
-
-```bash
-lldb -- janet -e '(import raylib) (print "loaded")'
-```
-
-改了 `janet/raylib_janet.cpp` 后的循环一般是：
-
-```bash
-cmake --build build --target raylib_janet -j
-JANET_PATH="$(pwd)/build/janet:$(pwd)/janet" janet janet/examples/smoke.janet
-```
-
-#### 4) 测试 (Smoke Tests)
-
-仓库内置了几个“不会卡死”的冒烟脚本：
+This happens with CMake 4 when configuring the fetched Raylib 5.0 source. Add this flag:
 
 ```bash
-# 只测 native module + raylib 能开窗/绘制/退出
-JANET_PATH="$(pwd)/build/janet" janet janet/examples/smoke.janet
-
-# 测 workflow 主循环 (不依赖 NetREPL)
-JANET_PATH="$(pwd)/build/janet:$(pwd)/janet" janet janet/examples/workflow-smoke.janet
+-DCMAKE_POLICY_VERSION_MINIMUM=3.5
 ```
 
-建议在 CI 或脚本里配合 `timeout`（macOS Homebrew 自带）避免窗口挂住：
+Keeping that flag in your configure command is safe.
 
-```bash
-timeout 12s env JANET_PATH="$(pwd)/build/janet" janet janet/examples/smoke.janet
-```
+### `Package 'libgit2' not found`
 
-#### 5) NetREPL (网络 REPL, 用于远程/热更新控制)
+`BUILD_GAMES=ON` includes `games/git-fighter`, which requires `pkg-config` and `libgit2`.
 
-本项目使用的是 **spork/netrepl**（不是 Clojure 的 nREPL）。
+You have two options:
 
-先把 `spork` 安装到本仓库的本地模块树（不污染全局，生成 `jpm_tree/`）：
+1. Install `pkg-config` and `libgit2` development files, then rerun CMake.
+2. For a simpler first run, configure with `-DBUILD_GAMES=OFF`.
 
-```bash
-jpm -l install spork
-```
+### Raygui 章节只显示英文 / Raygui Chapters Fall Back To English
 
-然后把 `spork` 加到 `JANET_PATH`：
+`chapters/07-raygui-basics` and `chapters/08-raygui-advanced` look for fonts under `data/fonts/`. Download one of the supported fonts described in [data/fonts/README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/data/fonts/README.md).
 
-```bash
-export JANET_PATH="$(pwd)/build/janet:$(pwd)/janet:$(pwd)/jpm_tree/lib"
-```
+### 无图形环境 / Headless Or CI Environment
 
-启动 host（会开 Raylib 窗口并监听 9365 端口）：
+Desktop builds need graphics libraries and a usable display environment. On servers or CI runners, install the OS graphics packages first and use a display server or virtual display when running GUI programs.
 
-```bash
-janet janet/examples/netrepl-host.janet
-```
+## 仓库结构 / Repository Layout
 
-另开终端启动 client（交互式）：
-
-```bash
-janet janet/examples/netrepl-client.janet
-```
-
-连接后你可以在 client 输入 Janet 表达式，实时修改 host 进程中的状态，例如：
-
-```clojure
-(put demo-state :x 500)
-(put demo-state :y 100)
-```
-
-如果只想做自动化验证，也可以运行非交互 smoke client：
-
-```bash
-janet janet/examples/netrepl-smoke-client.janet
-```
-
-## 📁 项目结构 / Project Structure
-
-```
+```text
 raylib-tutorial/
-├── chapters/           # 教程章节代码
-│   ├── 01-cpp-basics/
-│   ├── 02-cmake-intro/
-│   ├── 03-raylib-basics/
-│   ├── 04-game-loop/
-│   ├── 05-collision/
-│   ├── 06-game-states/
-│   ├── 07-raygui-basics/
-│   └── 08-raygui-advanced/
-├── games/             # 完整游戏项目
-│   ├── brick-breaker/
-│   ├── snake/
-│   ├── tetris/
-│   ├── tank-battle/
-│   ├── tower-defense/
-│   └── fps/
-├── janet/             # Janet 互操作模块与 REPL 工作流
-├── docs/              # 详细文档
-└── cmake/             # CMake 工具脚本
+├── chapters/               # Ordered tutorial chapters
+├── games/                  # Full game projects and Git Fighter
+├── janet/                  # Janet interop module and examples
+├── docs/                   # Build, guide, summary, Janet docs
+├── data/fonts/             # Optional Chinese fonts for Raygui chapters
+├── CMakeLists.txt          # Top-level build entry
+└── .dir-locals.el          # Editor helpers
 ```
 
-## 📝 学习路径 / Learning Path
+## 许可证 / License
 
-1. 从 `chapters/` 目录按顺序学习基础知识
-2. 每章包含示例代码和详细说明文档
-3. 完成章节学习后，开始构建 `games/` 中的项目
-4. 每个游戏都有完整的源码和构建说明
-
-## 🤝 贡献 / Contributing
-
-欢迎提交问题和改进建议！
-
-## 📄 许可证 / License
-
-MIT License
-
-## 🔗 相关资源 / Resources
-
-- [Raylib Official Website](https://www.raylib.com/)
-- [CMake Documentation](https://cmake.org/documentation/)
-- [C++ Reference](https://en.cppreference.com/)
+MIT License.

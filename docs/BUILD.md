@@ -1,245 +1,247 @@
 # 构建指南 / Build Guide
 
-## 系统要求 / System Requirements
+本仓库的构建体验分成两类：
 
-### Windows
-- Visual Studio 2019+ 或 MinGW-w64
+- `chapters/` 和大多数示例只需要标准的 C++/CMake/Raylib toolchain。
+- 完整构建在 `BUILD_GAMES=ON` 时还会包含 `games/git-fighter`，因此额外需要 `pkg-config` 和 `libgit2`。
+
+This guide focuses on accurate prerequisites, verified configure profiles, and the two most common first-run failures.
+
+## 1. 前置条件 / Prerequisites
+
+### 全平台基础要求 / Base Requirements
+
+- C++17 compiler
 - CMake 3.15+
 - Git
+- Internet access on the first configure, because `raylib` and `raygui` are fetched automatically if not already installed
 
-### Linux (Ubuntu/Debian)
+### 完整构建额外要求 / Extra Requirements For Full Builds
+
+If you keep `BUILD_GAMES=ON`, install:
+
+- `pkg-config`
+- `libgit2` development files
+
+### 平台包建议 / Platform Packages
+
+#### macOS
+
 ```bash
-# 安装必要的开发工具
-sudo apt update
-sudo apt install build-essential git cmake
+brew install cmake git
 
-# 安装图形库依赖
-sudo apt install libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
+# Needed for full builds with games/git-fighter
+brew install pkg-config libgit2
 ```
 
-### Linux (Fedora/RHEL)
+#### Ubuntu / Debian
+
+```bash
+sudo apt update
+
+# Base toolchain + desktop graphics packages
+sudo apt install build-essential cmake git \
+  libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
+
+# Needed for full builds with games/git-fighter
+sudo apt install pkg-config libgit2-dev
+```
+
+#### Fedora / RHEL
+
 ```bash
 sudo dnf groupinstall "Development Tools"
-sudo dnf install cmake git
-sudo dnf install libX11-devel libXrandr-devel libXi-devel mesa-libGL-devel
+sudo dnf install cmake git \
+  libX11-devel libXrandr-devel libXi-devel mesa-libGL-devel mesa-libEGL-devel
+
+# Needed for full builds with games/git-fighter
+sudo dnf install pkgconf-pkg-config libgit2-devel
 ```
 
-### macOS
-```bash
-# 使用 Homebrew 安装
-brew install cmake git
-```
+#### Windows
 
-## 构建步骤 / Build Steps
+- Chapters-only builds work with Visual Studio or MinGW as long as CMake can find a C++17 compiler.
+- Full builds are easiest in an environment that also provides `pkg-config` and `libgit2` metadata to CMake. If you use plain Visual Studio, make sure `pkg-config` can resolve `libgit2` before configuring `BUILD_GAMES=ON`.
 
-### 1. 克隆仓库 / Clone Repository
+## 2. Clone The Repository
 
 ```bash
 git clone https://github.com/zhaoyul/raylib-tutorial.git
 cd raylib-tutorial
 ```
 
-### 2. 创建构建目录 / Create Build Directory
+## 3. Choose A Configure Profile
+
+### Profile A: Chapters Only
+
+Recommended for a first run, and verified in this workspace.
 
 ```bash
-mkdir build
-cd build
-```
-
-### 3. 配置项目 / Configure Project
-
-```bash
-# 默认配置（构建所有内容）
-cmake ..
-
-# 或者选择性构建
-cmake -DBUILD_CHAPTERS=ON -DBUILD_GAMES=OFF ..  # 只构建教程章节
-cmake -DBUILD_CHAPTERS=OFF -DBUILD_GAMES=ON ..  # 只构建游戏
-```
-
-### 4. 编译 / Build
-
-```bash
-# 使用 CMake 构建
-cmake --build .
-
-# 或者使用 make（Linux/macOS）
-make
-
-# 或者使用 MSBuild（Windows with Visual Studio）
-cmake --build . --config Release
-```
-
-### 5. 运行程序 / Run Programs
-
-编译成功后，可执行文件位于 `build/bin/` 目录：
-
-```bash
-# 运行教程章节示例
-./bin/chapters/cpp-basics
-./bin/chapters/cmake-intro
-./bin/chapters/raylib-basics
-./bin/chapters/game-loop
-./bin/chapters/collision
-./bin/chapters/game-states
-
-# 运行游戏
-./bin/games/brick-breaker
-./bin/games/snake
-./bin/games/tetris
-./bin/games/tank-battle
-./bin/games/tower-defense
-./bin/games/fps
-```
-
-## Janet + Raylib 互操作模块（可选）
-
-### 依赖安装
-
-Janet 需要单独安装（系统包或源码构建），确保 `janet` 和 `pkg-config` 可用：
-
-```bash
-# Ubuntu/Debian
-sudo apt install janet pkg-config
-
-# macOS (Homebrew)
-brew install janet pkg-config
-```
-
-### 构建 Janet 模块
-
-```bash
-# 在构建目录启用 Janet 模块
-cmake -DBUILD_JANET=ON ..
-cmake --build . --target raylib_janet
-```
-
-### REPL 使用（示例）
-
-```bash
-export JANET_PATH=/path/to/raylib-tutorial/janet
-export JANET_MODULE_PATH=/path/to/raylib-tutorial/build/janet
-janet
-```
-
-更多 REPL 工作流请参考 [docs/JANET.md](JANET.md)。
-
-## 常见问题 / Troubleshooting
-
-### 问题：找不到 X11 库（Linux）
-
-**解决方案：**
-```bash
-sudo apt install libx11-dev libxrandr-dev libxi-dev
-```
-
-### 问题：CMake 版本太旧
-
-**解决方案：**
-```bash
-# 升级 CMake
-pip install --upgrade cmake
-# 或从官网下载最新版本
-```
-
-### 问题：找不到编译器
-
-**Windows 解决方案：**
-- 安装 Visual Studio 2019+ 
-- 或安装 MinGW-w64
-
-**Linux 解决方案：**
-```bash
-sudo apt install build-essential
-```
-
-### 问题：Raylib 下载失败
-
-**解决方案：**
-手动下载 Raylib：
-```bash
-cd external
-git clone https://github.com/raysan5/raylib.git
-cd raylib
-git checkout 5.0
-```
-
-然后在 CMakeLists.txt 中指定 Raylib 路径。
-
-## 开发环境配置 / Development Environment
-
-### Visual Studio Code
-
-推荐安装的扩展：
-- C/C++ (Microsoft)
-- CMake Tools
-- CMake Language Support
-
-### CLion
-
-CLion 原生支持 CMake 项目，直接打开即可。
-
-### Visual Studio
-
-使用 "打开文件夹" 功能打开项目根目录，Visual Studio 会自动识别 CMake 项目。
-
-## 清理构建 / Clean Build
-
-```bash
-# 删除构建目录
-rm -rf build
-
-# 重新构建
-mkdir build && cd build
-cmake ..
-cmake --build .
-```
-
-## 交叉编译 / Cross Compilation
-
-### 为 Web 构建（使用 Emscripten）
-
-```bash
-# 安装 Emscripten
-git clone https://github.com/emscripten-core/emsdk.git
-cd emsdk
-./emsdk install latest
-./emsdk activate latest
-source ./emsdk_env.sh
-
-# 在仓库根目录构建 Web 版本（示例：Snake）
-cd /path/to/repository
-emcmake cmake -S . -B build-web \
-  -DBUILD_CHAPTERS=OFF \
-  -DBUILD_GAMES=ON \
+cmake -S . -B build \
+  -DBUILD_GAMES=OFF \
   -DBUILD_SNAKE_PHASES=OFF \
-  -DBUILD_JANET=OFF
-cmake --build build-web --target snake
-
-# 生成产物位于 build-web/bin/games/snake.html + snake.js + snake.wasm
-# 使用本地静态服务器运行（浏览器直接打开 file:// 往往会被跨域限制）
-python3 -m http.server 8080 --directory build-web/bin/games
-# 打开 http://127.0.0.1:8080/snake.html
+  -DBUILD_JANET=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 ```
 
-### 为 Android 构建
-
-需要 Android NDK，具体步骤请参考 Raylib 官方文档。
-
-## 性能优化构建 / Optimized Build
+Build and run:
 
 ```bash
-# Release 构建（优化性能）
-cmake -DCMAKE_BUILD_TYPE=Release ..
-cmake --build .
+cmake --build build --target cpp-basics chapter07_raygui_basics -j
 
-# Debug 构建（包含调试信息）
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-cmake --build .
+./build/bin/chapters/cpp-basics
+./build/bin/chapters/chapter07_raygui_basics
 ```
 
-## 需要帮助？ / Need Help?
+### Profile B: Full Repository
 
-- 查看 [Raylib 官方文档](https://www.raylib.com/)
-- 提交 [Issue](https://github.com/zhaoyul/raylib-tutorial/issues)
-- 参考 `docs/GUIDE.md` 详细教程
+This includes all chapters, main games, Snake phases, and Git Fighter.
+
+```bash
+cmake -S . -B build -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+cmake --build build -j
+```
+
+Common run commands:
+
+```bash
+./build/bin/games/brick-breaker
+./build/bin/games/snake
+./build/bin/games/tetris
+./build/bin/games/tank-battle
+./build/bin/games/tower-defense
+./build/bin/games/fps
+./build/bin/git-fighter
+./build/bin/demo-graph
+./build/bin/demo-split-view
+./build/bin/snake-phases/snake-v1-items
+```
+
+### Profile C: Snake Phases Only
+
+Useful when you only want the progressive Snake versions.
+
+```bash
+cmake -S . -B build \
+  -DBUILD_CHAPTERS=OFF \
+  -DBUILD_GAMES=OFF \
+  -DBUILD_SNAKE_PHASES=ON \
+  -DBUILD_JANET=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+cmake --build build --target snake-v1-items snake-v2-fx snake-v3-audio -j
+```
+
+Run from:
+
+```bash
+./build/bin/snake-phases/snake-v1-items
+./build/bin/snake-phases/snake-v2-fx
+./build/bin/snake-phases/snake-v3-audio
+```
+
+### Profile D: Janet Only
+
+```bash
+cmake -S . -B build \
+  -DBUILD_CHAPTERS=OFF \
+  -DBUILD_GAMES=OFF \
+  -DBUILD_SNAKE_PHASES=OFF \
+  -DBUILD_JANET=ON \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+cmake --build build --target raylib_janet -j
+```
+
+The resulting module is written to `build/janet/`.
+
+## 4. Output Layout
+
+| Content | Output path |
+|---------|-------------|
+| Chapters | `build/bin/chapters/` |
+| Main games | `build/bin/games/` |
+| Snake phases | `build/bin/snake-phases/` |
+| Git Fighter + demos | `build/bin/` |
+| Janet module | `build/janet/` |
+
+## 5. Reconfigure After Changing Options
+
+If you switch between profiles, rerun CMake with the new options:
+
+```bash
+cmake -S . -B build <new-options>
+```
+
+If the cache gets confusing, delete the build directory and start fresh:
+
+```bash
+rm -rf build
+```
+
+## 6. Troubleshooting
+
+### Error: `Compatibility with CMake < 3.5 has been removed`
+
+This happens with CMake 4 while configuring the fetched Raylib 5.0 source.
+
+Use:
+
+```bash
+cmake -S . -B build -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+```
+
+You can keep that flag in all configure commands.
+
+### Error: `Package 'libgit2' not found`
+
+This comes from `games/git-fighter/CMakeLists.txt` when `BUILD_GAMES=ON`.
+
+Check it directly:
+
+```bash
+pkg-config --modversion libgit2
+```
+
+If the command fails, either:
+
+1. Install `pkg-config` and `libgit2` development packages, then rerun CMake.
+2. Disable `BUILD_GAMES` for a chapters-only or Janet-only workflow.
+
+### Error: missing X11/OpenGL headers on Linux
+
+Install the graphics development packages for your distro first. On Ubuntu/Debian, the minimum desktop set is:
+
+```bash
+sudo apt install libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev
+```
+
+### Error: Raygui demos only show English text
+
+The Raygui chapters try to load Chinese fonts from `data/fonts/`. Follow [data/fonts/README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/data/fonts/README.md) and keep the downloaded `.otf` file under `data/fonts/`.
+
+### Error: build cannot fetch Raylib or Raygui
+
+The first configure may download dependencies from GitHub. Make sure:
+
+- the machine has network access
+- Git can reach GitHub
+- the build directory is not half-configured from an earlier failed fetch
+
+When in doubt:
+
+```bash
+rm -rf build
+cmake -S . -B build -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+```
+
+### Error: windowed programs fail in CI or on a server
+
+Compiling requires graphics headers, and running GUI programs also needs a usable display session. In CI or headless environments, use a virtual display or restrict yourself to configure/build validation.
+
+## 7. Related Docs
+
+- [README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/README.md)
+- [docs/GUIDE.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/GUIDE.md)
+- [docs/JANET.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/JANET.md)
+- [games/git-fighter/README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/games/git-fighter/README.md)
