@@ -63,7 +63,7 @@ This repository teaches C++, CMake, Raylib, and Raygui through ordered tutorial 
 
 ### Linux 图形库依赖 / Linux Graphics Packages
 
-Raylib desktop builds need X11/OpenGL development packages on Linux. See [docs/BUILD.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/BUILD.md) for concrete package lists.
+Raylib desktop builds need X11/OpenGL development packages on Linux. See [docs/BUILD.md](docs/BUILD.md) for concrete package lists.
 
 ## 快速开始 / Quick Start
 
@@ -131,7 +131,7 @@ cmake -S . -B build \
 cmake --build build --target raylib_janet -j
 ```
 
-更多 Janet 工作流见 [docs/JANET.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/JANET.md)。
+更多 Janet 工作流见 [docs/JANET.md](docs/JANET.md)。
 
 ## 运行产物位置 / Output Layout
 
@@ -145,13 +145,13 @@ cmake --build build --target raylib_janet -j
 
 ## 文档导航 / Documentation Map
 
-- [docs/BUILD.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/BUILD.md): platform prerequisites, build profiles, troubleshooting
-- [docs/GUIDE.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/GUIDE.md): broader learning guide
-- [docs/JANET.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/JANET.md): Janet REPL and NetREPL workflow
-- [docs/SUMMARY.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/docs/SUMMARY.md): repo-wide structure summary
-- [games/snake/ROADMAP.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/games/snake/ROADMAP.md): Snake progression plan
-- [games/git-fighter/README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/games/git-fighter/README.md): Git Fighter build and run notes
-- [data/fonts/README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/data/fonts/README.md): Chinese font setup for the Raygui chapters
+- [docs/BUILD.md](docs/BUILD.md): platform prerequisites, build profiles, troubleshooting
+- [docs/GUIDE.md](docs/GUIDE.md): broader learning guide
+- [docs/JANET.md](docs/JANET.md): Janet REPL and NetREPL workflow
+- [docs/SUMMARY.md](docs/SUMMARY.md): repo-wide structure summary
+- [games/snake/ROADMAP.md](games/snake/ROADMAP.md): Snake progression plan
+- [games/git-fighter/README.md](games/git-fighter/README.md): Git Fighter build and run notes
+- [data/fonts/README.md](data/fonts/README.md): Chinese font setup for the Raygui chapters
 
 ## 常见问题 / Troubleshooting Highlights
 
@@ -176,7 +176,7 @@ You have two options:
 
 ### Raygui 章节只显示英文 / Raygui Chapters Fall Back To English
 
-`chapters/07-raygui-basics` and `chapters/08-raygui-advanced` look for fonts under `data/fonts/`. Download one of the supported fonts described in [data/fonts/README.md](/Users/kevin/sandbox/gt/raylib_tutorial/crew/dave/data/fonts/README.md).
+`chapters/07-raygui-basics` and `chapters/08-raygui-advanced` look for fonts under `data/fonts/`. Download one of the supported fonts described in [data/fonts/README.md](data/fonts/README.md).
 
 ### 无图形环境 / Headless Or CI Environment
 
