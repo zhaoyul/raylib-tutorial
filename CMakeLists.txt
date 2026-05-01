@@ -25,14 +25,14 @@ else()
 endif()
 
 # 查找或下载 Raylib / Find or download Raylib
-find_package(raylib 5.0 QUIET)
+find_package(raylib 6.0 QUIET)
 if (NOT raylib_FOUND)
     message(STATUS "Raylib not found, fetching from GitHub...")
     include(FetchContent)
     FetchContent_Declare(
         raylib
         GIT_REPOSITORY https://github.com/raysan5/raylib.git
-        GIT_TAG 5.0
+        GIT_TAG 6.0
         GIT_SHALLOW 1
     )
     FetchContent_MakeAvailable(raylib)
